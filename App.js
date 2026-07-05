@@ -386,9 +386,7 @@ export default function App() {
       handleToggleCollapse(index);
     }
 
-    setFocusedCardIndex((currentFocusedIndex) => (
-      currentFocusedIndex === index ? null : index
-    ));
+    setFocusedCardIndex(index);
   }
 
   function handleTreeCardFocus(index) {
