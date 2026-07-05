@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -10,12 +10,14 @@ import {
 } from 'react-native';
 import {
   getSnapshot,
+  loadCards,
   push,
   removeAt,
   subscribe,
   toggleChildLink,
   updateAt,
 } from './stackStore';
+import defaultStackData from './defaultStack.json';
 
 export default function App() {
   const [editingIndex, setEditingIndex] = useState(null);
@@ -23,6 +25,7 @@ export default function App() {
   const [linkingIndex, setLinkingIndex] = useState(null);
   const [focusedCardIndex, setFocusedCardIndex] = useState(null);
   const [layoutMode, setLayoutMode] = useState('leaf');
+  const hasLoadedDefaultStack = useRef(false);
   const stack = useSyncExternalStore(subscribe, getSnapshot);
   const cards = stack.map((card, index) => ({ ...card, index }));
   const visibleCards = stack
@@ -38,6 +41,30 @@ export default function App() {
     setLinkingIndex(null);
     setFocusedCardIndex(nextIndex);
   }
+
+  useEffect(() => {
+    if (!__DEV__) {
+      return;
+    }
+
+    if (hasLoadedDefaultStack.current) {
+      return;
+    }
+
+    if (stack.length > 0) {
+      hasLoadedDefaultStack.current = true;
+      return;
+    }
+
+    const seedCards = Array.isArray(defaultStackData?.cards)
+      ? defaultStackData.cards
+      : [];
+    if (seedCards.length > 0) {
+      loadCards(seedCards);
+    }
+
+    hasLoadedDefaultStack.current = true;
+  }, [stack.length]);
 
   function handleEditCard(index, text) {
     setEditingIndex(index);

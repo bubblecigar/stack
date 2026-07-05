@@ -37,6 +37,36 @@ export function push(value) {
   return nextIndex;
 }
 
+function normalizeIncomingCard(rawCard, index) {
+  const text = typeof rawCard === 'string'
+    ? rawCard
+    : rawCard?.text ?? '';
+
+  const childIds = Array.isArray(rawCard?.childIds) ? rawCard.childIds : [];
+  const parentIds = Array.isArray(rawCard?.parentIds) ? rawCard.parentIds : [];
+
+  return {
+    childIds,
+    id: nextCardId + index,
+    parentIds,
+    text: String(text),
+  };
+}
+
+export function loadCards(rawCards) {
+  if (!Array.isArray(rawCards) || rawCards.length === 0) {
+    return;
+  }
+
+  const normalizedCards = rawCards.map((card, index) => (
+    normalizeIncomingCard(card, index)
+  ));
+
+  stack = normalizedCards;
+  nextCardId = normalizedCards.length + 1;
+  emitChange();
+}
+
 export function updateAt(index, value) {
   const nextValue = value.trim();
 
