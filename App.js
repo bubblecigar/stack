@@ -1,6 +1,13 @@
 import { StatusBar } from 'expo-status-bar';
 import { useState, useSyncExternalStore } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import {
   getSnapshot,
   push,
@@ -10,30 +17,24 @@ import {
 } from './stackStore';
 
 export default function App() {
-  const [draftValue, setDraftValue] = useState('');
-  const [isDraftActive, setIsDraftActive] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
   const [editingValue, setEditingValue] = useState('');
+  const [layoutMode, setLayoutMode] = useState('leaf');
   const stack = useSyncExternalStore(subscribe, getSnapshot);
+  const cards = stack.map((value, index) => ({ index, value }));
   const visibleCards = stack
     .map((value, index) => ({ index, value }))
     .slice(-4)
     .reverse();
+  const treeCards = [...cards].reverse();
 
   function handleCreateCard() {
-    setDraftValue('');
-    setEditingIndex(null);
-    setIsDraftActive(true);
-  }
-
-  function handleConfirmDraft() {
-    push(draftValue);
-    setDraftValue('');
-    setIsDraftActive(false);
+    const nextIndex = push('');
+    setEditingIndex(nextIndex);
+    setEditingValue('');
   }
 
   function handleEditCard(index, value) {
-    setIsDraftActive(false);
     setEditingIndex(index);
     setEditingValue(value);
   }
@@ -61,6 +62,8 @@ export default function App() {
     if (editingIndex === index) {
       setEditingIndex(null);
       setEditingValue('');
+    } else if (editingIndex > index) {
+      setEditingIndex(editingIndex - 1);
     }
 
     removeAt(index);
@@ -68,26 +71,35 @@ export default function App() {
 
   function renderCard({
     controls,
-    index,
     isEditing = false,
     key,
+    layout = 'leaf',
     onChangeText,
     pileIndex,
     value,
   }) {
+    const isLeafCard = layout === 'leaf';
+
     return (
       <View
         key={key}
         style={[
           styles.card,
+          isLeafCard && styles.leafCard,
+          !isLeafCard && styles.treeCard,
           isEditing && styles.editingCard,
-          {
+          isLeafCard && {
             top: pileIndex * 12,
             transform: [
               { scale: 1 - pileIndex * 0.035 },
               { rotate: `${pileIndex % 2 === 0 ? 0 : -2}deg` },
             ],
-            zIndex: visibleCards.length + 1 - pileIndex,
+            zIndex: isEditing
+              ? visibleCards.length + 2
+              : visibleCards.length + 1 - pileIndex,
+          },
+          !isLeafCard && {
+            transform: [{ rotate: `${pileIndex % 2 === 0 ? -1.5 : 1.5}deg` }],
           },
         ]}
       >
@@ -112,99 +124,106 @@ export default function App() {
     );
   }
 
+  function renderStackCard({ index, value }, visibleIndex, layout = 'leaf') {
+    const pileIndex = visibleIndex;
+    const isEditing = editingIndex === index;
+
+    return renderCard({
+      controls: (
+        <>
+          <Pressable
+            accessibilityLabel={isEditing ? 'Confirm card' : 'Edit card'}
+            accessibilityRole="button"
+            onPress={() => handleToggleEdit(index, value)}
+            style={({ pressed }) => [
+              styles.iconButton,
+              pressed && styles.iconButtonPressed,
+            ]}
+          >
+            <Text style={styles.iconButtonText}>
+              {isEditing ? '✓' : '✎'}
+            </Text>
+          </Pressable>
+          <Pressable
+            accessibilityLabel="Delete card"
+            accessibilityRole="button"
+            onPress={() => handleDeleteCard(index)}
+            style={({ pressed }) => [
+              styles.iconButton,
+              styles.dangerButton,
+              pressed && styles.dangerButtonPressed,
+            ]}
+          >
+            <Text style={styles.iconButtonText}>⌫</Text>
+          </Pressable>
+        </>
+      ),
+      isEditing,
+      key: `card-${index}-${value}`,
+      layout,
+      onChangeText: setEditingValue,
+      pileIndex,
+      value: isEditing ? editingValue : value,
+    });
+  }
+
+  function renderLeafView() {
+    return (
+      <View style={styles.deck}>
+        {visibleCards.map((card, visibleIndex) => (
+          renderStackCard(card, visibleIndex, 'leaf')
+        ))}
+      </View>
+    );
+  }
+
+  function renderTreeView() {
+    return (
+      <ScrollView
+        contentContainerStyle={styles.treeContent}
+        showsVerticalScrollIndicator={false}
+        style={styles.treeScroll}
+      >
+        {treeCards.map((card, visibleIndex) => (
+          renderStackCard(card, visibleIndex, 'tree')
+        ))}
+      </ScrollView>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <View style={styles.deck}>
-        {isDraftActive && renderCard({
-          controls: (
-            <>
-              <Pressable
-                accessibilityLabel="Confirm new card"
-                accessibilityRole="button"
-                onPress={handleConfirmDraft}
-                style={({ pressed }) => [
-                  styles.iconButton,
-                  pressed && styles.iconButtonPressed,
-                ]}
-              >
-                <Text style={styles.iconButtonText}>✓</Text>
-              </Pressable>
-              <Pressable
-                accessibilityLabel="Delete new card"
-                accessibilityRole="button"
-                onPress={() => {
-                  setDraftValue('');
-                  setIsDraftActive(false);
-                }}
-                style={({ pressed }) => [
-                  styles.iconButton,
-                  styles.dangerButton,
-                  pressed && styles.dangerButtonPressed,
-                ]}
-              >
-                <Text style={styles.iconButtonText}>⌫</Text>
-              </Pressable>
-            </>
-          ),
-          isEditing: true,
-          key: 'draft-card',
-          onChangeText: setDraftValue,
-          pileIndex: 0,
-          value: draftValue,
-        })}
+      {layoutMode === 'leaf' ? renderLeafView() : renderTreeView()}
 
-        {visibleCards.map(({ index, value }, visibleIndex) => {
-          const pileIndex = isDraftActive ? visibleIndex + 1 : visibleIndex;
-          const isEditing = editingIndex === index;
+      <View style={styles.floatingControls}>
+        <Pressable
+          accessibilityLabel="Toggle stack layout"
+          accessibilityRole="button"
+          onPress={() => {
+            setLayoutMode((currentMode) => (
+              currentMode === 'leaf' ? 'tree' : 'leaf'
+            ));
+          }}
+          style={({ pressed }) => [
+            styles.fab,
+            styles.modeFab,
+            pressed && styles.modeFabPressed,
+          ]}
+        >
+          <Text style={styles.modeFabText}>
+            {layoutMode === 'leaf' ? 'L' : 'T'}
+          </Text>
+        </Pressable>
 
-          return renderCard({
-            controls: (
-              <>
-                <Pressable
-                  accessibilityLabel={isEditing ? 'Confirm card' : 'Edit card'}
-                  accessibilityRole="button"
-                  onPress={() => handleToggleEdit(index, value)}
-                  style={({ pressed }) => [
-                    styles.iconButton,
-                    pressed && styles.iconButtonPressed,
-                  ]}
-                >
-                  <Text style={styles.iconButtonText}>
-                    {isEditing ? '✓' : '✎'}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  accessibilityLabel="Delete card"
-                  accessibilityRole="button"
-                  onPress={() => handleDeleteCard(index)}
-                  style={({ pressed }) => [
-                    styles.iconButton,
-                    styles.dangerButton,
-                    pressed && styles.dangerButtonPressed,
-                  ]}
-                >
-                  <Text style={styles.iconButtonText}>⌫</Text>
-                </Pressable>
-              </>
-            ),
-            index,
-            isEditing,
-            key: `card-${index}-${value}`,
-            onChangeText: setEditingValue,
-            pileIndex,
-            value: isEditing ? editingValue : value,
-          });
-        })}
+        <Pressable
+          accessibilityLabel="Add card"
+          accessibilityRole="button"
+          onPress={handleCreateCard}
+          style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+        >
+          <Text style={styles.fabIcon}>+</Text>
+        </Pressable>
       </View>
-
-      <Pressable
-        accessibilityLabel="Add card"
-        accessibilityRole="button"
-        onPress={handleCreateCard}
-        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-      >
-        <Text style={styles.fabIcon}>+</Text>
-      </Pressable>
       <StatusBar style="light" />
     </View>
   );
@@ -215,8 +234,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8FAFC',
     paddingHorizontal: 24,
-    paddingTop: 72,
+    paddingTop: 40,
     paddingBottom: 40,
+  },
+  floatingControls: {
+    position: 'absolute',
+    right: 24,
+    bottom: 28,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   deck: {
     flex: 1,
@@ -226,10 +253,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'relative',
   },
+  treeScroll: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 520,
+    alignSelf: 'center',
+  },
+  treeContent: {
+    alignItems: 'stretch',
+    gap: 18,
+    paddingTop: 8,
+    paddingBottom: 108,
+  },
   card: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
     minHeight: 360,
     borderRadius: 8,
     backgroundColor: '#FFFFFF',
@@ -244,6 +280,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 22,
     elevation: 12,
+  },
+  leafCard: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+  },
+  treeCard: {
+    position: 'relative',
+    minHeight: 260,
   },
   editingCard: {
     zIndex: 20,
@@ -299,9 +344,6 @@ const styles = StyleSheet.create({
     textAlignVertical: 'center',
   },
   fab: {
-    position: 'absolute',
-    right: 24,
-    bottom: 28,
     width: 64,
     height: 64,
     borderRadius: 32,
@@ -320,6 +362,19 @@ const styles = StyleSheet.create({
   fabPressed: {
     backgroundColor: '#1D4ED8',
     transform: [{ scale: 0.96 }],
+  },
+  modeFab: {
+    backgroundColor: '#0F172A',
+  },
+  modeFabPressed: {
+    backgroundColor: '#334155',
+    transform: [{ scale: 0.96 }],
+  },
+  modeFabText: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '800',
+    lineHeight: 26,
   },
   fabIcon: {
     color: '#FFFFFF',

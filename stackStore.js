@@ -19,19 +19,18 @@ export function getSnapshot() {
 
 export function push(value) {
   const nextValue = value.trim();
-
-  if (!nextValue) {
-    return;
-  }
+  const nextIndex = stack.length;
 
   stack = [...stack, nextValue];
   emitChange();
+
+  return nextIndex;
 }
 
 export function updateAt(index, value) {
   const nextValue = value.trim();
 
-  if (!nextValue || index < 0 || index >= stack.length) {
+  if (index < 0 || index >= stack.length) {
     return;
   }
 
