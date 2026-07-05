@@ -129,7 +129,6 @@ export function LeafDeck({
   );
   const topCard = getCircularCard(cards, normalizedTopIndex, 0);
   const activeCard = displayCard ?? topCard;
-  const isEditingActiveCard = activeCard != null && editingIndex === activeCard.index;
   const effectiveFocusedCardId = controlledFocusedCardId ?? topCard?.id ?? null;
   const visualCard = {
     id: 'leaf-visual-card',
@@ -364,7 +363,7 @@ export function LeafDeck({
     <View {...panResponder.panHandlers} style={styles.deck}>
       {visualSlots.map((slot) => {
         const isTopSlot = slot === 0;
-        const shouldRenderEditableTopSlot = isTopSlot && isEditingActiveCard;
+        const shouldRenderActiveTopSlot = isTopSlot && activeCard;
         const currentMetrics = getSlotMetrics(slot);
         const promotedMetrics = getSlotMetrics(slot - 1);
         const zIndex = 1000 - slot;
@@ -436,13 +435,13 @@ export function LeafDeck({
             ]}
           >
             <StackCard
-              card={shouldRenderEditableTopSlot ? activeCard : visualCard}
+              card={shouldRenderActiveTopSlot ? activeCard : visualCard}
               collapsedNodeIds={collapsedNodeIds}
-              editingIndex={shouldRenderEditableTopSlot ? editingIndex : null}
-              editingValue={shouldRenderEditableTopSlot ? editingValue : ''}
+              editingIndex={shouldRenderActiveTopSlot ? editingIndex : null}
+              editingValue={shouldRenderActiveTopSlot ? editingValue : ''}
               focusedCardIndex={focusedCardIndex}
               focusedCardId={effectiveFocusedCardId}
-              hideControls={!shouldRenderEditableTopSlot}
+              hideControls={!shouldRenderActiveTopSlot}
               isLeafTopCard={isTopSlot}
               layout="leaf"
               visibleIndex={slot}
@@ -453,9 +452,9 @@ export function LeafDeck({
               onCompleteEdit={onCompleteEdit}
               onToggleCollapse={() => {}}
               leafContentMode={
-                shouldRenderEditableTopSlot
+                shouldRenderActiveTopSlot
                   ? 'text'
-                  : (isTopSlot ? 'blank' : 'placeholder')
+                  : 'placeholder'
               }
             />
           </Animated.View>
@@ -526,54 +525,6 @@ export function LeafDeck({
             onCompleteEdit={onCompleteEdit}
             onToggleCollapse={() => {}}
             leafContentMode="placeholder"
-          />
-        </Animated.View>
-      ) : null}
-      {activeCard && !isEditingActiveCard ? (
-        <Animated.View
-          key="leaf-current-overlay"
-          style={[
-            styles.deckSlot,
-            styles.leafCurrentOverlay,
-            {
-              transform: [
-                { translateX: dragX },
-                {
-                  translateY: dragX.interpolate({
-                    inputRange: [-SCREEN_WIDTH, 0, SCREEN_WIDTH],
-                    outputRange: [-8, 0, -8],
-                    extrapolate: 'clamp',
-                  }),
-                },
-                {
-                  rotate: dragX.interpolate({
-                    inputRange: [-SCREEN_WIDTH, 0, SCREEN_WIDTH],
-                    outputRange: ['-10deg', '0deg', '10deg'],
-                    extrapolate: 'clamp',
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          <StackCard
-            card={activeCard}
-            collapsedNodeIds={collapsedNodeIds}
-            editingIndex={editingIndex}
-            editingValue={editingValue}
-            focusedCardIndex={focusedCardIndex}
-            focusedCardId={effectiveFocusedCardId}
-            isLeafOverlay
-            isLeafTopCard
-            layout="leaf"
-            visibleIndex={0}
-            onPress={() => {}}
-            onCreateEdit={onCreateEdit}
-            onDeleteCard={onDeleteCard}
-            onEditingValueChange={onEditingValueChange}
-            onCompleteEdit={onCompleteEdit}
-            onToggleCollapse={() => {}}
-            leafContentMode="text"
           />
         </Animated.View>
       ) : null}

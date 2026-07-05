@@ -12,7 +12,6 @@ export function StackCard({
   focusedCardId = null,
   isLeafTopCard = false,
   hideControls = false,
-  isLeafOverlay = false,
   collapsedNodeIds,
   treePosition,
   isCollapsedStacked = false,
@@ -118,7 +117,6 @@ export function StackCard({
       style={[
         styles.card,
         isLeafCard && styles.leafCard,
-        isLeafCard && isLeafOverlay && styles.leafOverlayCard,
         isTreeCard && styles.treeCard,
         isTreeCard && isCollapsedStacked && styles.treeCollapsedCard,
         isEditing && isLeafCard && styles.leafEditingCard,
@@ -128,7 +126,6 @@ export function StackCard({
           position: 'absolute',
         },
         isFocusedCard && !isLeafCard && styles.focusedCard,
-        isLeafCard && isLeafOverlay && styles.leafOverlayCard,
         zLayer != null ? { zIndex: zLayer } : null,
       ]}
     >

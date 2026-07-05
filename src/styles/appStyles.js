@@ -124,10 +124,6 @@ export const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'flex-start',
   },
-  leafCurrentOverlay: {
-    zIndex: 2000,
-    elevation: 20,
-  },
   nodeView: {
     position: 'absolute',
     left: 14,
@@ -225,12 +221,6 @@ export const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-  },
-  leafOverlayCard: {
-    backgroundColor: 'transparent',
-    borderColor: 'transparent',
-    shadowOpacity: 0,
-    elevation: 0,
   },
   treeCard: {
     position: 'relative',
