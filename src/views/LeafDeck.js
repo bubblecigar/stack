@@ -10,11 +10,13 @@ import { StackCard } from '../components/StackCard';
 import { styles } from '../styles/appStyles';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 const DEFAULT_VISIBLE_COUNT = 5;
 const SWIPE_DISTANCE_FACTOR = 0.22;
 const SWIPE_VELOCITY = 0.55;
-const SWIPE_OUT_DISTANCE = SCREEN_WIDTH * 1.28;
+const SWIPE_OUT_DISTANCE_X = SCREEN_WIDTH * 1.28;
+const SWIPE_OUT_DISTANCE_Y = SCREEN_HEIGHT * 0.72;
 const SWIPE_OUT_DURATION = 260;
 const INSERT_TO_BOTTOM_DURATION = 420;
 const SLOT_Y_STEP = 12;
@@ -58,12 +60,37 @@ function getSlotMetrics(slot) {
   };
 }
 
-function getSwipeDirection(dx, vx) {
-  if (Math.abs(vx) > 0.01) {
-    return vx > 0 ? 'right' : 'left';
+function getSwipeDirection(dx, dy, vx, vy) {
+  const isHorizontal = Math.abs(dx) >= Math.abs(dy);
+
+  if (isHorizontal) {
+    if (Math.abs(vx) > 0.01) {
+      return vx > 0 ? 'right' : 'left';
+    }
+
+    return dx > 0 ? 'right' : 'left';
   }
 
-  return dx > 0 ? 'right' : 'left';
+  if (Math.abs(vy) > 0.01) {
+    return vy > 0 ? 'down' : 'up';
+  }
+
+  return dy > 0 ? 'down' : 'up';
+}
+
+function getSwipeTarget(direction) {
+  if (direction === 'left') {
+    return { x: -SWIPE_OUT_DISTANCE_X, y: 0 };
+  }
+
+  if (direction === 'right') {
+    return { x: SWIPE_OUT_DISTANCE_X, y: 0 };
+  }
+
+  return {
+    x: 0,
+    y: direction === 'down' ? SWIPE_OUT_DISTANCE_Y : -SWIPE_OUT_DISTANCE_Y,
+  };
 }
 
 export function LeafDeck({
@@ -83,6 +110,8 @@ export function LeafDeck({
   swipeDisabled,
 }) {
   const dragX = useRef(new Animated.Value(0)).current;
+  const dragY = useRef(new Animated.Value(0)).current;
+  const swipeProgressValue = useRef(new Animated.Value(0)).current;
   const insertProgress = useRef(new Animated.Value(1)).current;
   const animationRef = useRef(null);
   const insertAnimationRef = useRef(null);
@@ -109,11 +138,7 @@ export function LeafDeck({
     text: '',
   };
 
-  const swipeProgress = dragX.interpolate({
-    inputRange: [-SCREEN_WIDTH, 0, SCREEN_WIDTH],
-    outputRange: [1, 0, 1],
-    extrapolate: 'clamp',
-  });
+  const swipeProgress = swipeProgressValue;
 
   useEffect(() => () => {
     if (animationRef.current) {
@@ -151,11 +176,8 @@ export function LeafDeck({
 
   function resetDrag() {
     dragX.setValue(0);
-  }
-
-  function getNextCardForSwipe(direction) {
-    const directionStep = direction === 'right' ? 1 : -1;
-    return getCircularCard(cards, normalizedTopIndex, directionStep);
+    dragY.setValue(0);
+    swipeProgressValue.setValue(0);
   }
 
   function animateInsertToBottom(direction) {
@@ -190,12 +212,26 @@ export function LeafDeck({
     stopCurrentAnimation();
     isAnimatingRef.current = true;
 
-    animationRef.current = Animated.spring(dragX, {
-      toValue: 0,
-      useNativeDriver: true,
-      speed: 22,
-      bounciness: 6,
-    });
+    animationRef.current = Animated.parallel([
+      Animated.spring(dragX, {
+        toValue: 0,
+        useNativeDriver: true,
+        speed: 22,
+        bounciness: 6,
+      }),
+      Animated.spring(dragY, {
+        toValue: 0,
+        useNativeDriver: true,
+        speed: 22,
+        bounciness: 6,
+      }),
+      Animated.spring(swipeProgressValue, {
+        toValue: 0,
+        useNativeDriver: true,
+        speed: 22,
+        bounciness: 6,
+      }),
+    ]);
 
     animationRef.current.start(() => {
       resetDrag();
@@ -211,15 +247,28 @@ export function LeafDeck({
     stopCurrentAnimation();
     isAnimatingRef.current = true;
 
-    const targetX = direction === 'right' ? SWIPE_OUT_DISTANCE : -SWIPE_OUT_DISTANCE;
-    const nextDisplayCard = getNextCardForSwipe(direction);
+    const swipeTarget = getSwipeTarget(direction);
 
-    animationRef.current = Animated.timing(dragX, {
-      toValue: targetX,
-      duration: SWIPE_OUT_DURATION,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    });
+    animationRef.current = Animated.parallel([
+      Animated.timing(dragX, {
+        toValue: swipeTarget.x,
+        duration: SWIPE_OUT_DURATION,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(dragY, {
+        toValue: swipeTarget.y,
+        duration: SWIPE_OUT_DURATION,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(swipeProgressValue, {
+        toValue: 1,
+        duration: SWIPE_OUT_DURATION,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]);
 
     animationRef.current.start(({ finished }) => {
       if (!finished) {
@@ -235,7 +284,7 @@ export function LeafDeck({
       }
 
       animateInsertToBottom(direction);
-      setDisplayCard(nextDisplayCard);
+      setDisplayCard(null);
       requestAnimationFrame(() => {
         resetDrag();
         unlockDeck();
@@ -248,16 +297,22 @@ export function LeafDeck({
       return;
     }
 
-    const { dx, vx } = gestureState;
-    const hasDistance = Math.abs(dx) >= SCREEN_WIDTH * SWIPE_DISTANCE_FACTOR;
-    const hasVelocity = Math.abs(vx) >= SWIPE_VELOCITY;
+    const { dx, dy, vx, vy } = gestureState;
+    const isHorizontal = Math.abs(dx) >= Math.abs(dy);
+    const primaryDistance = isHorizontal ? Math.abs(dx) : Math.abs(dy);
+    const primaryVelocity = isHorizontal ? Math.abs(vx) : Math.abs(vy);
+    const distanceThreshold = isHorizontal
+      ? SCREEN_WIDTH * SWIPE_DISTANCE_FACTOR
+      : SCREEN_HEIGHT * 0.14;
+    const hasDistance = primaryDistance >= distanceThreshold;
+    const hasVelocity = primaryVelocity >= SWIPE_VELOCITY;
 
     if (!hasDistance && !hasVelocity) {
       animateBackToRest();
       return;
     }
 
-    animateSwipeOut(getSwipeDirection(dx, vx));
+    animateSwipeOut(getSwipeDirection(dx, dy, vx, vy));
   }
 
   const panResponder = useMemo(() => PanResponder.create({
@@ -266,8 +321,7 @@ export function LeafDeck({
       !swipeDisabled
       && !isAnimatingRef.current
       && visualSlots.length > 1
-      && Math.abs(dx) > Math.abs(dy)
-      && Math.abs(dx) > 8
+      && Math.max(Math.abs(dx), Math.abs(dy)) > 8
     ),
     onPanResponderGrant: () => {
       if (swipeDisabled || visualSlots.length <= 1 || isAnimatingRef.current) {
@@ -277,12 +331,17 @@ export function LeafDeck({
       stopCurrentAnimation();
       resetDrag();
     },
-    onPanResponderMove: (_, { dx }) => {
+    onPanResponderMove: (_, { dx, dy }) => {
       if (swipeDisabled || visualSlots.length <= 1 || isAnimatingRef.current) {
         return;
       }
 
       dragX.setValue(dx);
+      dragY.setValue(dy);
+      swipeProgressValue.setValue(Math.min(
+        Math.max(Math.max(Math.abs(dx) / SCREEN_WIDTH, Math.abs(dy) / SCREEN_HEIGHT) * 2.5, 0),
+        1,
+      ));
     },
     onPanResponderRelease: handleRelease,
     onPanResponderTerminate: handleRelease,
@@ -294,10 +353,12 @@ export function LeafDeck({
 
   const bottomSlot = Math.max(visualSlots.length - 1, 0);
   const bottomMetrics = getSlotMetrics(bottomSlot);
-  const insertStartX = insertingDirection === 'left'
-    ? -SWIPE_OUT_DISTANCE
-    : SWIPE_OUT_DISTANCE;
-  const insertStartRotate = insertingDirection === 'left' ? '-10deg' : '10deg';
+  const insertStartTarget = insertingDirection
+    ? getSwipeTarget(insertingDirection)
+    : { x: 0, y: 0 };
+  const insertStartRotate = insertingDirection === 'left' || insertingDirection === 'up'
+    ? '-10deg'
+    : '10deg';
 
   return (
     <View {...panResponder.panHandlers} style={styles.deck}>
@@ -320,11 +381,14 @@ export function LeafDeck({
           ? [
             { translateX: dragX },
             {
-              translateY: dragX.interpolate({
-                inputRange: [-SCREEN_WIDTH, 0, SCREEN_WIDTH],
-                outputRange: [-8, 0, -8],
-                extrapolate: 'clamp',
-              }),
+              translateY: Animated.add(
+                dragY,
+                swipeProgress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, -8],
+                  extrapolate: 'clamp',
+                }),
+              ),
             },
             {
               rotate: dragX.interpolate({
@@ -415,14 +479,14 @@ export function LeafDeck({
                 {
                   translateX: insertProgress.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [insertStartX, 0],
+                    outputRange: [insertStartTarget.x, 0],
                     extrapolate: 'clamp',
                   }),
                 },
                 {
                   translateY: insertProgress.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [-8, bottomMetrics.translateY],
+                    outputRange: [insertStartTarget.y - 8, bottomMetrics.translateY],
                     extrapolate: 'clamp',
                   }),
                 },

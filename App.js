@@ -26,6 +26,7 @@ import { NodeStructureView } from './src/views/NodeStructureView';
 import { TreeCanvas } from './src/views/TreeCanvas';
 import { getMe, loadRemoteCards, saveRemoteCards } from './src/lib/apiClient';
 import { clearStoredAuthToken, getStoredAuthToken, setStoredAuthToken } from './src/lib/authTokenStore';
+import { moveInTraversal } from './src/lib/cardTraversal';
 import { styles } from './src/styles/appStyles';
 
 const LEAF_VISIBLE_COUNT = 5;
@@ -451,16 +452,16 @@ export default function App() {
       return false;
     }
 
-    const directionStep = direction === 'right' ? 1 : -1;
-    setLeafTopIndex((currentTop) => {
-      const normalizedTop = currentTop === null ? cards.length - 1 : Math.max(
-        0,
-        Math.min(currentTop, cards.length - 1),
-      );
-      const nextTop = (normalizedTop + directionStep + cards.length) % cards.length;
-      setLeafFocusedCardId(cards[nextTop]?.id ?? null);
-      return nextTop;
-    });
+    const currentCardId = visibleCards[0]?.id ?? leafFocusedCardId ?? cards[0]?.id;
+    const traversalMode = direction === 'left' || direction === 'right' ? 'dfs' : 'bfs';
+    const nextCard = moveInTraversal(cards, currentCardId, direction, traversalMode);
+
+    if (!nextCard || nextCard.index === undefined) {
+      return false;
+    }
+
+    setLeafFocusedCardId(nextCard.id);
+    setLeafTopIndex(nextCard.index);
     return true;
   }
 
