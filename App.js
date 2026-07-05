@@ -104,7 +104,7 @@ export default function App() {
 
   function handleCreateCard() {
     const nextIndex = push('');
-    const parentIndex = layoutMode === 'tree' ? focusedCardIndex : null;
+    const parentIndex = focusedCardIndex;
 
     if (parentIndex !== null) {
       addChildLink(parentIndex, nextIndex);
