@@ -81,10 +81,6 @@ export default function App() {
     setEditingIndex(index);
     setEditingValue(text);
     setFocusedCardIndex(index);
-
-    if (layoutMode !== 'tree') {
-      setFocusedCardIndex(null);
-    }
   }
 
   function handleConfirmEdit() {
@@ -186,11 +182,16 @@ export default function App() {
 
   function handleToggleLayout() {
     const isLeafToTree = layoutMode === 'leaf';
+    const currentlyVisibleLeafCardIndex = visibleCards[0]?.index ?? null;
+    const isFocusedCardVisible = (
+      focusedCardIndex !== null
+      && visibleCards.some(({ index }) => index === focusedCardIndex)
+    );
 
     setLayoutMode((currentMode) => (currentMode === 'leaf' ? 'tree' : 'leaf'));
 
     if (isLeafToTree) {
-      setFocusedCardIndex(visibleCards[0]?.index ?? null);
+      setFocusedCardIndex(isFocusedCardVisible ? focusedCardIndex : currentlyVisibleLeafCardIndex);
     } else {
       setFocusedCardIndex(null);
     }
