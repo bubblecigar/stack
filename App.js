@@ -172,11 +172,11 @@ export default function App() {
     const visiting = new Set();
     const positionedCards = [];
 
-    const treeNodeWidth = 280;
-    const treeNodeHeight = 170;
-    const depthStepX = 300;
-    const childStepY = 190;
-    const rootGapY = 80;
+    const treeNodeWidth = 260;
+    const treeNodeHeight = 125;
+    const depthStepX = 250;
+    const childStepY = 140;
+    const rootGapY = 64;
     let cursorY = 14;
     let maxX = 0;
     let maxY = 0;
@@ -634,8 +634,9 @@ const styles = StyleSheet.create({
   },
   treeCard: {
     position: 'relative',
-    minHeight: 140,
-    maxHeight: 160,
+    width: 240,
+    minHeight: 110,
+    maxHeight: 130,
     padding: 16,
     justifyContent: 'flex-start',
     alignItems: 'stretch',
