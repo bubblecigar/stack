@@ -556,6 +556,8 @@ export default function App() {
     const isCollapsed = collapsedNodeIds.has(id);
     const dependencyText = `A ${parentIds.length} · C ${childIds.length}`;
 
+    const shouldShowEditControl = layout !== 'tree' || isFocusedCard;
+
     return renderCard({
       controls: (
         <>
@@ -576,22 +578,24 @@ export default function App() {
               <Text style={styles.iconButtonText}>{isCollapsed ? '+' : '-'}</Text>
             </Pressable>
           )}
-          <Pressable
-            accessibilityLabel={isEditing ? 'Confirm card' : 'Edit card'}
-            accessibilityRole="button"
-            onPress={() => {
-              handleTouchCard(index, layout);
-              handleToggleEdit(index, text);
-            }}
-            style={({ pressed }) => [
-              styles.iconButton,
-              pressed && styles.iconButtonPressed,
-            ]}
-          >
-            <Text style={styles.iconButtonText}>
-              {isEditing ? '✓' : '✎'}
-            </Text>
-          </Pressable>
+          {shouldShowEditControl && (
+            <Pressable
+              accessibilityLabel={isEditing ? 'Confirm card' : 'Edit card'}
+              accessibilityRole="button"
+              onPress={() => {
+                handleTouchCard(index, layout);
+                handleToggleEdit(index, text);
+              }}
+              style={({ pressed }) => [
+                styles.iconButton,
+                pressed && styles.iconButtonPressed,
+              ]}
+            >
+              <Text style={styles.iconButtonText}>
+                {isEditing ? '✓' : '✎'}
+              </Text>
+            </Pressable>
+          )}
           <Pressable
             accessibilityLabel={
               isLinkingSource ? 'Cancel card linking' : 'Link card'
