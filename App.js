@@ -13,17 +13,19 @@ import {
   push,
   removeAt,
   subscribe,
+  toggleChildLink,
   updateAt,
 } from './stackStore';
 
 export default function App() {
   const [editingIndex, setEditingIndex] = useState(null);
   const [editingValue, setEditingValue] = useState('');
+  const [linkingIndex, setLinkingIndex] = useState(null);
   const [layoutMode, setLayoutMode] = useState('leaf');
   const stack = useSyncExternalStore(subscribe, getSnapshot);
-  const cards = stack.map((value, index) => ({ index, value }));
+  const cards = stack.map((card, index) => ({ ...card, index }));
   const visibleCards = stack
-    .map((value, index) => ({ index, value }))
+    .map((card, index) => ({ ...card, index }))
     .slice(-4)
     .reverse();
   const treeCards = [...cards].reverse();
@@ -32,11 +34,13 @@ export default function App() {
     const nextIndex = push('');
     setEditingIndex(nextIndex);
     setEditingValue('');
+    setLinkingIndex(null);
   }
 
-  function handleEditCard(index, value) {
+  function handleEditCard(index, text) {
     setEditingIndex(index);
-    setEditingValue(value);
+    setEditingValue(text);
+    setLinkingIndex(null);
   }
 
   function handleConfirmEdit() {
@@ -49,13 +53,13 @@ export default function App() {
     setEditingValue('');
   }
 
-  function handleToggleEdit(index, value) {
+  function handleToggleEdit(index, text) {
     if (editingIndex === index) {
       handleConfirmEdit();
       return;
     }
 
-    handleEditCard(index, value);
+    handleEditCard(index, text);
   }
 
   function handleDeleteCard(index) {
@@ -66,7 +70,37 @@ export default function App() {
       setEditingIndex(editingIndex - 1);
     }
 
+    if (linkingIndex === index) {
+      setLinkingIndex(null);
+    } else if (linkingIndex > index) {
+      setLinkingIndex(linkingIndex - 1);
+    }
+
     removeAt(index);
+  }
+
+  function handleToggleLinking(index) {
+    setEditingIndex(null);
+    setEditingValue('');
+    setLinkingIndex((currentIndex) => (
+      currentIndex === index ? null : index
+    ));
+  }
+
+  function handleLinkAsAncestor(index) {
+    if (linkingIndex === null) {
+      return;
+    }
+
+    toggleChildLink(index, linkingIndex);
+  }
+
+  function handleLinkAsChild(index) {
+    if (linkingIndex === null) {
+      return;
+    }
+
+    toggleChildLink(linkingIndex, index);
   }
 
   function renderCard({
@@ -75,6 +109,8 @@ export default function App() {
     key,
     layout = 'leaf',
     onChangeText,
+    dependencyText,
+    dependencyControls,
     pileIndex,
     value,
   }) {
@@ -118,15 +154,39 @@ export default function App() {
             value={value}
           />
         ) : (
-          <Text style={styles.cardText}>{value}</Text>
+          <Text style={[
+            styles.cardText,
+            !value && styles.emptyCardText,
+          ]}
+          >
+            {value || 'Empty card'}
+          </Text>
         )}
+
+        <View style={styles.dependencyBar}>
+          <Text style={styles.dependencyText}>{dependencyText}</Text>
+          {dependencyControls}
+        </View>
       </View>
     );
   }
 
-  function renderStackCard({ index, value }, visibleIndex, layout = 'leaf') {
+  function renderStackCard(card, visibleIndex, layout = 'leaf') {
+    const {
+      childIds,
+      id,
+      index,
+      parentIds,
+      text,
+    } = card;
     const pileIndex = visibleIndex;
     const isEditing = editingIndex === index;
+    const isLinkingSource = linkingIndex === index;
+    const canLinkToCard = linkingIndex !== null && linkingIndex !== index;
+    const sourceCard = linkingIndex === null ? null : stack[linkingIndex];
+    const isAncestorLinked = sourceCard?.parentIds.includes(id);
+    const isChildLinked = sourceCard?.childIds.includes(id);
+    const dependencyText = `A ${parentIds.length} · C ${childIds.length}`;
 
     return renderCard({
       controls: (
@@ -134,7 +194,7 @@ export default function App() {
           <Pressable
             accessibilityLabel={isEditing ? 'Confirm card' : 'Edit card'}
             accessibilityRole="button"
-            onPress={() => handleToggleEdit(index, value)}
+            onPress={() => handleToggleEdit(index, text)}
             style={({ pressed }) => [
               styles.iconButton,
               pressed && styles.iconButtonPressed,
@@ -143,6 +203,20 @@ export default function App() {
             <Text style={styles.iconButtonText}>
               {isEditing ? '✓' : '✎'}
             </Text>
+          </Pressable>
+          <Pressable
+            accessibilityLabel={
+              isLinkingSource ? 'Cancel card linking' : 'Link card'
+            }
+            accessibilityRole="button"
+            onPress={() => handleToggleLinking(index)}
+            style={({ pressed }) => [
+              styles.iconButton,
+              isLinkingSource && styles.linkButtonActive,
+              pressed && styles.iconButtonPressed,
+            ]}
+          >
+            <Text style={styles.iconButtonText}>↔</Text>
           </Pressable>
           <Pressable
             accessibilityLabel="Delete card"
@@ -158,12 +232,53 @@ export default function App() {
           </Pressable>
         </>
       ),
+      dependencyControls: canLinkToCard && (
+        <View style={styles.linkTargetControls}>
+          <Pressable
+            accessibilityLabel="Link as ancestor"
+            accessibilityRole="button"
+            onPress={() => handleLinkAsAncestor(index)}
+            style={({ pressed }) => [
+              styles.dependencyButton,
+              isAncestorLinked && styles.dependencyButtonActive,
+              pressed && styles.dependencyButtonPressed,
+            ]}
+          >
+            <Text style={[
+              styles.dependencyButtonText,
+              isAncestorLinked && styles.dependencyButtonTextActive,
+            ]}
+            >
+              A
+            </Text>
+          </Pressable>
+          <Pressable
+            accessibilityLabel="Link as child"
+            accessibilityRole="button"
+            onPress={() => handleLinkAsChild(index)}
+            style={({ pressed }) => [
+              styles.dependencyButton,
+              isChildLinked && styles.dependencyButtonActive,
+              pressed && styles.dependencyButtonPressed,
+            ]}
+          >
+            <Text style={[
+              styles.dependencyButtonText,
+              isChildLinked && styles.dependencyButtonTextActive,
+            ]}
+            >
+              C
+            </Text>
+          </Pressable>
+        </View>
+      ),
+      dependencyText,
       isEditing,
-      key: `card-${index}-${value}`,
+      key: `card-${id}`,
       layout,
       onChangeText: setEditingValue,
       pileIndex,
-      value: isEditing ? editingValue : value,
+      value: isEditing ? editingValue : text,
     });
   }
 
@@ -314,6 +429,9 @@ const styles = StyleSheet.create({
   iconButtonPressed: {
     backgroundColor: '#2563EB',
   },
+  linkButtonActive: {
+    backgroundColor: '#7C3AED',
+  },
   dangerButton: {
     backgroundColor: '#DC2626',
   },
@@ -333,6 +451,9 @@ const styles = StyleSheet.create({
     lineHeight: 40,
     textAlign: 'center',
   },
+  emptyCardText: {
+    color: '#94A3B8',
+  },
   cardInput: {
     width: '100%',
     minHeight: 180,
@@ -342,6 +463,50 @@ const styles = StyleSheet.create({
     lineHeight: 40,
     textAlign: 'center',
     textAlignVertical: 'center',
+  },
+  dependencyBar: {
+    position: 'absolute',
+    left: 18,
+    right: 18,
+    bottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  dependencyText: {
+    color: '#64748B',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  linkTargetControls: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  dependencyButton: {
+    minWidth: 34,
+    height: 30,
+    borderColor: '#CBD5E1',
+    borderRadius: 15,
+    borderWidth: 1,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dependencyButtonActive: {
+    borderColor: '#2563EB',
+    backgroundColor: '#DBEAFE',
+  },
+  dependencyButtonPressed: {
+    borderColor: '#2563EB',
+  },
+  dependencyButtonText: {
+    color: '#475569',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  dependencyButtonTextActive: {
+    color: '#1D4ED8',
   },
   fab: {
     width: 64,
