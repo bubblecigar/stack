@@ -1,11 +1,14 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
+  LayoutAnimation,
   Pressable,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  UIManager,
   View,
 } from 'react-native';
 import {
@@ -52,6 +55,12 @@ export default function App() {
     setLinkingIndex(null);
     setFocusedCardIndex(nextIndex);
   }
+
+  useEffect(() => {
+    if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+      UIManager.setLayoutAnimationEnabledExperimental(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (!__DEV__) {
@@ -182,6 +191,8 @@ export default function App() {
 
     const cardId = card.id;
 
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+
     setCollapsedNodeIds((currentCollapsed) => {
       const nextCollapsed = new Set(currentCollapsed);
 
@@ -298,48 +309,45 @@ export default function App() {
     const depthStepX = treeNodeWidth - treeNodeOverlapX;
     const childOverlapY = 16;
     const rootGapY = 64;
+    const collapsedStackGapY = 54;
+    const collapsedStackBaseOffsetY = 28;
     let cursorY = 14;
     let maxX = 0;
     let maxY = 0;
+    const collapsedBranchSlots = new Map();
 
-    function markSubtreeAsHidden(card) {
-      if (!card || seen.has(card.id) || visiting.has(card.id)) {
-        return;
-      }
-
-      seen.add(card.id);
-      (card.childIds || []).forEach((childId) => {
-        const childCard = cardById.get(childId);
-
-        if (!childCard) {
-          return;
-        }
-
-        markSubtreeAsHidden(childCard);
-      });
+    function getCollapsedBranchSlot(anchorId) {
+      const previousSlot = collapsedBranchSlots.get(anchorId) || 0;
+      collapsedBranchSlots.set(anchorId, previousSlot + 1);
+      return previousSlot;
     }
 
-    function placeCard(card, depth, startY) {
+    function placeCard(card, depth, startY, collapsedContext = null) {
       if (!card || seen.has(card.id) || visiting.has(card.id)) {
         return { top: startY, bottom: startY };
       }
 
       visiting.add(card.id);
 
-      const left = depth * depthStepX;
-      const top = startY;
+      const isHiddenFromCollapsedContext = collapsedContext !== null;
+      const isCollapsed = collapsedNodeIds.has(card.id);
+      const left = isHiddenFromCollapsedContext
+        ? collapsedContext.left + (collapsedContext.depthOffset * treeNodeOverlapX)
+        : depth * depthStepX;
+      const top = isHiddenFromCollapsedContext
+        ? collapsedContext.baseTop + (getCollapsedBranchSlot(collapsedContext.anchorId) * collapsedStackGapY)
+        : startY;
 
       positionedCards.push({
         card,
         left,
         top,
+        isCollapsedStacked: isHiddenFromCollapsedContext,
       });
 
       seen.add(card.id);
       maxX = Math.max(maxX, left + treeNodeWidth);
       maxY = Math.max(maxY, top + treeNodeHeight);
-
-      const isCollapsed = collapsedNodeIds.has(card.id);
 
       let nextY = top + treeNodeHeight - childOverlapY;
       let subtreeBottom = top + treeNodeHeight;
@@ -357,14 +365,32 @@ export default function App() {
 
         processedChildren.add(childId);
 
-        if (isCollapsed) {
-          markSubtreeAsHidden(childCard);
-          return;
+        const nextCollapsedContext = {
+          anchorId: isHiddenFromCollapsedContext
+            ? collapsedContext.anchorId
+            : card.id,
+          left: isHiddenFromCollapsedContext ? collapsedContext.left : left + treeNodeOverlapX,
+          baseTop: isHiddenFromCollapsedContext
+            ? collapsedContext.baseTop
+            : top + treeNodeHeight + collapsedStackBaseOffsetY,
+          depthOffset: isHiddenFromCollapsedContext ? collapsedContext.depthOffset + 1 : 1,
+        };
+
+        const childBounds = isCollapsed || isHiddenFromCollapsedContext
+          ? placeCard(
+              childCard,
+              depth + 1,
+              nextY,
+              nextCollapsedContext,
+            )
+          : placeCard(childCard, depth + 1, nextY);
+
+        if (!isCollapsed) {
+          subtreeBottom = Math.max(subtreeBottom, childBounds.bottom);
+          nextY = childBounds.bottom - childOverlapY;
         }
 
-        const childBounds = placeCard(childCard, depth + 1, nextY);
         subtreeBottom = Math.max(subtreeBottom, childBounds.bottom);
-        nextY = childBounds.bottom - childOverlapY;
       });
 
       visiting.delete(card.id);
@@ -411,6 +437,7 @@ export default function App() {
     onPress,
     treePosition,
     pileIndex,
+    isCollapsedStacked = false,
     value,
     isFocused,
   }) {
@@ -426,6 +453,7 @@ export default function App() {
           styles.card,
           isLeafCard && styles.leafCard,
           isTreeCard && styles.treeCard,
+          isTreeCard && isCollapsedStacked && styles.treeCollapsedCard,
           isFocused && styles.focusedCard,
           isEditing && styles.editingCard,
           isTreeCard && isEditing && styles.treeEditingCard,
@@ -505,7 +533,7 @@ export default function App() {
     card,
     visibleIndex,
     layout = 'leaf',
-    { treePosition } = {}
+    { treePosition, isCollapsedStacked = false } = {}
   ) {
     const {
       childIds,
@@ -648,6 +676,7 @@ export default function App() {
         ? () => handleTreeCardPress(index)
         : () => handleFocusCard(index, layout),
       treePosition,
+      isCollapsedStacked,
       isFocused: isFocusedCard,
       key: `card-${id}`,
       layout,
@@ -679,6 +708,7 @@ export default function App() {
       ...entry,
       left: entry.left + treeCanvasPadding,
       top: entry.top + treeCanvasPadding,
+      isCollapsedStacked: entry.isCollapsedStacked,
     }));
 
     return (
@@ -712,9 +742,15 @@ export default function App() {
                 { height: contentHeight, width: contentWidth },
               ]}
             >
-              {paddedPositionedCards.map(({ card, left, top }) => (
+              {paddedPositionedCards.map(({
+                card,
+                left,
+                top,
+                isCollapsedStacked,
+              }) => (
                 renderStackCard(card, 0, 'tree', {
                   treePosition: { left, top },
+                  isCollapsedStacked,
                 })
               ))}
             </View>
@@ -843,6 +879,9 @@ const styles = StyleSheet.create({
     padding: 16,
     justifyContent: 'flex-start',
     alignItems: 'stretch',
+  },
+  treeCollapsedCard: {
+    opacity: 0.98,
   },
   treeEditingCard: {
     minHeight: 220,
