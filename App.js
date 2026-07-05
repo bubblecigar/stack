@@ -862,9 +862,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   treeCardControls: {
-    top: 8,
     right: 8,
+    bottom: 10,
+    top: undefined,
     gap: 6,
+    alignItems: 'flex-end',
     transform: [{ scale: 0.8 }],
   },
   treeCardText: {
