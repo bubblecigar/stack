@@ -73,12 +73,12 @@ export function StackCard({
       Animated.sequence([
         Animated.timing(placeholderPulse, {
           toValue: 1,
-          duration: 780,
+          duration: 520,
           useNativeDriver: true,
         }),
         Animated.timing(placeholderPulse, {
           toValue: 0,
-          duration: 780,
+          duration: 520,
           useNativeDriver: true,
         }),
       ]),
@@ -97,7 +97,7 @@ export function StackCard({
 
   const placeholderOpacity = placeholderPulse.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.42, 1],
+    outputRange: [0.18, 1],
   });
 
   function handleControlPressIn(event) {
@@ -241,7 +241,9 @@ export function StackCard({
                 <Animated.View
                   style={[
                     styles.leafPlaceholderBar,
-                    { opacity: placeholderOpacity },
+                    {
+                      opacity: placeholderOpacity,
+                    },
                   ]}
                 />
                 <Animated.View

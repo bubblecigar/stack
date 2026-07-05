@@ -1,7 +1,7 @@
 const DEFAULT_TREE_LAYOUT = {
-  treeNodeWidth: 240,
-  treeNodeHeight: 125,
-  childOverlapX: 160,
+  treeNodeWidth: 220,
+  treeNodeHeight: 112,
+  childOverlapX: 146,
   childOverlapY: 16,
   rootGapY: 64,
   collapsedStackGapY: 0,
