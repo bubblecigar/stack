@@ -140,6 +140,14 @@ export default function App() {
     setFocusedCardIndex(index);
   }
 
+  function handleTouchCard(index, layout) {
+    if (layout !== 'tree') {
+      return;
+    }
+
+    setFocusedCardIndex(index);
+  }
+
   function handleLinkAsAncestor(index) {
     if (linkingIndex === null) {
       return;
@@ -253,7 +261,10 @@ export default function App() {
           <Pressable
             accessibilityLabel={isEditing ? 'Confirm card' : 'Edit card'}
             accessibilityRole="button"
-            onPress={() => handleToggleEdit(index, text)}
+            onPress={() => {
+              handleTouchCard(index, layout);
+              handleToggleEdit(index, text);
+            }}
             style={({ pressed }) => [
               styles.iconButton,
               pressed && styles.iconButtonPressed,
@@ -268,7 +279,10 @@ export default function App() {
               isLinkingSource ? 'Cancel card linking' : 'Link card'
             }
             accessibilityRole="button"
-            onPress={() => handleToggleLinking(index)}
+            onPress={() => {
+              handleTouchCard(index, layout);
+              handleToggleLinking(index);
+            }}
             style={({ pressed }) => [
               styles.iconButton,
               isLinkingSource && styles.linkButtonActive,
@@ -280,7 +294,10 @@ export default function App() {
           <Pressable
             accessibilityLabel="Delete card"
             accessibilityRole="button"
-            onPress={() => handleDeleteCard(index)}
+            onPress={() => {
+              handleTouchCard(index, layout);
+              handleDeleteCard(index);
+            }}
             style={({ pressed }) => [
               styles.iconButton,
               styles.dangerButton,
@@ -296,7 +313,10 @@ export default function App() {
           <Pressable
             accessibilityLabel="Link as ancestor"
             accessibilityRole="button"
-            onPress={() => handleLinkAsAncestor(index)}
+            onPress={() => {
+              handleTouchCard(index, layout);
+              handleLinkAsAncestor(index);
+            }}
             style={({ pressed }) => [
               styles.dependencyButton,
               isAncestorLinked && styles.dependencyButtonActive,
@@ -314,7 +334,10 @@ export default function App() {
           <Pressable
             accessibilityLabel="Link as child"
             accessibilityRole="button"
-            onPress={() => handleLinkAsChild(index)}
+            onPress={() => {
+              handleTouchCard(index, layout);
+              handleLinkAsChild(index);
+            }}
             style={({ pressed }) => [
               styles.dependencyButton,
               isChildLinked && styles.dependencyButtonActive,
