@@ -2,6 +2,7 @@ import {
   Animated,
   Dimensions,
   PanResponder,
+  Easing,
   View,
 } from 'react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -13,6 +14,8 @@ const SCREEN_WIDTH = Dimensions.get('window').width;
 const SWIPE_DISTANCE_FACTOR = 0.18;
 const SWIPE_VELOCITY = 650;
 const SWIPE_OUT_DISTANCE = SCREEN_WIDTH * 1.2;
+const SWIPE_OUT_DURATION = 220;
+const SWIPE_RETURN_DURATION = 220;
 
 export function LeafDeck({
   cards,
@@ -39,7 +42,8 @@ export function LeafDeck({
     focusedTextOpacity.setValue(0);
     Animated.timing(focusedTextOpacity, {
       toValue: 1,
-      duration: 90,
+      duration: 140,
+      easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start();
   }, [topFocusedCardId]);
@@ -64,12 +68,11 @@ export function LeafDeck({
 
     isTransitioningRef.current = true;
 
-    activeAnimationRef.current = Animated.spring(slideAnim, {
+    activeAnimationRef.current = Animated.timing(slideAnim, {
       toValue: 0,
       useNativeDriver: true,
-      damping: 16,
-      stiffness: 260,
-      mass: 0.9,
+      duration: SWIPE_RETURN_DURATION,
+      easing: Easing.out(Easing.quad),
     });
 
     activeAnimationRef.current.start(() => {
@@ -97,7 +100,8 @@ export function LeafDeck({
 
     activeAnimationRef.current = Animated.timing(slideAnim, {
       toValue: outTo,
-      duration: 170,
+      duration: SWIPE_OUT_DURATION,
+      easing: Easing.out(Easing.quad),
       useNativeDriver: true,
     });
 
