@@ -36,6 +36,7 @@ export default function App() {
 
   const stack = useSyncExternalStore(subscribe, getSnapshot);
   const cards = useMemo(() => stack.map((card, index) => ({ ...card, index })), [stack]);
+  const shouldRenderLeaf = layoutMode === 'leaf';
 
   const visibleCards = useMemo(() => {
     if (cards.length === 0) {
@@ -238,14 +239,39 @@ export default function App() {
 
     setLeafTopIndex((currentTop) => {
       const normalizedTop = currentTop === null ? cards.length - 1 : currentTop;
+      const nextTop = direction === 'left'
+        ? Math.max(0, normalizedTop - SWIPE_STEP)
+        : Math.min(cards.length - 1, normalizedTop + SWIPE_STEP);
 
-      if (direction === 'left') {
-        return Math.max(0, normalizedTop - SWIPE_STEP);
-      }
-
-      return Math.min(cards.length - 1, normalizedTop + SWIPE_STEP);
+      setFocusedCardIndex(nextTop);
+      return nextTop;
     });
   }
+
+  useEffect(() => {
+    if (!shouldRenderLeaf) {
+      return;
+    }
+
+    const renderedTopIndex = visibleCards[0]?.index ?? null;
+    if (cards.length === 0) {
+      if (focusedCardIndex !== null) {
+        setFocusedCardIndex(null);
+      }
+      return;
+    }
+
+    if (renderedTopIndex === null || focusedCardIndex === renderedTopIndex) {
+      return;
+    }
+
+    setFocusedCardIndex(renderedTopIndex);
+  }, [
+    shouldRenderLeaf,
+    visibleCards,
+    cards.length,
+    focusedCardIndex,
+  ]);
 
   function handleToggleLayout() {
     const isLeafToTree = layoutMode === 'leaf';
@@ -276,8 +302,6 @@ export default function App() {
     setEditingIndex(null);
     setEditingValue('');
   }
-
-  const shouldRenderLeaf = layoutMode === 'leaf';
 
   return (
     <View style={shouldRenderLeaf ? styles.container : styles.containerTreeMode}>

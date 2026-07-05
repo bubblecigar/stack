@@ -1,5 +1,5 @@
 import { PanResponder, View } from 'react-native';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { StackCard } from '../components/StackCard';
 import { styles } from '../styles/appStyles';
 
@@ -15,7 +15,6 @@ export function LeafDeck({
   onLeafSwipe,
   swipeDisabled,
 }) {
-  const [swipeOffset, setSwipeOffset] = useState(0);
   const SWIPE_THRESHOLD = 64;
 
   const panResponder = useMemo(() => PanResponder.create({
@@ -25,31 +24,20 @@ export function LeafDeck({
       && Math.abs(dx) > Math.abs(dy)
       && Math.abs(dx) > 8
     ),
-    onPanResponderMove: (_, { dx }) => {
-      setSwipeOffset(dx);
-    },
+    onPanResponderMove: () => {},
     onPanResponderRelease: (_, { dx }) => {
       if (dx < -SWIPE_THRESHOLD) {
         onLeafSwipe?.('left');
       } else if (dx > SWIPE_THRESHOLD) {
         onLeafSwipe?.('right');
       }
-
-      setSwipeOffset(0);
     },
-    onPanResponderTerminate: () => {
-      setSwipeOffset(0);
-    },
-    onPanResponderGrant: () => {
-      setSwipeOffset(0);
-    },
+    onPanResponderTerminate: () => {},
+    onPanResponderGrant: () => {},
   }), [swipeDisabled, onLeafSwipe]);
 
   return (
-    <View
-      {...panResponder.panHandlers}
-      style={[styles.deck, { transform: [{ translateX: swipeOffset }] }]}
-    >
+    <View {...panResponder.panHandlers} style={styles.deck}>
       {cards.map((card, visibleIndex) => (
         <StackCard
           card={card}
