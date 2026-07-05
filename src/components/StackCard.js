@@ -169,18 +169,26 @@ export function StackCard({
           />
         </Animated.View>
       ) : (
-        <Animated.View
-          style={{ opacity: isLeafCard ? (isFocusedCard ? leafTextOpacity : 0) : 1 }}
-        >
-          <Text style={[
-            styles.cardText,
-            isTreeCard && styles.treeCardText,
-            !text && styles.emptyCardText,
-          ]}
+        isLeafCard && !isFocusedCard ? (
+          <View style={styles.leafPlaceholder}>
+            <View style={styles.leafPlaceholderBar} />
+            <View style={[styles.leafPlaceholderBar, { width: '74%' }]} />
+            <View style={[styles.leafPlaceholderBar, { width: '58%' }]} />
+          </View>
+        ) : (
+          <Animated.View
+            style={{ opacity: isLeafCard ? leafTextOpacity : 1 }}
           >
-            {text || 'Empty card'}
-          </Text>
-        </Animated.View>
+            <Text style={[
+              styles.cardText,
+              isTreeCard && styles.treeCardText,
+              !text && styles.emptyCardText,
+            ]}
+            >
+              {text || 'Empty card'}
+            </Text>
+          </Animated.View>
+        )
       )}
 
       <View style={[
