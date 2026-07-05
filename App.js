@@ -44,7 +44,7 @@ export default function App() {
     }
 
     if (leafTopIndex === null) {
-      return cards.slice(-LEAF_VISIBLE_COUNT).reverse();
+      return cards.slice(-LEAF_VISIBLE_COUNT);
     }
 
     const normalizedTop = Math.max(
@@ -53,8 +53,8 @@ export default function App() {
     );
 
     return Array.from(
-      { length: Math.min(LEAF_VISIBLE_COUNT, normalizedTop + 1) },
-      (_, offset) => cards[normalizedTop - offset],
+      { length: Math.min(LEAF_VISIBLE_COUNT, cards.length) },
+      (_, offset) => cards[(normalizedTop + offset) % cards.length],
     );
   }, [cards, leafTopIndex]);
 
@@ -232,20 +232,24 @@ export default function App() {
     ));
   }
 
-  function handleLeafSwipe(direction) {
+  function handleLeafSwipe(_direction) {
     if (editingIndex !== null || cards.length === 0) {
-      return;
+      return false;
     }
 
-    setLeafTopIndex((currentTop) => {
-      const normalizedTop = currentTop === null ? cards.length - 1 : currentTop;
-      const nextTop = direction === 'left'
-        ? Math.max(0, normalizedTop - SWIPE_STEP)
-        : Math.min(cards.length - 1, normalizedTop + SWIPE_STEP);
+    if (cards.length === 1) {
+      return false;
+    }
 
-      setFocusedCardIndex(nextTop);
-      return nextTop;
-    });
+    const normalizedTop = leafTopIndex === null ? cards.length - 1 : Math.max(
+      0,
+      Math.min(leafTopIndex, cards.length - 1),
+    );
+    const nextTop = (normalizedTop + SWIPE_STEP) % cards.length;
+
+    setLeafTopIndex(nextTop);
+    setFocusedCardIndex(nextTop);
+    return true;
   }
 
   useEffect(() => {

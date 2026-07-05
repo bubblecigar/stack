@@ -31,8 +31,8 @@ export function StackCard({
   const isFocusedCard = focusedCardIndex === index;
   const hasChildren = Array.isArray(childIds) && childIds.length > 0;
   const isCollapsed = collapsedNodeIds.has(id);
-  const shouldShowControls = isLeafCard || isFocusedCard;
-  const shouldShowEdit = isLeafCard || isFocusedCard;
+  const shouldShowControls = isFocusedCard;
+  const shouldShowEdit = isFocusedCard;
 
   const dependencyText = '';
 
