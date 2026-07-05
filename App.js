@@ -175,7 +175,7 @@ export default function App() {
     const treeNodeWidth = 260;
     const treeNodeHeight = 125;
     const depthStepX = 250;
-    const childStepY = 140;
+    const childOverlapY = 16;
     const rootGapY = 64;
     let cursorY = 14;
     let maxX = 0;
@@ -201,7 +201,8 @@ export default function App() {
       maxX = Math.max(maxX, left + treeNodeWidth);
       maxY = Math.max(maxY, top + treeNodeHeight);
 
-      let nextY = top + treeNodeHeight + childStepY;
+      let nextY = top + treeNodeHeight - childOverlapY;
+      let subtreeBottom = top + treeNodeHeight;
       const processedChildren = new Set();
 
       (card.childIds || []).forEach((childId) => {
@@ -216,13 +217,14 @@ export default function App() {
 
         processedChildren.add(childId);
         const childBounds = placeCard(childCard, depth + 1, nextY);
-        nextY = childBounds.bottom + childStepY;
+        subtreeBottom = Math.max(subtreeBottom, childBounds.bottom);
+        nextY = childBounds.bottom - childOverlapY;
       });
 
       visiting.delete(card.id);
       return {
         top,
-        bottom: Math.max(top + treeNodeHeight, nextY - childStepY),
+        bottom: subtreeBottom,
       };
     }
 
