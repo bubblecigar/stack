@@ -32,7 +32,6 @@ export default function App() {
     .map((card, index) => ({ ...card, index }))
     .slice(-4)
     .reverse();
-  const treeCards = [...cards].reverse();
 
   function handleCreateCard() {
     const nextIndex = push('');
@@ -164,6 +163,92 @@ export default function App() {
     toggleChildLink(linkingIndex, index);
   }
 
+  function buildTreeLayout() {
+    const cardById = new Map(cards.map((card) => [card.id, card]));
+    const rootCards = cards.filter((card) => (
+      !Array.isArray(card.parentIds) || card.parentIds.length === 0
+    ));
+    const seen = new Set();
+    const visiting = new Set();
+    const positionedCards = [];
+
+    const treeNodeWidth = 280;
+    const treeNodeHeight = 170;
+    const depthStepX = 300;
+    const childStepY = 190;
+    const rootGapY = 80;
+    let cursorY = 14;
+    let maxX = 0;
+    let maxY = 0;
+
+    function placeCard(card, depth, startY) {
+      if (!card || seen.has(card.id) || visiting.has(card.id)) {
+        return { top: startY, bottom: startY };
+      }
+
+      visiting.add(card.id);
+
+      const left = depth * depthStepX;
+      const top = startY;
+
+      positionedCards.push({
+        card,
+        left,
+        top,
+      });
+
+      seen.add(card.id);
+      maxX = Math.max(maxX, left + treeNodeWidth);
+      maxY = Math.max(maxY, top + treeNodeHeight);
+
+      let nextY = top + treeNodeHeight + childStepY;
+      const processedChildren = new Set();
+
+      (card.childIds || []).forEach((childId) => {
+        if (processedChildren.has(childId)) {
+          return;
+        }
+
+        const childCard = cardById.get(childId);
+        if (!childCard) {
+          return;
+        }
+
+        processedChildren.add(childId);
+        const childBounds = placeCard(childCard, depth + 1, nextY);
+        nextY = childBounds.bottom + childStepY;
+      });
+
+      visiting.delete(card.id);
+      return {
+        top,
+        bottom: Math.max(top + treeNodeHeight, nextY - childStepY),
+      };
+    }
+
+    rootCards.forEach((rootCard) => {
+      const bounds = placeCard(rootCard, 0, cursorY);
+      cursorY = bounds.bottom + rootGapY;
+      maxY = Math.max(maxY, bounds.bottom);
+    });
+
+    cards.forEach((card) => {
+      if (seen.has(card.id)) {
+        return;
+      }
+
+      const bounds = placeCard(card, 0, cursorY);
+      cursorY = bounds.bottom + rootGapY;
+      maxY = Math.max(maxY, bounds.bottom);
+    });
+
+    return {
+      maxHeight: Math.max(maxY + 100, 260),
+      maxWidth: Math.max(maxX + 40, depthStepX + treeNodeWidth),
+      positionedCards,
+    };
+  }
+
   function renderCard({
     controls,
     isEditing = false,
@@ -173,6 +258,7 @@ export default function App() {
     dependencyText,
     dependencyControls,
     onPress,
+    treePosition,
     pileIndex,
     value,
     isFocused,
@@ -192,6 +278,11 @@ export default function App() {
           isFocused && styles.focusedCard,
           isEditing && styles.editingCard,
           isTreeCard && isEditing && styles.treeEditingCard,
+          treePosition && {
+            left: treePosition.left,
+            top: treePosition.top,
+            position: 'absolute',
+          },
           isLeafCard && {
             top: pileIndex * 12,
             transform: [
@@ -202,7 +293,7 @@ export default function App() {
               ? visibleCards.length + 2
               : visibleCards.length + 1 - pileIndex,
           },
-          !isLeafCard && {
+          isLeafCard && {
             transform: [{ rotate: `${pileIndex % 2 === 0 ? -1.5 : 1.5}deg` }],
           },
         ]}
@@ -259,7 +350,12 @@ export default function App() {
     );
   }
 
-  function renderStackCard(card, visibleIndex, layout = 'leaf') {
+  function renderStackCard(
+    card,
+    visibleIndex,
+    layout = 'leaf',
+    { treePosition } = {}
+  ) {
     const {
       childIds,
       id,
@@ -379,6 +475,7 @@ export default function App() {
       dependencyText,
       isEditing,
       onPress: () => handleFocusCard(index, layout),
+      treePosition,
       isFocused: isFocusedCard,
       key: `card-${id}`,
       layout,
@@ -399,15 +496,32 @@ export default function App() {
   }
 
   function renderTreeView() {
+    const {
+      maxHeight,
+      maxWidth,
+      positionedCards,
+    } = buildTreeLayout();
+
     return (
       <ScrollView
-        contentContainerStyle={styles.treeContent}
-        showsVerticalScrollIndicator={false}
         style={styles.treeScroll}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.treeHorizontalContent}
       >
-        {treeCards.map((card, visibleIndex) => (
-          renderStackCard(card, visibleIndex, 'tree')
-        ))}
+        <ScrollView
+          style={styles.treeScroll}
+          contentContainerStyle={styles.treeContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={[styles.treeCanvas, { height: maxHeight, width: maxWidth }]}>
+            {positionedCards.map(({ card, left, top }) => (
+              renderStackCard(card, 0, 'tree', {
+                treePosition: { left, top },
+              })
+            ))}
+          </View>
+        </ScrollView>
       </ScrollView>
     );
   }
@@ -481,14 +595,21 @@ const styles = StyleSheet.create({
   treeScroll: {
     flex: 1,
     width: '100%',
-    maxWidth: 520,
     alignSelf: 'center',
+    paddingRight: 24,
+    paddingLeft: 24,
   },
   treeContent: {
-    alignItems: 'stretch',
-    gap: 14,
+    alignItems: 'flex-start',
+    paddingBottom: 96,
     paddingTop: 8,
-    paddingBottom: 108,
+  },
+  treeHorizontalContent: {
+    flexGrow: 1,
+  },
+  treeCanvas: {
+    position: 'relative',
+    alignItems: 'flex-start',
   },
   card: {
     minHeight: 360,
