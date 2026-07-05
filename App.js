@@ -25,6 +25,7 @@ import { LeafDeck } from './src/views/LeafDeck';
 import { NodeStructureView } from './src/views/NodeStructureView';
 import { TreeCanvas } from './src/views/TreeCanvas';
 import { getMe, loadRemoteCards, saveRemoteCards } from './src/lib/apiClient';
+import { clearStoredAuthToken, getStoredAuthToken, setStoredAuthToken } from './src/lib/authTokenStore';
 import { styles } from './src/styles/appStyles';
 
 const LEAF_VISIBLE_COUNT = 5;
@@ -32,6 +33,7 @@ const LEAF_VISIBLE_COUNT = 5;
 export default function App() {
   const [authToken, setAuthToken] = useState(null);
   const [authUser, setAuthUser] = useState(null);
+  const [isRestoringSession, setIsRestoringSession] = useState(true);
   const [isLoadingUserData, setIsLoadingUserData] = useState(false);
   const [syncError, setSyncError] = useState('');
   const [editingIndex, setEditingIndex] = useState(null);
@@ -82,6 +84,29 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
+
+    async function restoreSession() {
+      try {
+        const storedToken = await getStoredAuthToken();
+        if (isMounted && storedToken) {
+          setAuthToken(storedToken);
+        }
+      } finally {
+        if (isMounted) {
+          setIsRestoringSession(false);
+        }
+      }
+    }
+
+    restoreSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
     if (cards.length === 0) {
       setLeafFocusedCardId(null);
       setLeafTopIndex(null);
@@ -121,8 +146,10 @@ export default function App() {
   }, [stack.length]);
 
   function resetSession() {
+    clearStoredAuthToken();
     setAuthToken(null);
     setAuthUser(null);
+    setIsRestoringSession(false);
     setIsLoadingUserData(false);
     setSyncError('');
     setEditingIndex(null);
@@ -143,6 +170,7 @@ export default function App() {
   }
 
   function handleAuthenticated(result) {
+    setStoredAuthToken(result.token).catch(() => {});
     setAuthToken(result.token);
     setAuthUser(result.user);
     setSyncError('');
@@ -166,6 +194,11 @@ export default function App() {
       } catch (error) {
         if (error.status === 401 && isMounted) {
           handleAuthExpired();
+          return;
+        }
+
+        if (isMounted && !authUser) {
+          resetSession();
         }
       }
     }
@@ -177,7 +210,7 @@ export default function App() {
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, [authToken]);
+  }, [authToken, authUser]);
 
   useEffect(() => {
     if (!authToken) {
@@ -488,6 +521,19 @@ export default function App() {
 
     setEditingIndex(null);
     setEditingValue('');
+  }
+
+  if (isRestoringSession || (authToken && !authUser)) {
+    return (
+      <>
+        <View style={styles.authContainer}>
+          <View style={styles.authPanel}>
+            <Text style={styles.authTitle}>Loading</Text>
+          </View>
+        </View>
+        <StatusBar style="dark" />
+      </>
+    );
   }
 
   if (!authToken || !authUser) {
