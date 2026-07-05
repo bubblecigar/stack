@@ -228,7 +228,8 @@ export default function App() {
 
     const treeNodeWidth = 260;
     const treeNodeHeight = 125;
-    const depthStepX = 250;
+    const treeNodeOverlapX = 24;
+    const depthStepX = Math.max(treeNodeWidth - treeNodeOverlapX, 120);
     const childOverlapY = 16;
     const rootGapY = 64;
     let cursorY = 14;
