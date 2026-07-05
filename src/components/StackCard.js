@@ -1,4 +1,5 @@
 import { Pressable, Text, TextInput, View, Animated } from 'react-native';
+import { useEffect, useRef } from 'react';
 import { styles } from '../styles/appStyles';
 
 export function StackCard({
@@ -60,6 +61,44 @@ export function StackCard({
     : null;
 
   const dependencyText = '';
+  const placeholderPulse = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!isLeafCard || leafContentMode !== 'placeholder') {
+      placeholderPulse.setValue(0);
+      return undefined;
+    }
+
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(placeholderPulse, {
+          toValue: 1,
+          duration: 780,
+          useNativeDriver: true,
+        }),
+        Animated.timing(placeholderPulse, {
+          toValue: 0,
+          duration: 780,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+
+    animation.start();
+
+    return () => {
+      animation.stop();
+    };
+  }, [
+    isLeafCard,
+    leafContentMode,
+    placeholderPulse,
+  ]);
+
+  const placeholderOpacity = placeholderPulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.42, 1],
+  });
 
   function handleControlPressIn(event) {
     event?.stopPropagation?.();
@@ -199,9 +238,30 @@ export function StackCard({
                   styles.leafPlaceholder,
                 ]}
               >
-                <View style={styles.leafPlaceholderBar} />
-                <View style={[styles.leafPlaceholderBar, { width: '74%' }]} />
-                <View style={[styles.leafPlaceholderBar, { width: '58%' }]} />
+                <Animated.View
+                  style={[
+                    styles.leafPlaceholderBar,
+                    { opacity: placeholderOpacity },
+                  ]}
+                />
+                <Animated.View
+                  style={[
+                    styles.leafPlaceholderBar,
+                    {
+                      opacity: placeholderOpacity,
+                      width: '74%',
+                    },
+                  ]}
+                />
+                <Animated.View
+                  style={[
+                    styles.leafPlaceholderBar,
+                    {
+                      opacity: placeholderOpacity,
+                      width: '58%',
+                    },
+                  ]}
+                />
               </View>
             ) : leafContentMode === 'text' ? (
               <View style={styles.leafContentLayer}>
