@@ -47,7 +47,7 @@ export function StackCard({
         isTreeCard && styles.treeCard,
         isTreeCard && isCollapsedStacked && styles.treeCollapsedCard,
         isFocusedCard && styles.focusedCard,
-        isEditing && styles.editingCard,
+        isEditing && isLeafCard && styles.leafEditingCard,
         treePosition && {
           left: treePosition.left,
           top: treePosition.top,

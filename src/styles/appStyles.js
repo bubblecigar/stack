@@ -121,8 +121,13 @@ export const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     elevation: 14,
   },
-  editingCard: {
-    zIndex: 20,
+  leafEditingCard: {
+    top: 0,
+    zIndex: 2500,
+    transform: [
+      { scale: 1 },
+      { rotate: '0deg' },
+    ],
     borderColor: '#2563EB',
     borderWidth: 2,
   },
