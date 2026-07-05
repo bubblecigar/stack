@@ -49,6 +49,7 @@ export default function App() {
   const [collapsedNodeIds, setCollapsedNodeIds] = useState(() => new Set());
   const [leafTopIndex, setLeafTopIndex] = useState(null);
   const [leafFocusedCardId, setLeafFocusedCardId] = useState(null);
+  const [isDeleteHoldActive, setIsDeleteHoldActive] = useState(false);
 
   const stack = useSyncExternalStore(subscribe, getSnapshot);
   const cards = useMemo(() => stack.map((card, index) => ({ ...card, index })), [stack]);
@@ -168,6 +169,7 @@ export default function App() {
     setFocusedCardIndex(null);
     setLeafTopIndex(null);
     setLeafFocusedCardId(null);
+    setIsDeleteHoldActive(false);
     setCollapsedNodeIds(new Set());
     hasLoadedDefaultStack.current = false;
     hasLoadedRemoteCards.current = false;
@@ -350,6 +352,7 @@ export default function App() {
 
   function handleDeleteCard(index) {
     const removedCard = stack[index];
+    setIsDeleteHoldActive(false);
 
     if (editingIndex === index) {
       setEditingIndex(null);
@@ -473,6 +476,15 @@ export default function App() {
   const visibleTopCardIndex = visibleCards[0]?.index ?? null;
   const effectiveLeafFocusedIndex = visibleTopCardIndex ?? focusedCardIndex;
 
+  function handleDeleteCurrentLeafCard() {
+    if (!shouldRenderLeaf || visibleTopCardIndex === null) {
+      setIsDeleteHoldActive(false);
+      return;
+    }
+
+    handleDeleteCard(visibleTopCardIndex);
+  }
+
   useEffect(() => {
     if (!shouldRenderLeaf) {
       return;
@@ -506,6 +518,7 @@ export default function App() {
   ]);
 
   function handleToggleLayout() {
+    setIsDeleteHoldActive(false);
     const isLeafToTree = layoutMode === 'leaf';
     const pendingEditIndex = editingIndex;
     const hasPendingEdit = pendingEditIndex !== null;
@@ -592,6 +605,8 @@ export default function App() {
           onEditingValueChange={setEditingValue}
           onCompleteEdit={handleCompleteEdit}
           onLeafSwipe={handleLeafSwipe}
+          isDeleteHoldActive={isDeleteHoldActive}
+          onDeleteCurrentCard={handleDeleteCurrentLeafCard}
           swipeDisabled={editingIndex !== null}
         />
       ) : (
@@ -619,7 +634,9 @@ export default function App() {
       />
 
       <FloatingControls
+        canDeleteCurrentCard={shouldRenderLeaf && visibleTopCardIndex !== null}
         layoutMode={layoutMode}
+        onDeleteHoldChange={setIsDeleteHoldActive}
         onToggleMode={handleToggleLayout}
         onCreateCard={handleCreateCard}
       />

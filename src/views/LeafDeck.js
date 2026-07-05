@@ -26,6 +26,8 @@ const SLOT_OPACITY_STEP = 0.12;
 const SLOT_ROTATE_STEP = 1.1;
 const DOUBLE_TAP_DELAY_MS = 280;
 const TAP_MOVE_TOLERANCE = 12;
+const DELETE_HOLD_MS = 3000;
+const DELETE_RING_SEGMENTS = 48;
 
 function normalizeTopIndex(cards, topIndex) {
   if (cards.length === 0) {
@@ -96,6 +98,19 @@ function getSwipeTarget(direction) {
   };
 }
 
+function LeafTrashCanIcon() {
+  return (
+    <View style={styles.leafTrashIcon}>
+      <View style={styles.leafTrashIconLid} />
+      <View style={styles.leafTrashIconHandle} />
+      <View style={styles.leafTrashIconBody}>
+        <View style={styles.leafTrashIconLine} />
+        <View style={styles.leafTrashIconLine} />
+      </View>
+    </View>
+  );
+}
+
 export function LeafDeck({
   cards,
   topIndex,
@@ -110,14 +125,18 @@ export function LeafDeck({
   onEditingValueChange,
   onCompleteEdit,
   onLeafSwipe,
+  isDeleteHoldActive = false,
+  onDeleteCurrentCard,
   swipeDisabled,
 }) {
   const dragX = useRef(new Animated.Value(0)).current;
   const dragY = useRef(new Animated.Value(0)).current;
   const swipeProgressValue = useRef(new Animated.Value(0)).current;
   const insertProgress = useRef(new Animated.Value(1)).current;
+  const deleteProgress = useRef(new Animated.Value(0)).current;
   const animationRef = useRef(null);
   const insertAnimationRef = useRef(null);
+  const deleteAnimationRef = useRef(null);
   const isAnimatingRef = useRef(false);
   const lastTapRef = useRef({
     timestamp: 0,
@@ -126,6 +145,7 @@ export function LeafDeck({
   const inputTouchRef = useRef(false);
   const [insertingDirection, setInsertingDirection] = useState(null);
   const [displayCard, setDisplayCard] = useState(null);
+  const [deleteProgressSnapshot, setDeleteProgressSnapshot] = useState(0);
 
   const normalizedTopIndex = normalizeTopIndex(cards, topIndex);
   const visualSlots = useMemo(
@@ -157,7 +177,54 @@ export function LeafDeck({
       insertAnimationRef.current.stop();
       insertAnimationRef.current = null;
     }
+
+    if (deleteAnimationRef.current) {
+      deleteAnimationRef.current.stop();
+      deleteAnimationRef.current = null;
+    }
   }, []);
+
+  useEffect(() => {
+    const listenerId = deleteProgress.addListener(({ value }) => {
+      setDeleteProgressSnapshot(value);
+    });
+
+    return () => {
+      deleteProgress.removeListener(listenerId);
+    };
+  }, [
+    deleteProgress,
+  ]);
+
+  useEffect(() => {
+    if (!isDeleteHoldActive || !activeCard || activeCard.index < 0) {
+      if (deleteAnimationRef.current) {
+        deleteAnimationRef.current.stop();
+        deleteAnimationRef.current = null;
+      }
+      deleteProgress.setValue(0);
+      return;
+    }
+
+    deleteProgress.setValue(0);
+    deleteAnimationRef.current = Animated.timing(deleteProgress, {
+      toValue: 1,
+      duration: DELETE_HOLD_MS,
+      easing: Easing.linear,
+      useNativeDriver: false,
+    });
+
+    deleteAnimationRef.current.start(({ finished }) => {
+      deleteAnimationRef.current = null;
+
+      if (finished) {
+        animateDeleteSwipeAway();
+      }
+    });
+  }, [
+    activeCard,
+    isDeleteHoldActive,
+  ]);
 
   useEffect(() => {
     if (isAnimatingRef.current) {
@@ -299,6 +366,44 @@ export function LeafDeck({
     });
   }
 
+  function animateDeleteSwipeAway() {
+    if (isAnimatingRef.current || !activeCard || activeCard.index < 0) {
+      onDeleteCurrentCard?.();
+      return;
+    }
+
+    stopCurrentAnimation();
+    isAnimatingRef.current = true;
+
+    animationRef.current = Animated.parallel([
+      Animated.timing(dragX, {
+        toValue: -SWIPE_OUT_DISTANCE_X,
+        duration: SWIPE_OUT_DURATION,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(dragY, {
+        toValue: -8,
+        duration: SWIPE_OUT_DURATION,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(swipeProgressValue, {
+        toValue: 1,
+        duration: SWIPE_OUT_DURATION,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]);
+
+    animationRef.current.start(() => {
+      onDeleteCurrentCard?.();
+      deleteProgress.setValue(0);
+      resetDrag();
+      unlockDeck();
+    });
+  }
+
   function handleRelease(_, gestureState) {
     if (swipeDisabled || visualSlots.length <= 1 || isAnimatingRef.current) {
       return;
@@ -389,6 +494,7 @@ export function LeafDeck({
     onStartShouldSetPanResponder: () => false,
     onMoveShouldSetPanResponder: (_, { dx, dy }) => (
       !swipeDisabled
+      && !isDeleteHoldActive
       && !isAnimatingRef.current
       && visualSlots.length > 1
       && Math.max(Math.abs(dx), Math.abs(dy)) > 8
@@ -429,6 +535,10 @@ export function LeafDeck({
   const insertStartRotate = insertingDirection === 'left' || insertingDirection === 'up'
     ? '-10deg'
     : '10deg';
+  const completedDeleteRingSegments = Math.min(
+    DELETE_RING_SEGMENTS,
+    Math.floor(deleteProgressSnapshot * DELETE_RING_SEGMENTS),
+  );
 
   return (
     <View
@@ -608,6 +718,33 @@ export function LeafDeck({
             leafContentMode="placeholder"
           />
         </Animated.View>
+      ) : null}
+      {isDeleteHoldActive ? (
+        <View pointerEvents="none" style={styles.leafDeleteProgressOverlay}>
+          <View style={styles.leafDeleteProgressRing}>
+            {Array.from({ length: DELETE_RING_SEGMENTS }, (_, segmentIndex) => (
+              <View
+                key={`delete-progress-segment-${segmentIndex}`}
+                style={[
+                  styles.leafDeleteProgressTickSlot,
+                  {
+                    transform: [{ rotate: `${(360 / DELETE_RING_SEGMENTS) * segmentIndex}deg` }],
+                  },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.leafDeleteProgressTick,
+                    segmentIndex < completedDeleteRingSegments && styles.leafDeleteProgressTickActive,
+                  ]}
+                />
+              </View>
+            ))}
+            <View style={styles.leafDeleteProgressCenter}>
+              <LeafTrashCanIcon />
+            </View>
+          </View>
+        </View>
       ) : null}
     </View>
   );
