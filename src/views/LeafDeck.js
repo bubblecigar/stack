@@ -100,6 +100,7 @@ export function LeafDeck({
   );
   const topCard = getCircularCard(cards, normalizedTopIndex, 0);
   const activeCard = displayCard ?? topCard;
+  const isEditingActiveCard = activeCard != null && editingIndex === activeCard.index;
   const effectiveFocusedCardId = controlledFocusedCardId ?? topCard?.id ?? null;
   const visualCard = {
     id: 'leaf-visual-card',
@@ -302,6 +303,7 @@ export function LeafDeck({
     <View {...panResponder.panHandlers} style={styles.deck}>
       {visualSlots.map((slot) => {
         const isTopSlot = slot === 0;
+        const shouldRenderEditableTopSlot = isTopSlot && isEditingActiveCard;
         const currentMetrics = getSlotMetrics(slot);
         const promotedMetrics = getSlotMetrics(slot - 1);
         const zIndex = 1000 - slot;
@@ -370,13 +372,13 @@ export function LeafDeck({
             ]}
           >
             <StackCard
-              card={visualCard}
+              card={shouldRenderEditableTopSlot ? activeCard : visualCard}
               collapsedNodeIds={collapsedNodeIds}
-              editingIndex={null}
-              editingValue=""
+              editingIndex={shouldRenderEditableTopSlot ? editingIndex : null}
+              editingValue={shouldRenderEditableTopSlot ? editingValue : ''}
               focusedCardIndex={focusedCardIndex}
               focusedCardId={effectiveFocusedCardId}
-              hideControls
+              hideControls={!shouldRenderEditableTopSlot}
               isLeafTopCard={isTopSlot}
               layout="leaf"
               visibleIndex={slot}
@@ -386,7 +388,11 @@ export function LeafDeck({
               onEditingValueChange={onEditingValueChange}
               onCompleteEdit={onCompleteEdit}
               onToggleCollapse={() => {}}
-              leafContentMode={isTopSlot ? 'blank' : 'placeholder'}
+              leafContentMode={
+                shouldRenderEditableTopSlot
+                  ? 'text'
+                  : (isTopSlot ? 'blank' : 'placeholder')
+              }
             />
           </Animated.View>
         );
@@ -459,7 +465,7 @@ export function LeafDeck({
           />
         </Animated.View>
       ) : null}
-      {activeCard ? (
+      {activeCard && !isEditingActiveCard ? (
         <Animated.View
           key="leaf-current-overlay"
           style={[

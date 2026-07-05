@@ -37,7 +37,7 @@ export const styles = StyleSheet.create({
     right: 0,
     top: 0,
     bottom: 0,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
   },
   leafCurrentOverlay: {
     zIndex: 2000,
@@ -49,18 +49,12 @@ export const styles = StyleSheet.create({
     right: 14,
     bottom: 96,
     height: 136,
-    backgroundColor: '#E2E8F080',
+    backgroundColor: 'transparent',
     borderRadius: 28,
     overflow: 'hidden',
     borderWidth: 0,
-    shadowColor: '#0F172A',
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.16,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   nodeViewCanvas: {
     position: 'relative',
@@ -268,11 +262,6 @@ export const styles = StyleSheet.create({
     borderStyle: 'solid',
   },
   leafEditingCard: {
-    top: 0,
-    transform: [
-      { scale: 1 },
-      { rotate: '0deg' },
-    ],
     borderColor: '#2563EB',
     borderWidth: 2,
   },
@@ -320,8 +309,13 @@ export const styles = StyleSheet.create({
   emptyCardText: {
     color: '#94A3B8',
   },
+  cardInputWrap: {
+    width: '100%',
+    alignSelf: 'stretch',
+  },
   cardInput: {
     width: '100%',
+    maxWidth: '100%',
     minHeight: 180,
     color: '#0F172A',
     fontSize: 32,
@@ -329,6 +323,7 @@ export const styles = StyleSheet.create({
     lineHeight: 40,
     textAlign: 'center',
     textAlignVertical: 'center',
+    flexWrap: 'wrap',
   },
   dependencyBar: {
     position: 'absolute',

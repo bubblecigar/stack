@@ -161,7 +161,7 @@ export function StackCard({
       </View>
 
       {isEditing ? (
-        <Animated.View style={{ opacity: 1 }}>
+        <Animated.View style={styles.cardInputWrap}>
           <TextInput
             onFocus={() => {
               onFocusCard?.(index);
@@ -174,6 +174,7 @@ export function StackCard({
             autoCorrect
             autoFocus
             multiline
+            scrollEnabled={false}
             onChangeText={onEditingValueChange}
             onEndEditing={(event) => {
               onCompleteEdit?.(index, event.nativeEvent.text);
