@@ -2,6 +2,7 @@ import {
   Animated,
   Dimensions,
   Easing,
+  Keyboard,
   PanResponder,
   View,
 } from 'react-native';
@@ -23,6 +24,8 @@ const SLOT_Y_STEP = 12;
 const SLOT_SCALE_STEP = 0.035;
 const SLOT_OPACITY_STEP = 0.12;
 const SLOT_ROTATE_STEP = 1.1;
+const DOUBLE_TAP_DELAY_MS = 280;
+const TAP_MOVE_TOLERANCE = 12;
 
 function normalizeTopIndex(cards, topIndex) {
   if (cards.length === 0) {
@@ -116,6 +119,11 @@ export function LeafDeck({
   const animationRef = useRef(null);
   const insertAnimationRef = useRef(null);
   const isAnimatingRef = useRef(false);
+  const lastTapRef = useRef({
+    timestamp: 0,
+  });
+  const touchStartRef = useRef(null);
+  const inputTouchRef = useRef(false);
   const [insertingDirection, setInsertingDirection] = useState(null);
   const [displayCard, setDisplayCard] = useState(null);
 
@@ -314,6 +322,69 @@ export function LeafDeck({
     animateSwipeOut(getSwipeDirection(dx, dy, vx, vy));
   }
 
+  function handleDeckTouchStart(event) {
+    const { pageX = 0, pageY = 0 } = event.nativeEvent;
+    touchStartRef.current = {
+      pageX,
+      pageY,
+    };
+  }
+
+  function handleDeckTouchEnd(event) {
+    if (editingIndex !== null) {
+      if (inputTouchRef.current) {
+        inputTouchRef.current = false;
+        touchStartRef.current = null;
+        return;
+      }
+
+      if (!touchStartRef.current) {
+        return;
+      }
+
+      const { pageX = 0, pageY = 0 } = event.nativeEvent;
+      const deltaX = Math.abs(pageX - touchStartRef.current.pageX);
+      const deltaY = Math.abs(pageY - touchStartRef.current.pageY);
+      touchStartRef.current = null;
+
+      if (Math.max(deltaX, deltaY) <= TAP_MOVE_TOLERANCE) {
+        Keyboard.dismiss();
+      }
+
+      return;
+    }
+
+    if (
+      swipeDisabled
+      || isAnimatingRef.current
+      || !activeCard
+      || activeCard.index < 0
+      || !touchStartRef.current
+    ) {
+      touchStartRef.current = null;
+      return;
+    }
+
+    const { pageX = 0, pageY = 0 } = event.nativeEvent;
+    const deltaX = Math.abs(pageX - touchStartRef.current.pageX);
+    const deltaY = Math.abs(pageY - touchStartRef.current.pageY);
+    touchStartRef.current = null;
+
+    if (Math.max(deltaX, deltaY) > TAP_MOVE_TOLERANCE) {
+      return;
+    }
+
+    const now = Date.now();
+    const isDoubleTap = now - lastTapRef.current.timestamp <= DOUBLE_TAP_DELAY_MS;
+    lastTapRef.current = {
+      timestamp: now,
+    };
+
+    if (isDoubleTap) {
+      onCreateEdit?.(activeCard.index, activeCard.text);
+    }
+  }
+
   const panResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => false,
     onMoveShouldSetPanResponder: (_, { dx, dy }) => (
@@ -360,7 +431,12 @@ export function LeafDeck({
     : '10deg';
 
   return (
-    <View {...panResponder.panHandlers} style={styles.deck}>
+    <View
+      {...panResponder.panHandlers}
+      onTouchEnd={handleDeckTouchEnd}
+      onTouchStart={handleDeckTouchStart}
+      style={styles.deck}
+    >
       {visualSlots.map((slot) => {
         const isTopSlot = slot === 0;
         const shouldRenderActiveTopSlot = isTopSlot && activeCard;
@@ -441,7 +517,7 @@ export function LeafDeck({
               editingValue={shouldRenderActiveTopSlot ? editingValue : ''}
               focusedCardIndex={focusedCardIndex}
               focusedCardId={effectiveFocusedCardId}
-              hideControls={!shouldRenderActiveTopSlot}
+              hideControls
               isLeafTopCard={isTopSlot}
               layout="leaf"
               visibleIndex={slot}
@@ -450,6 +526,11 @@ export function LeafDeck({
               onDeleteCard={onDeleteCard}
               onEditingValueChange={onEditingValueChange}
               onCompleteEdit={onCompleteEdit}
+              onPressIn={() => {
+                if (shouldRenderActiveTopSlot && editingIndex === activeCard.index) {
+                  inputTouchRef.current = true;
+                }
+              }}
               onToggleCollapse={() => {}}
               leafContentMode={
                 shouldRenderActiveTopSlot

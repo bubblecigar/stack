@@ -219,8 +219,6 @@ export function StackCard({
             onSubmitEditing={(event) => {
               onCompleteEdit?.(index, event.nativeEvent.text);
             }}
-            placeholder="Write card text"
-            placeholderTextColor="#94A3B8"
             style={[
               styles.cardInput,
               isTreeCard && styles.treeCardInput,
@@ -274,7 +272,7 @@ export function StackCard({
                   !text && styles.emptyCardText,
                 ]}
                 >
-                  {text || 'Empty card'}
+                  {text}
                 </Text>
               </View>
             ) : null}
@@ -289,7 +287,7 @@ export function StackCard({
               !text && styles.emptyCardText,
             ]}
             >
-              {text || 'Empty card'}
+              {text}
             </Text>
           </Animated.View>
         )
