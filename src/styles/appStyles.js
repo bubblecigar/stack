@@ -557,6 +557,9 @@ export const styles = StyleSheet.create({
     transform: [{ scale: 0.96 }],
   },
   modeFab: {
+    position: 'absolute',
+    left: 24,
+    bottom: 28,
     backgroundColor: '#0F172A',
   },
   modeFabPressed: {

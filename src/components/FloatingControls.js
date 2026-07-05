@@ -34,7 +34,7 @@ export function FloatingControls({
   }
 
   return (
-    <View style={styles.floatingControls}>
+    <>
       <Pressable
         accessibilityLabel="Toggle stack layout"
         accessibilityRole="button"
@@ -50,32 +50,34 @@ export function FloatingControls({
         </Text>
       </Pressable>
 
-      {shouldShowDelete ? (
-        <Pressable
-          accessibilityHint="Hold until the circle completes to delete the current card"
-          accessibilityLabel="Delete current card"
-          accessibilityRole="button"
-          delayLongPress={DELETE_HOLD_MS}
-          onPressIn={handleDeletePressIn}
-          onPressOut={handleDeletePressOut}
-          style={({ pressed }) => [
-            styles.fab,
-            styles.deleteFab,
-            pressed && styles.deleteFabPressed,
-          ]}
-        >
-          <TrashCanIcon />
-        </Pressable>
-      ) : null}
+      <View style={styles.floatingControls}>
+        {shouldShowDelete ? (
+          <Pressable
+            accessibilityHint="Hold until the circle completes to delete the current card"
+            accessibilityLabel="Delete current card"
+            accessibilityRole="button"
+            delayLongPress={DELETE_HOLD_MS}
+            onPressIn={handleDeletePressIn}
+            onPressOut={handleDeletePressOut}
+            style={({ pressed }) => [
+              styles.fab,
+              styles.deleteFab,
+              pressed && styles.deleteFabPressed,
+            ]}
+          >
+            <TrashCanIcon />
+          </Pressable>
+        ) : null}
 
-      <Pressable
-        accessibilityLabel="Add card"
-        accessibilityRole="button"
-        onPress={onCreateCard}
-        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-      >
-        <Text style={styles.fabIcon}>+</Text>
-      </Pressable>
-    </View>
+        <Pressable
+          accessibilityLabel="Add card"
+          accessibilityRole="button"
+          onPress={onCreateCard}
+          style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+        >
+          <Text style={styles.fabIcon}>+</Text>
+        </Pressable>
+      </View>
+    </>
   );
 }
