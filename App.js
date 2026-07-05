@@ -794,8 +794,8 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     alignSelf: 'center',
-    paddingRight: 24,
-    paddingLeft: 24,
+    paddingRight: 0,
+    paddingLeft: 0,
   },
   treeViewport: {
     flex: 1,
