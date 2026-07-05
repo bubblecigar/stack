@@ -309,8 +309,8 @@ export default function App() {
     const depthStepX = treeNodeWidth - treeNodeOverlapX;
     const childOverlapY = 16;
     const rootGapY = 64;
-    const collapsedStackGapY = 54;
-    const collapsedStackBaseOffsetY = 28;
+    const collapsedStackGapY = 18;
+    const collapsedStackPeek = 28;
     let cursorY = 14;
     let maxX = 0;
     let maxY = 0;
@@ -332,7 +332,7 @@ export default function App() {
       const isHiddenFromCollapsedContext = collapsedContext !== null;
       const isCollapsed = collapsedNodeIds.has(card.id);
       const left = isHiddenFromCollapsedContext
-        ? collapsedContext.left + (collapsedContext.depthOffset * treeNodeOverlapX)
+        ? collapsedContext.left
         : depth * depthStepX;
       const top = isHiddenFromCollapsedContext
         ? collapsedContext.baseTop + (getCollapsedBranchSlot(collapsedContext.anchorId) * collapsedStackGapY)
@@ -366,14 +366,9 @@ export default function App() {
         processedChildren.add(childId);
 
         const nextCollapsedContext = {
-          anchorId: isHiddenFromCollapsedContext
-            ? collapsedContext.anchorId
-            : card.id,
-          left: isHiddenFromCollapsedContext ? collapsedContext.left : left + treeNodeOverlapX,
-          baseTop: isHiddenFromCollapsedContext
-            ? collapsedContext.baseTop
-            : top + treeNodeHeight + collapsedStackBaseOffsetY,
-          depthOffset: isHiddenFromCollapsedContext ? collapsedContext.depthOffset + 1 : 1,
+          anchorId: card.id,
+          left: left,
+          baseTop: top + treeNodeHeight - collapsedStackPeek,
         };
 
         const childBounds = isCollapsed || isHiddenFromCollapsedContext
