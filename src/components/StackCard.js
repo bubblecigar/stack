@@ -33,8 +33,8 @@ export function StackCard({
   const isTreeCard = layout === 'tree';
   const isEditing = editingIndex === index;
   const isFocusedCard = (
-    isLeafTopCard
-      ? true
+    isLeafCard
+      ? isLeafTopCard
       : (focusedCardId != null
         ? focusedCardId === id
         : focusedCardIndex === index)
