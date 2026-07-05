@@ -178,6 +178,7 @@ export default function App() {
     isFocused,
   }) {
     const isLeafCard = layout === 'leaf';
+    const isTreeCard = layout === 'tree';
 
     return (
       <Pressable
@@ -187,9 +188,10 @@ export default function App() {
         style={[
           styles.card,
           isLeafCard && styles.leafCard,
-          !isLeafCard && styles.treeCard,
+          isTreeCard && styles.treeCard,
           isFocused && styles.focusedCard,
           isEditing && styles.editingCard,
+          isTreeCard && isEditing && styles.treeEditingCard,
           isLeafCard && {
             top: pileIndex * 12,
             transform: [
@@ -205,7 +207,13 @@ export default function App() {
           },
         ]}
       >
-        <View style={styles.cardControls}>{controls}</View>
+        <View style={[
+          styles.cardControls,
+          isTreeCard && styles.treeCardControls,
+        ]}
+        >
+          {controls}
+        </View>
 
         {isEditing ? (
           <TextInput
@@ -216,12 +224,16 @@ export default function App() {
             onChangeText={onChangeText}
             placeholder="Write card text"
             placeholderTextColor="#94A3B8"
-            style={styles.cardInput}
+            style={[
+              styles.cardInput,
+              isTreeCard && styles.treeCardInput,
+            ]}
             value={value}
           />
         ) : (
           <Text style={[
             styles.cardText,
+            isTreeCard && styles.treeCardText,
             !value && styles.emptyCardText,
           ]}
           >
@@ -229,8 +241,18 @@ export default function App() {
           </Text>
         )}
 
-        <View style={styles.dependencyBar}>
-          <Text style={styles.dependencyText}>{dependencyText}</Text>
+        <View style={[
+          styles.dependencyBar,
+          isTreeCard && styles.treeDependencyBar,
+        ]}
+        >
+          <Text style={[
+            styles.dependencyText,
+            isTreeCard && styles.treeDependencyText,
+          ]}
+          >
+            {dependencyText}
+          </Text>
           {dependencyControls}
         </View>
       </Pressable>
@@ -464,7 +486,7 @@ const styles = StyleSheet.create({
   },
   treeContent: {
     alignItems: 'stretch',
-    gap: 18,
+    gap: 14,
     paddingTop: 8,
     paddingBottom: 108,
   },
@@ -491,7 +513,46 @@ const styles = StyleSheet.create({
   },
   treeCard: {
     position: 'relative',
-    minHeight: 260,
+    minHeight: 140,
+    maxHeight: 160,
+    padding: 16,
+    justifyContent: 'flex-start',
+    alignItems: 'stretch',
+  },
+  treeEditingCard: {
+    minHeight: 220,
+    justifyContent: 'center',
+  },
+  treeCardControls: {
+    top: 8,
+    right: 8,
+    gap: 6,
+    transform: [{ scale: 0.8 }],
+  },
+  treeCardText: {
+    fontSize: 18,
+    fontWeight: '700',
+    lineHeight: 24,
+    textAlign: 'left',
+  },
+  treeCardInput: {
+    minHeight: 72,
+    fontSize: 18,
+    lineHeight: 22,
+    fontWeight: '700',
+    textAlign: 'left',
+    textAlignVertical: 'top',
+    paddingTop: 0,
+  },
+  treeDependencyBar: {
+    left: 10,
+    right: 10,
+    bottom: 8,
+    gap: 6,
+  },
+  treeDependencyText: {
+    fontSize: 10,
+    fontWeight: '700',
   },
   focusedCard: {
     borderColor: '#0EA5E9',
