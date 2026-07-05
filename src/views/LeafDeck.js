@@ -88,7 +88,7 @@ export function LeafDeck({
   const insertAnimationRef = useRef(null);
   const isAnimatingRef = useRef(false);
   const [insertingDirection, setInsertingDirection] = useState(null);
-  const [isTopContentReady, setIsTopContentReady] = useState(false);
+  const [displayCard, setDisplayCard] = useState(null);
 
   const normalizedTopIndex = normalizeTopIndex(cards, topIndex);
   const visualSlots = useMemo(
@@ -99,6 +99,7 @@ export function LeafDeck({
     [cards.length, visibleCount],
   );
   const topCard = getCircularCard(cards, normalizedTopIndex, 0);
+  const activeCard = displayCard ?? topCard;
   const effectiveFocusedCardId = controlledFocusedCardId ?? topCard?.id ?? null;
   const visualCard = {
     id: 'leaf-visual-card',
@@ -126,19 +127,13 @@ export function LeafDeck({
   }, []);
 
   useEffect(() => {
-    if (!topCard?.id) {
-      setIsTopContentReady(false);
+    if (isAnimatingRef.current) {
       return;
     }
 
-    setIsTopContentReady(false);
-    const revealTimer = setTimeout(() => {
-      setIsTopContentReady(true);
-    }, 180);
-
-    return () => clearTimeout(revealTimer);
+    setDisplayCard(topCard);
   }, [
-    topCard?.id,
+    topCard,
   ]);
 
   function stopCurrentAnimation() {
@@ -155,6 +150,11 @@ export function LeafDeck({
 
   function resetDrag() {
     dragX.setValue(0);
+  }
+
+  function getNextCardForSwipe(direction) {
+    const directionStep = direction === 'right' ? 1 : -1;
+    return getCircularCard(cards, normalizedTopIndex, directionStep);
   }
 
   function animateInsertToBottom(direction) {
@@ -211,6 +211,7 @@ export function LeafDeck({
     isAnimatingRef.current = true;
 
     const targetX = direction === 'right' ? SWIPE_OUT_DISTANCE : -SWIPE_OUT_DISTANCE;
+    const nextDisplayCard = getNextCardForSwipe(direction);
 
     animationRef.current = Animated.timing(dragX, {
       toValue: targetX,
@@ -233,8 +234,11 @@ export function LeafDeck({
       }
 
       animateInsertToBottom(direction);
-      resetDrag();
-      unlockDeck();
+      setDisplayCard(nextDisplayCard);
+      requestAnimationFrame(() => {
+        resetDrag();
+        unlockDeck();
+      });
     });
   }
 
@@ -455,7 +459,7 @@ export function LeafDeck({
           />
         </Animated.View>
       ) : null}
-      {topCard ? (
+      {activeCard ? (
         <Animated.View
           key="leaf-current-overlay"
           style={[
@@ -483,7 +487,7 @@ export function LeafDeck({
           ]}
         >
           <StackCard
-            card={topCard}
+            card={activeCard}
             collapsedNodeIds={collapsedNodeIds}
             editingIndex={editingIndex}
             editingValue={editingValue}
@@ -499,7 +503,7 @@ export function LeafDeck({
             onEditingValueChange={onEditingValueChange}
             onCompleteEdit={onCompleteEdit}
             onToggleCollapse={() => {}}
-            leafContentMode={isTopContentReady ? 'text' : 'placeholder'}
+            leafContentMode="text"
           />
         </Animated.View>
       ) : null}
