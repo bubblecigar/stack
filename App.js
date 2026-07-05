@@ -232,6 +232,12 @@ export default function App() {
     ));
   }
 
+  function handleTreeCardFocus(index) {
+    if (focusedCardIndex !== index) {
+      setFocusedCardIndex(index);
+    }
+  }
+
   function handleLeafSwipe(_direction) {
     if (editingIndex !== null || cards.length === 0) {
       return false;
@@ -330,6 +336,7 @@ export default function App() {
           editingIndex={editingIndex}
           editingValue={editingValue}
           onCardPress={handleTreeCardPress}
+          onCardFocus={handleTreeCardFocus}
           onCreateEdit={handleToggleEdit}
           onToggleCollapse={handleToggleCollapse}
           onDeleteCard={handleDeleteCard}

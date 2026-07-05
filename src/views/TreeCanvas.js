@@ -11,6 +11,7 @@ export function TreeCanvas({
   editingIndex,
   editingValue,
   onCardPress,
+  onCardFocus,
   onCreateEdit,
   onToggleCollapse,
   onDeleteCard,
@@ -148,6 +149,7 @@ export function TreeCanvas({
                   key={`card-${card.id}`}
                   visibleIndex={0}
                   onPressIn={handleCardPressIn}
+                  onFocusCard={onCardFocus}
                   treePosition={{
                     left,
                     top,

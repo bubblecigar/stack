@@ -17,6 +17,7 @@ export function StackCard({
   onToggleCollapse,
   onDeleteCard,
   onEditingValueChange,
+  onFocusCard,
 }) {
   const {
     id,
@@ -134,6 +135,13 @@ export function StackCard({
 
       {isEditing ? (
         <TextInput
+          onFocus={() => {
+            onFocusCard?.(index);
+            onPressIn?.();
+          }}
+          onTouchStart={() => {
+            onPressIn?.();
+          }}
           autoCapitalize="sentences"
           autoCorrect
           autoFocus
