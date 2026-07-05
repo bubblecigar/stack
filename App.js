@@ -556,7 +556,7 @@ export default function App() {
     const isCollapsed = collapsedNodeIds.has(id);
     const dependencyText = `A ${parentIds.length} · C ${childIds.length}`;
 
-    const shouldShowControls = layout !== 'leaf' || isFocusedCard;
+    const shouldShowControls = layout === 'leaf' || isFocusedCard;
     const shouldShowEditControl = layout !== 'tree' || isFocusedCard;
 
     return renderCard({
@@ -635,7 +635,7 @@ export default function App() {
           )}
         </>
       ),
-      dependencyControls: canLinkToCard && (
+      dependencyControls: canLinkToCard && shouldShowControls && (
         <View style={styles.linkTargetControls}>
           <Pressable
             accessibilityLabel="Link as ancestor"
