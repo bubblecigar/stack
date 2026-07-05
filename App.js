@@ -226,10 +226,10 @@ export default function App() {
     const visiting = new Set();
     const positionedCards = [];
 
-    const treeNodeWidth = 260;
+    const treeNodeWidth = 240;
     const treeNodeHeight = 125;
-    const treeNodeOverlapX = 24;
-    const depthStepX = Math.max(treeNodeWidth - treeNodeOverlapX, 120);
+    const treeNodeOverlapX = treeNodeWidth / 2;
+    const depthStepX = treeNodeWidth - treeNodeOverlapX;
     const childOverlapY = 16;
     const rootGapY = 64;
     let cursorY = 14;
