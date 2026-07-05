@@ -14,8 +14,8 @@ const SCREEN_WIDTH = Dimensions.get('window').width;
 const SWIPE_DISTANCE_FACTOR = 0.18;
 const SWIPE_VELOCITY = 650;
 const SWIPE_OUT_DISTANCE = SCREEN_WIDTH * 1.2;
-const SWIPE_OUT_DURATION = 220;
-const SWIPE_RETURN_DURATION = 220;
+const SWIPE_OUT_DURATION = 520;
+const SWIPE_RETURN_DURATION = 420;
 
 export function LeafDeck({
   cards,
