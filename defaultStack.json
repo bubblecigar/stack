@@ -1,16 +1,30 @@
 {
   "cards": [
     {
-      "text": "Capture ideas in one sentence"
+      "id": 1,
+      "text": "Root ancestor",
+      "childIds": [2, 5]
     },
     {
-      "text": "Break ideas into concrete cards"
+      "id": 2,
+      "text": "Primary child",
+      "parentIds": [1],
+      "childIds": [3, 4]
     },
     {
-      "text": "Pick a few high-priority cards"
+      "id": 3,
+      "text": "Grandchild branch one",
+      "parentIds": [2]
     },
     {
-      "text": "Create links between related cards"
+      "id": 4,
+      "text": "Grandchild branch two",
+      "parentIds": [2]
+    },
+    {
+      "id": 5,
+      "text": "Secondary child",
+      "parentIds": [1]
     }
   ]
 }

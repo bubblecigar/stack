@@ -37,17 +37,25 @@ export function push(value) {
   return nextIndex;
 }
 
-function normalizeIncomingCard(rawCard, index) {
+function normalizeIncomingCard(rawCard, nextGeneratedId) {
   const text = typeof rawCard === 'string'
     ? rawCard
     : rawCard?.text ?? '';
 
-  const childIds = Array.isArray(rawCard?.childIds) ? rawCard.childIds : [];
-  const parentIds = Array.isArray(rawCard?.parentIds) ? rawCard.parentIds : [];
+  const rawChildIds = Array.isArray(rawCard?.childIds) ? rawCard.childIds : [];
+  const rawParentIds = Array.isArray(rawCard?.parentIds) ? rawCard.parentIds : [];
+
+  const childIds = rawChildIds.map((id) => Number(id)).filter((id) => Number.isInteger(id));
+  const parentIds = rawParentIds.map((id) => Number(id)).filter((id) => Number.isInteger(id));
+
+  const rawId = Number(rawCard?.id);
+  const id = Number.isInteger(rawId) && rawId > 0
+    ? rawId
+    : nextGeneratedId;
 
   return {
     childIds,
-    id: nextCardId + index,
+    id,
     parentIds,
     text: String(text),
   };
@@ -58,12 +66,28 @@ export function loadCards(rawCards) {
     return;
   }
 
-  const normalizedCards = rawCards.map((card, index) => (
-    normalizeIncomingCard(card, index)
-  ));
+  let nextGeneratedId = nextCardId;
+  const usedIds = new Set();
+
+  const normalizedCards = rawCards.map((card) => {
+    const rawCard = normalizeIncomingCard(card, nextGeneratedId);
+    if (usedIds.has(rawCard.id)) {
+      const fallbackId = nextGeneratedId;
+      nextGeneratedId += 1;
+      usedIds.add(fallbackId);
+      return {
+        ...rawCard,
+        id: fallbackId,
+      };
+    }
+
+    usedIds.add(rawCard.id);
+    nextGeneratedId = Math.max(nextGeneratedId, rawCard.id + 1);
+    return rawCard;
+  });
 
   stack = normalizedCards;
-  nextCardId = normalizedCards.length + 1;
+  nextCardId = Math.max(nextCardId, nextGeneratedId);
   emitChange();
 }
 
