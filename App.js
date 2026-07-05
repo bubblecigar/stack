@@ -342,6 +342,7 @@ export default function App() {
         card,
         left,
         top,
+        depth,
         isCollapsedStacked: isHiddenFromCollapsedContext,
       });
 
@@ -456,6 +457,7 @@ export default function App() {
             left: treePosition.left,
             top: treePosition.top,
             position: 'absolute',
+            zIndex: 900 - (treePosition.depth ?? 0),
           },
           isLeafCard && {
             top: pileIndex * 12,
@@ -704,6 +706,7 @@ export default function App() {
       left: entry.left + treeCanvasPadding,
       top: entry.top + treeCanvasPadding,
       isCollapsedStacked: entry.isCollapsedStacked,
+      depth: entry.depth,
     }));
 
     return (
@@ -741,10 +744,11 @@ export default function App() {
                 card,
                 left,
                 top,
+                depth,
                 isCollapsedStacked,
               }) => (
                 renderStackCard(card, 0, 'tree', {
-                  treePosition: { left, top },
+                  treePosition: { left, top, depth },
                   isCollapsedStacked,
                 })
               ))}
