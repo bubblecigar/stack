@@ -323,12 +323,13 @@ export default function App() {
 
       visiting.add(card.id);
 
-      const isHiddenFromCollapsedContext = collapsedContext !== null;
-      const isCollapsed = collapsedNodeIds.has(card.id);
-      const left = isHiddenFromCollapsedContext
+      const isInCollapsedContext = collapsedContext !== null;
+      const isDirectlyCollapsed = collapsedNodeIds.has(card.id);
+      const isCollapsed = isDirectlyCollapsed || isInCollapsedContext;
+      const left = isInCollapsedContext
         ? collapsedContext.left
         : depth * depthStepX;
-      const top = isHiddenFromCollapsedContext
+      const top = isInCollapsedContext
         ? collapsedContext.baseTop
         : startY;
 
@@ -338,7 +339,7 @@ export default function App() {
         top,
         placementOrder,
         depth,
-        isCollapsedStacked: isHiddenFromCollapsedContext,
+        isCollapsedStacked: isInCollapsedContext,
       });
       placementOrder += 1;
 
@@ -365,23 +366,21 @@ export default function App() {
 
         const nextCollapsedContext = {
           left: left,
-          baseTop: isCollapsed || isHiddenFromCollapsedContext
+          baseTop: isCollapsed
             ? top + treeNodeHeight - collapsedStackPeek + (collapsedChildIndex * collapsedStackGapY)
             : 0,
         };
 
-        const childStartY = isCollapsed || isHiddenFromCollapsedContext
+        const childStartY = isCollapsed
           ? top + treeNodeHeight - collapsedStackPeek + (collapsedChildIndex * collapsedStackGapY)
           : nextY;
 
-        const childBounds = isCollapsed || isHiddenFromCollapsedContext
-          ? placeCard(
-              childCard,
-              depth + 1,
-              childStartY,
-              nextCollapsedContext,
-            )
-          : placeCard(childCard, depth + 1, nextY);
+        const childBounds = placeCard(
+          childCard,
+          depth + 1,
+          childStartY,
+          isCollapsed ? nextCollapsedContext : null,
+        );
 
         if (!isCollapsed) {
           subtreeBottom = Math.max(subtreeBottom, childBounds.bottom);
