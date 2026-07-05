@@ -26,8 +26,15 @@ export default function App() {
   const [focusedCardIndex, setFocusedCardIndex] = useState(null);
   const [layoutMode, setLayoutMode] = useState('leaf');
   const hasLoadedDefaultStack = useRef(false);
+  const treeHorizontalScrollRef = useRef(null);
+  const treeVerticalScrollRef = useRef(null);
+  const treeViewportRef = useRef({
+    width: 0,
+    height: 0,
+  });
   const stack = useSyncExternalStore(subscribe, getSnapshot);
   const cards = stack.map((card, index) => ({ ...card, index }));
+  const treeCanvasPadding = 160;
   const visibleCards = stack
     .map((card, index) => ({ ...card, index }))
     .slice(-4)
@@ -162,6 +169,53 @@ export default function App() {
 
     toggleChildLink(linkingIndex, index);
   }
+
+  useEffect(() => {
+    if (layoutMode !== 'tree' || focusedCardIndex === null) {
+      return;
+    }
+
+    const viewport = treeViewportRef.current;
+    if (!viewport.width || !viewport.height) {
+      return;
+    }
+
+    const {
+      maxHeight,
+      maxWidth,
+      positionedCards,
+      nodeWidth,
+      nodeHeight,
+    } = buildTreeLayout();
+    const focusedEntry = positionedCards.find(({ card }) => card.index === focusedCardIndex);
+
+    if (!focusedEntry) {
+      return;
+    }
+
+    const contentWidth = maxWidth + (treeCanvasPadding * 2);
+    const contentHeight = maxHeight + (treeCanvasPadding * 2);
+    const centeredX = focusedEntry.left + treeCanvasPadding + (nodeWidth / 2);
+    const centeredY = focusedEntry.top + treeCanvasPadding + (nodeHeight / 2);
+
+    const targetX = Math.min(
+      Math.max(centeredX - (viewport.width / 2), 0),
+      Math.max(contentWidth - viewport.width, 0),
+    );
+    const targetY = Math.min(
+      Math.max(centeredY - (viewport.height / 2), 0),
+      Math.max(contentHeight - viewport.height, 0),
+    );
+
+    treeHorizontalScrollRef.current?.scrollTo({
+      x: targetX,
+      animated: true,
+    });
+    treeVerticalScrollRef.current?.scrollTo({
+      y: targetY,
+      animated: true,
+    });
+  }, [focusedCardIndex, layoutMode, cards]);
 
   function buildTreeLayout() {
     const cardById = new Map(cards.map((card) => [card.id, card]));
@@ -559,36 +613,65 @@ export default function App() {
       nodeWidth,
       nodeHeight,
     } = buildTreeLayout();
+    const contentWidth = maxWidth + (treeCanvasPadding * 2);
+    const contentHeight = maxHeight + (treeCanvasPadding * 2);
+    const paddedPositionedCards = positionedCards.map((entry) => ({
+      ...entry,
+      left: entry.left + treeCanvasPadding,
+      top: entry.top + treeCanvasPadding,
+    }));
+    const positionedCardsById = new Map(
+      paddedPositionedCards.map((entry) => [entry.card.id, entry]),
+    );
 
     return (
-      <ScrollView
-        style={styles.treeScroll}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.treeHorizontalContent}
+      <View
+        style={styles.treeViewport}
+        onLayout={(event) => {
+          const { height, width } = event.nativeEvent.layout;
+
+          treeViewportRef.current = {
+            height,
+            width,
+          };
+        }}
       >
         <ScrollView
+          ref={treeHorizontalScrollRef}
           style={styles.treeScroll}
-          contentContainerStyle={styles.treeContent}
-          showsVerticalScrollIndicator={false}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.treeHorizontalContent}
         >
-          <View style={[styles.treeCanvas, { height: maxHeight, width: maxWidth }]}>
-            {renderTreeLinks(
-              positionedCards,
-              new Map(positionedCards.map((entry) => [entry.card.id, entry])),
-              {
-                nodeWidth,
-                nodeHeight,
-              }
-            )}
-            {positionedCards.map(({ card, left, top }) => (
-              renderStackCard(card, 0, 'tree', {
-                treePosition: { left, top },
-              })
-            ))}
-          </View>
+          <ScrollView
+            ref={treeVerticalScrollRef}
+            style={styles.treeScroll}
+            contentContainerStyle={styles.treeContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <View
+              style={[
+                styles.treeCanvas,
+                { height: contentHeight, width: contentWidth },
+              ]}
+            >
+              {renderTreeLinks(
+                paddedPositionedCards,
+                positionedCardsById,
+                {
+                  nodeWidth,
+                  nodeHeight,
+                }
+              )}
+              {paddedPositionedCards.map(({ card, left, top }) => (
+                renderStackCard(card, 0, 'tree', {
+                  treePosition: { left, top },
+                })
+              ))}
+            </View>
+          </ScrollView>
         </ScrollView>
-      </ScrollView>
+      </View>
     );
   }
 
@@ -664,6 +747,10 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     paddingRight: 24,
     paddingLeft: 24,
+  },
+  treeViewport: {
+    flex: 1,
+    width: '100%',
   },
   treeContent: {
     alignItems: 'flex-start',
