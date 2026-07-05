@@ -314,13 +314,6 @@ export default function App() {
     let cursorY = 14;
     let maxX = 0;
     let maxY = 0;
-    const collapsedBranchSlots = new Map();
-
-    function getCollapsedBranchSlot(anchorId) {
-      const previousSlot = collapsedBranchSlots.get(anchorId) || 0;
-      collapsedBranchSlots.set(anchorId, previousSlot + 1);
-      return previousSlot;
-    }
 
     function placeCard(card, depth, startY, collapsedContext = null) {
       if (!card || seen.has(card.id) || visiting.has(card.id)) {
@@ -335,7 +328,7 @@ export default function App() {
         ? collapsedContext.left
         : depth * depthStepX;
       const top = isHiddenFromCollapsedContext
-        ? collapsedContext.baseTop + (getCollapsedBranchSlot(collapsedContext.anchorId) * collapsedStackGapY)
+        ? collapsedContext.baseTop
         : startY;
 
       positionedCards.push({
@@ -353,6 +346,7 @@ export default function App() {
       let nextY = top + treeNodeHeight - childOverlapY;
       let subtreeBottom = top + treeNodeHeight;
       const processedChildren = new Set();
+      let collapsedChildIndex = 0;
 
       (card.childIds || []).forEach((childId) => {
         if (processedChildren.has(childId)) {
@@ -367,16 +361,21 @@ export default function App() {
         processedChildren.add(childId);
 
         const nextCollapsedContext = {
-          anchorId: card.id,
           left: left,
-          baseTop: top + treeNodeHeight - collapsedStackPeek,
+          baseTop: isCollapsed || isHiddenFromCollapsedContext
+            ? top + treeNodeHeight - collapsedStackPeek + (collapsedChildIndex * collapsedStackGapY)
+            : 0,
         };
+
+        const childStartY = isCollapsed || isHiddenFromCollapsedContext
+          ? top + treeNodeHeight - collapsedStackPeek + (collapsedChildIndex * collapsedStackGapY)
+          : nextY;
 
         const childBounds = isCollapsed || isHiddenFromCollapsedContext
           ? placeCard(
               childCard,
               depth + 1,
-              nextY,
+              childStartY,
               nextCollapsedContext,
             )
           : placeCard(childCard, depth + 1, nextY);
@@ -385,6 +384,8 @@ export default function App() {
           subtreeBottom = Math.max(subtreeBottom, childBounds.bottom);
           nextY = childBounds.bottom - childOverlapY;
         }
+
+        collapsedChildIndex += 1;
 
         subtreeBottom = Math.max(subtreeBottom, childBounds.bottom);
       });
