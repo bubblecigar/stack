@@ -144,7 +144,7 @@ export function StackCard({
 
       {isEditing ? (
         <Animated.View
-          style={{ opacity: isLeafCard ? leafTextOpacity : 1 }}
+          style={{ opacity: isLeafCard ? 1 : 1 }}
         >
           <TextInput
             onFocus={() => {
@@ -177,7 +177,7 @@ export function StackCard({
           </View>
         ) : (
           <Animated.View
-            style={{ opacity: isLeafCard ? leafTextOpacity : 1 }}
+            style={{ opacity: 1 }}
           >
             <Text style={[
               styles.cardText,

@@ -31,22 +31,11 @@ export function LeafDeck({
   swipeDisabled,
 }) {
   const slideAnim = useRef(new Animated.Value(0)).current;
-  const focusedTextOpacity = useRef(new Animated.Value(1)).current;
   const [activeCardId, setActiveCardId] = useState(null);
   const topFocusedCardId = cards[0]?.id ?? null;
   const effectiveFocusedCardId = controlledFocusedCardId ?? topFocusedCardId;
   const isTransitioningRef = useRef(false);
   const activeAnimationRef = useRef(null);
-
-  useEffect(() => {
-    focusedTextOpacity.setValue(0);
-    Animated.timing(focusedTextOpacity, {
-      toValue: 1,
-      duration: 140,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, [topFocusedCardId]);
 
   useEffect(() => () => {
     if (activeAnimationRef.current) {
@@ -228,7 +217,7 @@ export function LeafDeck({
             onDeleteCard={onDeleteCard}
             onEditingValueChange={onEditingValueChange}
             onToggleCollapse={() => {}}
-            leafTextOpacity={card.id === effectiveFocusedCardId ? focusedTextOpacity : 0}
+            leafTextOpacity={1}
           />
         </Animated.View>
       ))}
