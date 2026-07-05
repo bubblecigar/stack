@@ -309,8 +309,8 @@ export default function App() {
     const depthStepX = treeNodeWidth - treeNodeOverlapX;
     const childOverlapY = 16;
     const rootGapY = 64;
-    const collapsedStackGapY = 18;
-    const collapsedStackPeek = 28;
+    const collapsedStackGapY = 12;
+    const collapsedStackPeek = treeNodeHeight / 2;
     let cursorY = 14;
     let maxX = 0;
     let maxY = 0;
