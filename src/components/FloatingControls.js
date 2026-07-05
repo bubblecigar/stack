@@ -1,7 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 import { styles } from '../styles/appStyles';
 
-const DELETE_HOLD_MS = 3000;
+const DELETE_HOLD_MS = 1000;
 
 function TrashCanIcon() {
   return (

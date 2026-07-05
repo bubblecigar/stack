@@ -26,7 +26,7 @@ const SLOT_OPACITY_STEP = 0.12;
 const SLOT_ROTATE_STEP = 1.1;
 const DOUBLE_TAP_DELAY_MS = 280;
 const TAP_MOVE_TOLERANCE = 12;
-const DELETE_HOLD_MS = 3000;
+const DELETE_HOLD_MS = 1000;
 const DELETE_RING_SEGMENTS = 48;
 
 function normalizeTopIndex(cards, topIndex) {
@@ -138,6 +138,7 @@ export function LeafDeck({
   const insertAnimationRef = useRef(null);
   const deleteAnimationRef = useRef(null);
   const isAnimatingRef = useRef(false);
+  const deleteCompletedRef = useRef(false);
   const lastTapRef = useRef({
     timestamp: 0,
   });
@@ -146,6 +147,7 @@ export function LeafDeck({
   const [insertingDirection, setInsertingDirection] = useState(null);
   const [displayCard, setDisplayCard] = useState(null);
   const [deleteProgressSnapshot, setDeleteProgressSnapshot] = useState(0);
+  const [isDeleteVisualActive, setIsDeleteVisualActive] = useState(false);
 
   const normalizedTopIndex = normalizeTopIndex(cards, topIndex);
   const visualSlots = useMemo(
@@ -197,16 +199,29 @@ export function LeafDeck({
   ]);
 
   useEffect(() => {
-    if (!isDeleteHoldActive || !activeCard || activeCard.index < 0) {
+    if (!isDeleteHoldActive) {
+      deleteCompletedRef.current = false;
       if (deleteAnimationRef.current) {
         deleteAnimationRef.current.stop();
         deleteAnimationRef.current = null;
       }
       deleteProgress.setValue(0);
+      setIsDeleteVisualActive(false);
+      return;
+    }
+
+    if (deleteCompletedRef.current || !activeCard || activeCard.index < 0) {
+      if (deleteAnimationRef.current) {
+        deleteAnimationRef.current.stop();
+        deleteAnimationRef.current = null;
+      }
+      deleteProgress.setValue(0);
+      setIsDeleteVisualActive(false);
       return;
     }
 
     deleteProgress.setValue(0);
+    setIsDeleteVisualActive(true);
     deleteAnimationRef.current = Animated.timing(deleteProgress, {
       toValue: 1,
       duration: DELETE_HOLD_MS,
@@ -218,6 +233,8 @@ export function LeafDeck({
       deleteAnimationRef.current = null;
 
       if (finished) {
+        deleteCompletedRef.current = true;
+        setIsDeleteVisualActive(false);
         animateDeleteSwipeAway();
       }
     });
@@ -377,13 +394,13 @@ export function LeafDeck({
 
     animationRef.current = Animated.parallel([
       Animated.timing(dragX, {
-        toValue: -SWIPE_OUT_DISTANCE_X,
+        toValue: 0,
         duration: SWIPE_OUT_DURATION,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
       Animated.timing(dragY, {
-        toValue: -8,
+        toValue: -SWIPE_OUT_DISTANCE_Y,
         duration: SWIPE_OUT_DURATION,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
@@ -397,8 +414,9 @@ export function LeafDeck({
     ]);
 
     animationRef.current.start(() => {
-      onDeleteCurrentCard?.();
       deleteProgress.setValue(0);
+      setIsDeleteVisualActive(false);
+      onDeleteCurrentCard?.();
       resetDrag();
       unlockDeck();
     });
@@ -620,34 +638,63 @@ export function LeafDeck({
               },
             ]}
           >
-            <StackCard
-              card={shouldRenderActiveTopSlot ? activeCard : visualCard}
-              collapsedNodeIds={collapsedNodeIds}
-              editingIndex={shouldRenderActiveTopSlot ? editingIndex : null}
-              editingValue={shouldRenderActiveTopSlot ? editingValue : ''}
-              focusedCardIndex={focusedCardIndex}
-              focusedCardId={effectiveFocusedCardId}
-              hideControls
-              isLeafTopCard={isTopSlot}
-              layout="leaf"
-              visibleIndex={slot}
-              onPress={() => {}}
-              onCreateEdit={onCreateEdit}
-              onDeleteCard={onDeleteCard}
-              onEditingValueChange={onEditingValueChange}
-              onCompleteEdit={onCompleteEdit}
-              onPressIn={() => {
-                if (shouldRenderActiveTopSlot && editingIndex === activeCard.index) {
-                  inputTouchRef.current = true;
+            <View style={styles.leafCardFrame}>
+              <StackCard
+                card={shouldRenderActiveTopSlot ? activeCard : visualCard}
+                collapsedNodeIds={collapsedNodeIds}
+                editingIndex={shouldRenderActiveTopSlot ? editingIndex : null}
+                editingValue={shouldRenderActiveTopSlot ? editingValue : ''}
+                focusedCardIndex={focusedCardIndex}
+                focusedCardId={effectiveFocusedCardId}
+                hideControls
+                isLeafTopCard={isTopSlot}
+                layout="leaf"
+                visibleIndex={slot}
+                onPress={() => {}}
+                onCreateEdit={onCreateEdit}
+                onDeleteCard={onDeleteCard}
+                onEditingValueChange={onEditingValueChange}
+                onCompleteEdit={onCompleteEdit}
+                onPressIn={() => {
+                  if (shouldRenderActiveTopSlot && editingIndex === activeCard.index) {
+                    inputTouchRef.current = true;
+                  }
+                }}
+                onToggleCollapse={() => {}}
+                leafContentMode={
+                  shouldRenderActiveTopSlot
+                    ? 'text'
+                    : 'placeholder'
                 }
-              }}
-              onToggleCollapse={() => {}}
-              leafContentMode={
-                shouldRenderActiveTopSlot
-                  ? 'text'
-                  : 'placeholder'
-              }
-            />
+              />
+              {shouldRenderActiveTopSlot && isDeleteVisualActive ? (
+                <View pointerEvents="none" style={styles.leafDeleteProgressOverlay}>
+                  <View style={styles.leafDeleteProgressRing}>
+                    {Array.from({ length: DELETE_RING_SEGMENTS }, (_, segmentIndex) => (
+                      <View
+                        key={`delete-progress-segment-${segmentIndex}`}
+                        style={[
+                          styles.leafDeleteProgressTickSlot,
+                          {
+                            transform: [{ rotate: `${(360 / DELETE_RING_SEGMENTS) * segmentIndex}deg` }],
+                          },
+                        ]}
+                      >
+                        <View
+                          style={[
+                            styles.leafDeleteProgressTick,
+                            segmentIndex < completedDeleteRingSegments && styles.leafDeleteProgressTickActive,
+                          ]}
+                        />
+                      </View>
+                    ))}
+                    <View style={styles.leafDeleteProgressCenter}>
+                      <LeafTrashCanIcon />
+                    </View>
+                  </View>
+                </View>
+              ) : null}
+            </View>
           </Animated.View>
         );
       })}
@@ -718,33 +765,6 @@ export function LeafDeck({
             leafContentMode="placeholder"
           />
         </Animated.View>
-      ) : null}
-      {isDeleteHoldActive ? (
-        <View pointerEvents="none" style={styles.leafDeleteProgressOverlay}>
-          <View style={styles.leafDeleteProgressRing}>
-            {Array.from({ length: DELETE_RING_SEGMENTS }, (_, segmentIndex) => (
-              <View
-                key={`delete-progress-segment-${segmentIndex}`}
-                style={[
-                  styles.leafDeleteProgressTickSlot,
-                  {
-                    transform: [{ rotate: `${(360 / DELETE_RING_SEGMENTS) * segmentIndex}deg` }],
-                  },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.leafDeleteProgressTick,
-                    segmentIndex < completedDeleteRingSegments && styles.leafDeleteProgressTickActive,
-                  ]}
-                />
-              </View>
-            ))}
-            <View style={styles.leafDeleteProgressCenter}>
-              <LeafTrashCanIcon />
-            </View>
-          </View>
-        </View>
       ) : null}
     </View>
   );

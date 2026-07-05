@@ -315,6 +315,11 @@ export const styles = StyleSheet.create({
     left: 0,
     right: 0,
   },
+  leafCardFrame: {
+    position: 'relative',
+    width: '100%',
+    minHeight: 360,
+  },
   treeCard: {
     position: 'relative',
     width: 220,
