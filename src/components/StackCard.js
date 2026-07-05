@@ -10,6 +10,8 @@ export function StackCard({
   focusedCardIndex,
   focusedCardId = null,
   isLeafTopCard = false,
+  hideControls = false,
+  isLeafOverlay = false,
   collapsedNodeIds,
   treePosition,
   isCollapsedStacked = false,
@@ -19,8 +21,9 @@ export function StackCard({
   onToggleCollapse,
   onDeleteCard,
   onEditingValueChange,
+  onCompleteEdit,
   onFocusCard,
-  leafTextOpacity = 1,
+  leafContentMode = 'text',
 }) {
   const {
     id,
@@ -41,10 +44,32 @@ export function StackCard({
   );
   const hasChildren = Array.isArray(childIds) && childIds.length > 0;
   const isCollapsed = collapsedNodeIds.has(id);
-  const shouldShowControls = isFocusedCard;
+  const shouldShowControls = !hideControls && isFocusedCard;
   const shouldShowEdit = isFocusedCard;
 
+  const treeStackLayer = treePosition
+    ? (
+      9000
+      - ((treePosition.depth ?? 0) * 80)
+      - (treePosition.placementOrder ?? 0)
+    )
+    : -1;
+
+  const zLayer = isTreeCard
+    ? (treeStackLayer + (isFocusedCard ? 5 : 0))
+    : null;
+
   const dependencyText = '';
+
+  function handleControlPressIn(event) {
+    event?.stopPropagation?.();
+    onPressIn?.();
+  }
+
+  function handleControlPress(event, action) {
+    event?.stopPropagation?.();
+    action?.();
+  }
 
   return (
     <Pressable
@@ -54,30 +79,18 @@ export function StackCard({
       style={[
         styles.card,
         isLeafCard && styles.leafCard,
+        isLeafCard && isLeafOverlay && styles.leafOverlayCard,
         isTreeCard && styles.treeCard,
         isTreeCard && isCollapsedStacked && styles.treeCollapsedCard,
         isEditing && isLeafCard && styles.leafEditingCard,
-        treePosition && {
+        isTreeCard && treePosition && {
           left: treePosition.left,
           top: treePosition.top,
           position: 'absolute',
-          zIndex: 9000
-            - ((treePosition.depth ?? 0) * 80)
-            - (treePosition.placementOrder ?? 0),
         },
-        isLeafCard && !isEditing && {
-          top: visibleIndex * 12,
-          transform: [
-            { scale: 1 - visibleIndex * 0.035 },
-            { rotate: `${visibleIndex % 2 === 0 ? -1.5 : 1.5}deg` },
-          ],
-          zIndex: 1000 - visibleIndex,
-        },
-        isLeafCard && isEditing && {
-          top: 0,
-          zIndex: 2500,
-        },
-        isFocusedCard && styles.focusedCard,
+        isFocusedCard && !isLeafCard && styles.focusedCard,
+        isLeafCard && isLeafOverlay && styles.leafOverlayCard,
+        zLayer != null ? { zIndex: zLayer } : null,
       ]}
     >
       <View style={[
@@ -89,10 +102,10 @@ export function StackCard({
           <Pressable
             accessibilityLabel={isCollapsed ? 'Expand card' : 'Collapse card'}
             accessibilityRole="button"
-            onPressIn={onPressIn}
-            onPress={() => {
+            onPressIn={handleControlPressIn}
+            onPress={(event) => handleControlPress(event, () => {
               onToggleCollapse?.(index);
-            }}
+            })}
             style={({ pressed }) => [
               styles.iconButton,
               isCollapsed && styles.linkButtonActive,
@@ -107,10 +120,15 @@ export function StackCard({
           <Pressable
             accessibilityLabel={isEditing ? 'Confirm card' : 'Edit card'}
             accessibilityRole="button"
-            onPressIn={onPressIn}
-            onPress={() => {
+            onPressIn={handleControlPressIn}
+            onPress={(event) => handleControlPress(event, () => {
+              if (isEditing) {
+                onCompleteEdit?.(index, editingValue);
+                return;
+              }
+
               onCreateEdit(index, text);
-            }}
+            })}
             style={({ pressed }) => [
               styles.iconButton,
               pressed && styles.iconButtonPressed,
@@ -126,10 +144,10 @@ export function StackCard({
           <Pressable
             accessibilityLabel="Delete card"
             accessibilityRole="button"
-            onPressIn={onPressIn}
-            onPress={() => {
+            onPressIn={handleControlPressIn}
+            onPress={(event) => handleControlPress(event, () => {
               onDeleteCard?.(index);
-            }}
+            })}
             style={({ pressed }) => [
               styles.iconButton,
               styles.dangerButton,
@@ -143,9 +161,7 @@ export function StackCard({
       </View>
 
       {isEditing ? (
-        <Animated.View
-          style={{ opacity: isLeafCard ? 1 : 1 }}
-        >
+        <Animated.View style={{ opacity: 1 }}>
           <TextInput
             onFocus={() => {
               onFocusCard?.(index);
@@ -159,6 +175,9 @@ export function StackCard({
             autoFocus
             multiline
             onChangeText={onEditingValueChange}
+            onEndEditing={(event) => {
+              onCompleteEdit?.(index, event.nativeEvent.text);
+            }}
             placeholder="Write card text"
             placeholderTextColor="#94A3B8"
             style={[
@@ -169,11 +188,31 @@ export function StackCard({
           />
         </Animated.View>
       ) : (
-        isLeafCard && !isFocusedCard ? (
-          <View style={styles.leafPlaceholder}>
-            <View style={styles.leafPlaceholderBar} />
-            <View style={[styles.leafPlaceholderBar, { width: '74%' }]} />
-            <View style={[styles.leafPlaceholderBar, { width: '58%' }]} />
+        isLeafCard ? (
+          <View style={styles.leafContentSurface}>
+            {leafContentMode === 'placeholder' ? (
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.leafContentLayer,
+                  styles.leafPlaceholder,
+                ]}
+              >
+                <View style={styles.leafPlaceholderBar} />
+                <View style={[styles.leafPlaceholderBar, { width: '74%' }]} />
+                <View style={[styles.leafPlaceholderBar, { width: '58%' }]} />
+              </View>
+            ) : leafContentMode === 'text' ? (
+              <View style={styles.leafContentLayer}>
+                <Text style={[
+                  styles.cardText,
+                  !text && styles.emptyCardText,
+                ]}
+                >
+                  {text || 'Empty card'}
+                </Text>
+              </View>
+            ) : null}
           </View>
         ) : (
           <Animated.View

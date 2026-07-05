@@ -17,6 +17,7 @@ export function TreeCanvas({
   onToggleCollapse,
   onDeleteCard,
   onEditingValueChange,
+  onCompleteEdit,
   onCanvasBlur,
 }) {
   const treeHorizontalScrollRef = useRef(null);
@@ -68,14 +69,14 @@ export function TreeCanvas({
     const contentWidth = maxWidth + (TREE_CANVAS_PADDING * 2);
     const contentHeight = maxHeight + (TREE_CANVAS_PADDING * 2);
     const centeredX = focusedEntry.left + TREE_CANVAS_PADDING + (nodeWidth / 2);
-    const centeredY = focusedEntry.top + TREE_CANVAS_PADDING + (nodeHeight / 2);
+    const bottomAlignedY = focusedEntry.top + TREE_CANVAS_PADDING + nodeHeight;
 
     const targetX = Math.min(
       Math.max(centeredX - (viewport.width / 2), 0),
       Math.max(contentWidth - viewport.width, 0),
     );
     const targetY = Math.min(
-      Math.max(centeredY - (viewport.height / 2), 0),
+      Math.max(bottomAlignedY - (viewport.height / 2), 0),
       Math.max(contentHeight - viewport.height, 0),
     );
 
@@ -164,6 +165,7 @@ export function TreeCanvas({
                   onToggleCollapse={onToggleCollapse}
                   onDeleteCard={onDeleteCard}
                   onEditingValueChange={onEditingValueChange}
+                  onCompleteEdit={onCompleteEdit}
                 />
               );
             })}

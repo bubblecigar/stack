@@ -24,7 +24,7 @@ import { NodeStructureView } from './src/views/NodeStructureView';
 import { TreeCanvas } from './src/views/TreeCanvas';
 import { styles } from './src/styles/appStyles';
 
-const LEAF_VISIBLE_COUNT = 4;
+const LEAF_VISIBLE_COUNT = 5;
 
 export default function App() {
   const [editingIndex, setEditingIndex] = useState(null);
@@ -47,14 +47,12 @@ export default function App() {
       return [];
     }
 
-    if (leafTopIndex === null) {
-      return cards.slice(-LEAF_VISIBLE_COUNT);
-    }
-
-    const normalizedTop = Math.max(
-      0,
-      Math.min(leafTopIndex, cards.length - 1),
-    );
+    const normalizedTop = leafTopIndex === null
+      ? cards.length - 1
+      : Math.max(
+        0,
+        Math.min(leafTopIndex, cards.length - 1),
+      );
 
     return Array.from(
       { length: Math.min(LEAF_VISIBLE_COUNT, cards.length) },
@@ -130,14 +128,22 @@ export default function App() {
     setLeafTopIndex(index);
   }
 
+  function handleCompleteEdit(index, value) {
+    if (editingIndex !== index) {
+      return;
+    }
+
+    updateAt(index, value);
+    setEditingIndex(null);
+    setEditingValue('');
+  }
+
   function handleConfirmEdit() {
     if (editingIndex === null) {
       return;
     }
 
-    updateAt(editingIndex, editingValue);
-    setEditingIndex(null);
-    setEditingValue('');
+    handleCompleteEdit(editingIndex, editingValue);
   }
 
   function handleToggleEdit(index, text) {
@@ -218,6 +224,11 @@ export default function App() {
   }
 
   function handleTreeCardPress(index) {
+    if (editingIndex === index) {
+      setFocusedCardIndex(index);
+      return;
+    }
+
     const now = Date.now();
     const previousIndex = treeCardPressState.current.index;
     const previousTimestamp = treeCardPressState.current.timestamp;
@@ -305,25 +316,33 @@ export default function App() {
 
   function handleToggleLayout() {
     const isLeafToTree = layoutMode === 'leaf';
+    const pendingEditIndex = editingIndex;
+    const hasPendingEdit = pendingEditIndex !== null;
     const currentlyVisibleLeafCardIndex = visibleCards[0]?.index ?? null;
+    const nextFocusedCardIndex = hasPendingEdit ? pendingEditIndex : focusedCardIndex;
     const isFocusedCardVisible = (
-      focusedCardIndex !== null
-      && visibleCards.some(({ index }) => index === focusedCardIndex)
+      nextFocusedCardIndex !== null
+      && visibleCards.some(({ index }) => index === nextFocusedCardIndex)
     );
     const focusedCardInRange = (
-      focusedCardIndex !== null
-      && focusedCardIndex >= 0
-      && focusedCardIndex < cards.length
+      nextFocusedCardIndex !== null
+      && nextFocusedCardIndex >= 0
+      && nextFocusedCardIndex < cards.length
     );
+
+    if (hasPendingEdit) {
+      updateAt(pendingEditIndex, editingValue);
+    }
 
     setLayoutMode((currentMode) => (currentMode === 'leaf' ? 'tree' : 'leaf'));
 
     if (isLeafToTree) {
-      setFocusedCardIndex(isFocusedCardVisible ? focusedCardIndex : currentlyVisibleLeafCardIndex);
+      setFocusedCardIndex(isFocusedCardVisible ? nextFocusedCardIndex : currentlyVisibleLeafCardIndex);
       setLeafTopIndex(null);
     } else {
       if (focusedCardInRange) {
-        setLeafTopIndex(focusedCardIndex);
+        setFocusedCardIndex(nextFocusedCardIndex);
+        setLeafTopIndex(nextFocusedCardIndex);
       } else {
         setLeafTopIndex(cards.length > 0 ? cards.length - 1 : null);
       }
@@ -338,7 +357,9 @@ export default function App() {
       {shouldRenderLeaf ? (
         <>
           <LeafDeck
-            cards={visibleCards}
+            cards={cards}
+            topIndex={leafTopIndex}
+            visibleCount={LEAF_VISIBLE_COUNT}
             editingIndex={editingIndex}
             editingValue={editingValue}
             focusedCardIndex={effectiveLeafFocusedIndex}
@@ -347,6 +368,7 @@ export default function App() {
             onCreateEdit={handleToggleEdit}
             onDeleteCard={handleDeleteCard}
             onEditingValueChange={setEditingValue}
+            onCompleteEdit={handleCompleteEdit}
             onLeafSwipe={handleLeafSwipe}
             swipeDisabled={editingIndex !== null}
           />
@@ -369,6 +391,7 @@ export default function App() {
           onToggleCollapse={handleToggleCollapse}
           onDeleteCard={handleDeleteCard}
           onEditingValueChange={setEditingValue}
+          onCompleteEdit={handleCompleteEdit}
           onCanvasBlur={() => setFocusedCardIndex(null)}
         />
       )}
