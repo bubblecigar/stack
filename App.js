@@ -355,28 +355,22 @@ export default function App() {
   return (
     <View style={shouldRenderLeaf ? styles.containerLeafMode : styles.containerTreeMode}>
       {shouldRenderLeaf ? (
-        <>
-          <LeafDeck
-            cards={cards}
-            topIndex={leafTopIndex}
-            visibleCount={LEAF_VISIBLE_COUNT}
-            editingIndex={editingIndex}
-            editingValue={editingValue}
-            focusedCardIndex={effectiveLeafFocusedIndex}
-            focusedCardId={leafFocusedCardId}
-            collapsedNodeIds={collapsedNodeIds}
-            onCreateEdit={handleToggleEdit}
-            onDeleteCard={handleDeleteCard}
-            onEditingValueChange={setEditingValue}
-            onCompleteEdit={handleCompleteEdit}
-            onLeafSwipe={handleLeafSwipe}
-            swipeDisabled={editingIndex !== null}
-          />
-          <NodeStructureView
-            cards={cards}
-            focusedCardIndex={focusedCardIndex}
-          />
-        </>
+        <LeafDeck
+          cards={cards}
+          topIndex={leafTopIndex}
+          visibleCount={LEAF_VISIBLE_COUNT}
+          editingIndex={editingIndex}
+          editingValue={editingValue}
+          focusedCardIndex={effectiveLeafFocusedIndex}
+          focusedCardId={leafFocusedCardId}
+          collapsedNodeIds={collapsedNodeIds}
+          onCreateEdit={handleToggleEdit}
+          onDeleteCard={handleDeleteCard}
+          onEditingValueChange={setEditingValue}
+          onCompleteEdit={handleCompleteEdit}
+          onLeafSwipe={handleLeafSwipe}
+          swipeDisabled={editingIndex !== null}
+        />
       ) : (
         <TreeCanvas
           cards={cards}
@@ -395,6 +389,11 @@ export default function App() {
           onCanvasBlur={() => setFocusedCardIndex(null)}
         />
       )}
+
+      <NodeStructureView
+        cards={cards}
+        focusedCardIndex={focusedCardIndex}
+      />
 
       <FloatingControls
         layoutMode={layoutMode}

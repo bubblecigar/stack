@@ -65,6 +65,7 @@ export function NodeStructureView({ cards, focusedCardIndex }) {
 
   return (
     <View
+      pointerEvents="none"
       style={styles.nodeView}
       onLayout={(event) => {
         const { width, height } = event.nativeEvent.layout;
