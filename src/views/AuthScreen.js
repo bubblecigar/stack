@@ -51,6 +51,7 @@ export function AuthScreen({ onAuthenticated }) {
           onChangeText={setEmail}
           placeholder="Email"
           placeholderTextColor="#94A3B8"
+          returnKeyType="next"
           style={styles.authInput}
           value={email}
         />
@@ -58,8 +59,10 @@ export function AuthScreen({ onAuthenticated }) {
           autoCapitalize="none"
           autoCorrect={false}
           onChangeText={setPassword}
+          onSubmitEditing={handleSubmit}
           placeholder="Password"
           placeholderTextColor="#94A3B8"
+          returnKeyType="done"
           secureTextEntry
           style={styles.authInput}
           value={password}

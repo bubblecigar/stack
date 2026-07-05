@@ -213,9 +213,13 @@ export function StackCard({
             autoCorrect
             autoFocus
             multiline
+            returnKeyType="done"
             scrollEnabled={false}
             onChangeText={onEditingValueChange}
             onEndEditing={(event) => {
+              onCompleteEdit?.(index, event.nativeEvent.text);
+            }}
+            onSubmitEditing={(event) => {
               onCompleteEdit?.(index, event.nativeEvent.text);
             }}
             placeholder="Write card text"
@@ -224,6 +228,7 @@ export function StackCard({
               styles.cardInput,
               isTreeCard && styles.treeCardInput,
             ]}
+            submitBehavior="submit"
             value={editingValue}
           />
         </Animated.View>
