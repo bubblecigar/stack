@@ -1,3 +1,5 @@
+import { Kalam_700Bold } from '@expo-google-fonts/kalam';
+import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import {
   LayoutAnimation,
@@ -32,6 +34,9 @@ import { styles } from './src/styles/appStyles';
 const LEAF_VISIBLE_COUNT = 5;
 
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    Kalam_700Bold,
+  });
   const [authToken, setAuthToken] = useState(null);
   const [authUser, setAuthUser] = useState(null);
   const [isRestoringSession, setIsRestoringSession] = useState(true);
@@ -538,7 +543,7 @@ export default function App() {
     setEditingValue('');
   }
 
-  if (isRestoringSession || (authToken && !authUser)) {
+  if (!fontsLoaded || isRestoringSession || (authToken && !authUser)) {
     return (
       <>
         <View style={styles.authContainer}>

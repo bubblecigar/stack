@@ -1,4 +1,11 @@
-import { Pressable, Text, TextInput, View, Animated } from 'react-native';
+import {
+  Animated,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { useEffect, useRef } from 'react';
 import { styles } from '../styles/appStyles';
 
@@ -123,7 +130,7 @@ export function StackCard({
       autoFocus
       multiline
       returnKeyType="done"
-      scrollEnabled={false}
+      scrollEnabled={isLeafCard}
       onChangeText={onEditingValueChange}
       onEndEditing={(event) => {
         onCompleteEdit?.(index, event.nativeEvent.text);
@@ -133,6 +140,7 @@ export function StackCard({
       }}
       style={[
         styles.cardInput,
+        isLeafCard && styles.leafCardInput,
         isTreeCard && styles.treeCardInput,
       ]}
       submitBehavior="submit"
@@ -279,13 +287,19 @@ export function StackCard({
               </View>
             ) : leafContentMode === 'text' ? (
               <View style={styles.leafContentLayer}>
-                <Text style={[
-                  styles.cardText,
-                  !text && styles.emptyCardText,
-                ]}
+                <ScrollView
+                  contentContainerStyle={styles.leafContentScrollContent}
+                  showsVerticalScrollIndicator={false}
+                  style={styles.leafContentScroll}
                 >
-                  {text}
-                </Text>
+                  <Text style={[
+                    styles.cardText,
+                    !text && styles.emptyCardText,
+                  ]}
+                  >
+                    {text}
+                  </Text>
+                </ScrollView>
               </View>
             ) : null}
           </View>
