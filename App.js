@@ -12,8 +12,8 @@ import {
   useEffect, useMemo, useRef, useState, useSyncExternalStore,
 } from 'react';
 import {
-  addChildLink,
   getSnapshot,
+  insertRelativeTo,
   loadCards,
   push,
   removeAt,
@@ -50,6 +50,7 @@ export default function App() {
   const [leafTopIndex, setLeafTopIndex] = useState(null);
   const [leafFocusedCardId, setLeafFocusedCardId] = useState(null);
   const [isDeleteHoldActive, setIsDeleteHoldActive] = useState(false);
+  const [addPreviewRelation, setAddPreviewRelation] = useState(null);
 
   const stack = useSyncExternalStore(subscribe, getSnapshot);
   const cards = useMemo(() => stack.map((card, index) => ({ ...card, index })), [stack]);
@@ -302,13 +303,14 @@ export default function App() {
     return () => clearTimeout(timeoutId);
   }, [authToken, stack]);
 
-  function handleCreateCard() {
-    const nextIndex = push('');
-    const parentIndex = focusedCardIndex;
-
-    if (parentIndex !== null) {
-      addChildLink(parentIndex, nextIndex);
-    }
+  function handleCreateCard(relation = 'child') {
+    setAddPreviewRelation(null);
+    const currentIndex = shouldRenderLeaf
+      ? visibleTopCardIndex
+      : focusedCardIndex;
+    const nextIndex = currentIndex === null
+      ? push('')
+      : insertRelativeTo(currentIndex, relation, '');
 
     setEditingIndex(nextIndex);
     setEditingValue('');
@@ -629,6 +631,7 @@ export default function App() {
       )}
 
       <NodeStructureView
+        addPreviewRelation={addPreviewRelation}
         cards={cards}
         focusedCardIndex={focusedCardIndex}
       />
@@ -637,6 +640,7 @@ export default function App() {
         canDeleteCurrentCard={shouldRenderLeaf && visibleTopCardIndex !== null}
         layoutMode={layoutMode}
         onDeleteHoldChange={setIsDeleteHoldActive}
+        onAddPreviewChange={setAddPreviewRelation}
         onToggleMode={handleToggleLayout}
         onCreateCard={handleCreateCard}
       />

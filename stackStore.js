@@ -37,6 +37,143 @@ export function push(value) {
   return nextIndex;
 }
 
+function createCard(value) {
+  const card = {
+    childIds: [],
+    id: nextCardId,
+    parentIds: [],
+    text: value.trim(),
+  };
+  nextCardId += 1;
+  return card;
+}
+
+function insertNearSibling(childIds, targetId, newId, placement) {
+  const existingIds = childIds.filter((id) => id !== newId);
+  const targetPosition = existingIds.indexOf(targetId);
+
+  if (targetPosition === -1) {
+    return placement === 'previous'
+      ? [newId, ...existingIds]
+      : [...existingIds, newId];
+  }
+
+  const insertPosition = placement === 'previous'
+    ? targetPosition
+    : targetPosition + 1;
+
+  return [
+    ...existingIds.slice(0, insertPosition),
+    newId,
+    ...existingIds.slice(insertPosition),
+  ];
+}
+
+export function insertRelativeTo(targetIndex, relation, value = '') {
+  if (targetIndex < 0 || targetIndex >= stack.length) {
+    return push(value);
+  }
+
+  const targetCard = stack[targetIndex];
+  const targetId = targetCard.id;
+  const newCard = createCard(value);
+  const newId = newCard.id;
+  const nextIndex = stack.length;
+
+  if (relation === 'parent') {
+    const previousParentIds = targetCard.parentIds;
+    const rewrittenCards = stack.map((card) => {
+      if (card.id === targetId) {
+        return {
+          ...card,
+          parentIds: [newId],
+        };
+      }
+
+      if (previousParentIds.includes(card.id)) {
+        return {
+          ...card,
+          childIds: card.childIds.map((childId) => (
+            childId === targetId ? newId : childId
+          )),
+        };
+      }
+
+      return card;
+    });
+
+    stack = [
+      ...rewrittenCards.slice(0, targetIndex),
+      {
+        ...newCard,
+        childIds: [targetId],
+        parentIds: previousParentIds,
+      },
+      ...rewrittenCards.slice(targetIndex),
+    ];
+    emitChange();
+    return targetIndex;
+  }
+
+  if (relation === 'previousSibling' || relation === 'nextSibling') {
+    const placement = relation === 'previousSibling' ? 'previous' : 'next';
+    const parentIds = targetCard.parentIds;
+    const insertIndex = relation === 'previousSibling'
+      ? targetIndex
+      : targetIndex + 1;
+
+    if (parentIds.length === 0) {
+      stack = [
+        ...stack.slice(0, insertIndex),
+        newCard,
+        ...stack.slice(insertIndex),
+      ];
+      emitChange();
+      return insertIndex;
+    }
+
+    stack = [
+      ...stack.map((card) => {
+        if (!parentIds.includes(card.id)) {
+          return card;
+        }
+
+        return {
+          ...card,
+          childIds: insertNearSibling(card.childIds, targetId, newId, placement),
+        };
+      }),
+      {
+        ...newCard,
+        parentIds,
+      },
+    ];
+    emitChange();
+    return nextIndex;
+  }
+
+  stack = [
+    ...stack.map((card) => {
+      if (card.id !== targetId) {
+        return card;
+      }
+
+      return {
+        ...card,
+        childIds: card.childIds.includes(newId)
+          ? card.childIds
+          : [...card.childIds, newId],
+      };
+    }),
+    {
+      ...newCard,
+      parentIds: [targetId],
+    },
+  ];
+  emitChange();
+  return nextIndex;
+}
+
 function normalizeIncomingCard(rawCard, nextGeneratedId) {
   const text = typeof rawCard === 'string'
     ? rawCard

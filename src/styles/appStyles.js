@@ -107,6 +107,13 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
+  addFloatingControl: {
+    position: 'absolute',
+    right: '30%',
+    bottom: 132,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   deck: {
     flex: 1,
     width: '100%',
@@ -220,7 +227,7 @@ export const styles = StyleSheet.create({
   nodeView: {
     position: 'absolute',
     left: 14,
-    right: 14,
+    right: 104,
     bottom: 96,
     height: 136,
     backgroundColor: 'transparent',
@@ -260,6 +267,21 @@ export const styles = StyleSheet.create({
     backgroundColor: '#0EA5E9',
     borderWidth: 2,
     borderColor: '#DBEAFE',
+  },
+  nodeViewMapNodePreview: {
+    width: 10,
+    height: 10,
+    marginLeft: -5,
+    marginTop: -5,
+    borderRadius: 5,
+    backgroundColor: '#F97316',
+    borderWidth: 2,
+    borderColor: '#FFEDD5',
+    opacity: 0.9,
+  },
+  nodeViewMapLinePreview: {
+    backgroundColor: '#F97316',
+    opacity: 0.75,
   },
   nodeViewMapLine: {
     position: 'absolute',
@@ -626,5 +648,49 @@ export const styles = StyleSheet.create({
     fontWeight: '500',
     lineHeight: 42,
     marginTop: -2,
+  },
+  addDirectionPad: {
+    position: 'absolute',
+    left: -82,
+    right: -82,
+    top: -82,
+    bottom: -82,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+  },
+  addDirectionHint: {
+    position: 'absolute',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(15, 23, 42, 0.78)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.38)',
+  },
+  addDirectionHintActive: {
+    backgroundColor: '#F97316',
+    borderColor: '#FFEDD5',
+    transform: [{ scale: 1.12 }],
+  },
+  addDirectionHintLeft: {
+    left: 20,
+  },
+  addDirectionHintRight: {
+    right: 20,
+  },
+  addDirectionHintUp: {
+    top: 20,
+  },
+  addDirectionHintDown: {
+    bottom: 20,
+  },
+  addDirectionHintText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '900',
+    lineHeight: 20,
   },
 });
