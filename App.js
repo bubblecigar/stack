@@ -309,57 +309,6 @@ export default function App() {
     };
   }
 
-  function renderTreeLinks(positionedCards, indexById, options) {
-    const { nodeWidth, nodeHeight } = options;
-
-    return positionedCards.map(({ card, left, top }) => {
-      const parentId = card.id;
-      const source = indexById.get(parentId);
-
-      if (!source || !Array.isArray(card.childIds)) {
-        return null;
-      }
-
-      return card.childIds
-        .map((childId) => {
-          const target = indexById.get(childId);
-
-          if (!target) {
-            return null;
-          }
-
-          const startX = source.left + nodeWidth;
-          const startY = source.top + nodeHeight / 2;
-          const endX = target.left;
-          const endY = target.top + nodeHeight / 2;
-          const deltaX = endX - startX;
-          const deltaY = endY - startY;
-          const length = Math.sqrt((deltaX ** 2) + (deltaY ** 2));
-          const angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
-
-          if (!Number.isFinite(length) || length === 0) {
-            return null;
-          }
-
-          return (
-            <View
-              key={`link-${parentId}-${childId}`}
-              style={[
-                styles.treeLink,
-                {
-                  left: startX,
-                  top: startY,
-                  width: length,
-                  transform: [{ rotateZ: `${angle}deg` }],
-                },
-              ]}
-            />
-          );
-        })
-        .filter(Boolean);
-    }).flat().filter(Boolean);
-  }
-
   function renderCard({
     controls,
     isEditing = false,
@@ -611,8 +560,6 @@ export default function App() {
       maxHeight,
       maxWidth,
       positionedCards,
-      nodeWidth,
-      nodeHeight,
     } = buildTreeLayout();
     const contentWidth = maxWidth + (treeCanvasPadding * 2);
     const contentHeight = maxHeight + (treeCanvasPadding * 2);
@@ -621,9 +568,6 @@ export default function App() {
       left: entry.left + treeCanvasPadding,
       top: entry.top + treeCanvasPadding,
     }));
-    const positionedCardsById = new Map(
-      paddedPositionedCards.map((entry) => [entry.card.id, entry]),
-    );
 
     return (
       <View
@@ -656,14 +600,6 @@ export default function App() {
                 { height: contentHeight, width: contentWidth },
               ]}
             >
-              {renderTreeLinks(
-                paddedPositionedCards,
-                positionedCardsById,
-                {
-                  nodeWidth,
-                  nodeHeight,
-                }
-              )}
               {paddedPositionedCards.map(({ card, left, top }) => (
                 renderStackCard(card, 0, 'tree', {
                   treePosition: { left, top },
@@ -765,13 +701,6 @@ const styles = StyleSheet.create({
     position: 'relative',
     pointerEvents: 'box-none',
     alignItems: 'flex-start',
-  },
-  treeLink: {
-    position: 'absolute',
-    height: 2,
-    backgroundColor: '#64748B',
-    opacity: 0.75,
-    zIndex: 0,
   },
   card: {
     minHeight: 360,
