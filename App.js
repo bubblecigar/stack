@@ -2,6 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import {
   LayoutAnimation,
   Platform,
+  Text,
   UIManager,
   View,
 } from 'react-native';
@@ -19,14 +20,20 @@ import {
 } from './stackStore';
 import defaultStackData from './defaultStack.json';
 import { FloatingControls } from './src/components/FloatingControls';
+import { AuthScreen } from './src/views/AuthScreen';
 import { LeafDeck } from './src/views/LeafDeck';
 import { NodeStructureView } from './src/views/NodeStructureView';
 import { TreeCanvas } from './src/views/TreeCanvas';
+import { getMe, loadRemoteCards, saveRemoteCards } from './src/lib/apiClient';
 import { styles } from './src/styles/appStyles';
 
 const LEAF_VISIBLE_COUNT = 5;
 
 export default function App() {
+  const [authToken, setAuthToken] = useState(null);
+  const [authUser, setAuthUser] = useState(null);
+  const [isLoadingUserData, setIsLoadingUserData] = useState(false);
+  const [syncError, setSyncError] = useState('');
   const [editingIndex, setEditingIndex] = useState(null);
   const [editingValue, setEditingValue] = useState('');
   const [focusedCardIndex, setFocusedCardIndex] = useState(null);
@@ -61,6 +68,8 @@ export default function App() {
   }, [cards, leafTopIndex]);
 
   const hasLoadedDefaultStack = useRef(false);
+  const hasLoadedRemoteCards = useRef(false);
+  const isApplyingRemoteCards = useRef(false);
   const treeCardPressState = useRef({
     index: null,
     timestamp: 0,
@@ -92,6 +101,10 @@ export default function App() {
       return;
     }
 
+    if (!authUser || !hasLoadedRemoteCards.current) {
+      return;
+    }
+
     if (hasLoadedDefaultStack.current || stack.length > 0) {
       return;
     }
@@ -106,6 +119,133 @@ export default function App() {
 
     hasLoadedDefaultStack.current = true;
   }, [stack.length]);
+
+  function resetSession() {
+    setAuthToken(null);
+    setAuthUser(null);
+    setIsLoadingUserData(false);
+    setSyncError('');
+    setEditingIndex(null);
+    setEditingValue('');
+    setFocusedCardIndex(null);
+    setLeafTopIndex(null);
+    setLeafFocusedCardId(null);
+    setCollapsedNodeIds(new Set());
+    hasLoadedDefaultStack.current = false;
+    hasLoadedRemoteCards.current = false;
+    isApplyingRemoteCards.current = true;
+    loadCards([]);
+    isApplyingRemoteCards.current = false;
+  }
+
+  function handleAuthExpired() {
+    resetSession();
+  }
+
+  function handleAuthenticated(result) {
+    setAuthToken(result.token);
+    setAuthUser(result.user);
+    setSyncError('');
+    hasLoadedDefaultStack.current = false;
+    hasLoadedRemoteCards.current = false;
+  }
+
+  useEffect(() => {
+    if (!authToken) {
+      return undefined;
+    }
+
+    let isMounted = true;
+
+    async function validateToken() {
+      try {
+        const result = await getMe(authToken);
+        if (isMounted) {
+          setAuthUser(result.user);
+        }
+      } catch (error) {
+        if (error.status === 401 && isMounted) {
+          handleAuthExpired();
+        }
+      }
+    }
+
+    validateToken();
+    const intervalId = setInterval(validateToken, 60000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
+  }, [authToken]);
+
+  useEffect(() => {
+    if (!authToken) {
+      return undefined;
+    }
+
+    let isMounted = true;
+    setIsLoadingUserData(true);
+    setSyncError('');
+
+    async function loadCardsForUser() {
+      try {
+        const result = await loadRemoteCards(authToken);
+
+        if (!isMounted) {
+          return;
+        }
+
+        isApplyingRemoteCards.current = true;
+        loadCards(Array.isArray(result.cards) ? result.cards : []);
+        isApplyingRemoteCards.current = false;
+        hasLoadedRemoteCards.current = true;
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        if (error.status === 401) {
+          handleAuthExpired();
+          return;
+        }
+
+        setSyncError(error.message || 'Could not load user data.');
+      } finally {
+        if (isMounted) {
+          setIsLoadingUserData(false);
+        }
+      }
+    }
+
+    loadCardsForUser();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [authToken]);
+
+  useEffect(() => {
+    if (!authToken || !hasLoadedRemoteCards.current || isApplyingRemoteCards.current) {
+      return undefined;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        setSyncError('');
+        await saveRemoteCards(authToken, stack);
+      } catch (error) {
+        if (error.status === 401) {
+          handleAuthExpired();
+          return;
+        }
+
+        setSyncError(error.message || 'Could not save user data.');
+      }
+    }, 350);
+
+    return () => clearTimeout(timeoutId);
+  }, [authToken, stack]);
 
   function handleCreateCard() {
     const nextIndex = push('');
@@ -352,8 +492,27 @@ export default function App() {
     setEditingValue('');
   }
 
+  if (!authToken || !authUser) {
+    return (
+      <>
+        <AuthScreen onAuthenticated={handleAuthenticated} />
+        <StatusBar style="dark" />
+      </>
+    );
+  }
+
   return (
     <View style={shouldRenderLeaf ? styles.containerLeafMode : styles.containerTreeMode}>
+      {isLoadingUserData ? (
+        <View style={styles.syncBanner}>
+          <Text style={styles.syncBannerText}>Loading user data</Text>
+        </View>
+      ) : null}
+      {syncError ? (
+        <View style={styles.syncBanner}>
+          <Text style={styles.syncBannerText}>{syncError}</Text>
+        </View>
+      ) : null}
       {shouldRenderLeaf ? (
         <LeafDeck
           cards={cards}

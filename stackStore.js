@@ -62,7 +62,14 @@ function normalizeIncomingCard(rawCard, nextGeneratedId) {
 }
 
 export function loadCards(rawCards) {
-  if (!Array.isArray(rawCards) || rawCards.length === 0) {
+  if (!Array.isArray(rawCards)) {
+    return;
+  }
+
+  if (rawCards.length === 0) {
+    stack = [];
+    nextCardId = 1;
+    emitChange();
     return;
   }
 
