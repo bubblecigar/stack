@@ -1,15 +1,25 @@
-import { Animated, Dimensions, PanResponder, View } from 'react-native';
-import { useMemo, useRef, useState } from 'react';
+import {
+  Animated,
+  Dimensions,
+  PanResponder,
+  View,
+} from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { StackCard } from '../components/StackCard';
 import { styles } from '../styles/appStyles';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
+
+const SWIPE_DISTANCE_FACTOR = 0.18;
+const SWIPE_VELOCITY = 650;
+const SWIPE_OUT_DISTANCE = SCREEN_WIDTH * 1.2;
 
 export function LeafDeck({
   cards,
   editingIndex,
   editingValue,
   focusedCardIndex,
+  focusedCardId: controlledFocusedCardId,
   collapsedNodeIds,
   onCreateEdit,
   onDeleteCard,
@@ -17,94 +27,152 @@ export function LeafDeck({
   onLeafSwipe,
   swipeDisabled,
 }) {
-  const SWIPE_THRESHOLD = 54;
-  const SWIPE_VELOCITY = 420;
-  const SWIPE_OUT_DISTANCE = SCREEN_WIDTH * 1.2;
   const slideAnim = useRef(new Animated.Value(0)).current;
+  const focusedTextOpacity = useRef(new Animated.Value(1)).current;
   const [activeCardId, setActiveCardId] = useState(null);
+  const topFocusedCardId = cards[0]?.id ?? null;
+  const effectiveFocusedCardId = controlledFocusedCardId ?? topFocusedCardId;
+  const isTransitioningRef = useRef(false);
+  const activeAnimationRef = useRef(null);
 
-  function triggerLeafSwipe(direction) {
-    const outTo = direction === 'left' ? -SWIPE_OUT_DISTANCE : SWIPE_OUT_DISTANCE;
-
-    Animated.timing(slideAnim, {
-      toValue: outTo,
-      duration: 70,
+  useEffect(() => {
+    focusedTextOpacity.setValue(0);
+    Animated.timing(focusedTextOpacity, {
+      toValue: 1,
+      duration: 90,
       useNativeDriver: true,
-    }).start(() => {
-      const didSwipe = onLeafSwipe?.(direction) === true;
+    }).start();
+  }, [topFocusedCardId]);
 
-      if (!didSwipe) {
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          useNativeDriver: true,
-          damping: 14,
-          stiffness: 260,
-          mass: 0.8,
-        }).start();
-        setActiveCardId(null);
-        return;
-      }
+  useEffect(() => () => {
+    if (activeAnimationRef.current) {
+      activeAnimationRef.current.stop();
+      activeAnimationRef.current = null;
+    }
+  }, []);
 
-      setActiveCardId(null);
-    });
-  }
+  const clearActiveCard = () => {
+    isTransitioningRef.current = false;
+    setActiveCardId(null);
+    slideAnim.setValue(0);
+  };
 
   function snapBack() {
-    Animated.spring(slideAnim, {
+    if (activeAnimationRef.current) {
+      activeAnimationRef.current.stop();
+    }
+
+    isTransitioningRef.current = true;
+
+    activeAnimationRef.current = Animated.spring(slideAnim, {
       toValue: 0,
       useNativeDriver: true,
       damping: 16,
       stiffness: 260,
       mass: 0.9,
-    }).start(() => {
-      setActiveCardId(null);
     });
+
+    activeAnimationRef.current.start(() => {
+      clearActiveCard();
+    });
+  }
+
+  function triggerLeafSwipe(direction) {
+    if (isTransitioningRef.current || cards.length <= 1 || swipeDisabled) {
+      return;
+    }
+
+    const outTo = direction === 'left' ? -SWIPE_OUT_DISTANCE : SWIPE_OUT_DISTANCE;
+    const activeTopId = cards[0]?.id ?? null;
+    if (!activeTopId) {
+      return;
+    }
+
+    isTransitioningRef.current = true;
+    setActiveCardId(activeTopId);
+
+    if (activeAnimationRef.current) {
+      activeAnimationRef.current.stop();
+    }
+
+    activeAnimationRef.current = Animated.timing(slideAnim, {
+      toValue: outTo,
+      duration: 170,
+      useNativeDriver: true,
+    });
+
+    activeAnimationRef.current.start(({ finished }) => {
+      if (!finished) {
+        clearActiveCard();
+        return;
+      }
+
+      const didSwipe = onLeafSwipe?.(direction) === true;
+      if (!didSwipe) {
+        snapBack();
+        return;
+      }
+
+      clearActiveCard();
+    });
+  }
+
+  function handleSwipeRelease(_, { dx, vx }) {
+    if (cards.length <= 1 || swipeDisabled) {
+      return;
+    }
+
+    const hasDistance = Math.abs(dx) > SCREEN_WIDTH * SWIPE_DISTANCE_FACTOR;
+    const hasVelocity = Math.abs(vx) > SWIPE_VELOCITY;
+    const isSwipe = hasDistance || hasVelocity;
+
+    if (!isTransitioningRef.current && !isSwipe) {
+      snapBack();
+      return;
+    }
+
+    if (isTransitioningRef.current) {
+      return;
+    }
+
+    const direction = vx !== 0
+      ? (vx > 0 ? 'right' : 'left')
+      : (dx > 0 ? 'right' : 'left');
+
+    triggerLeafSwipe(direction);
   }
 
   const panResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => false,
     onMoveShouldSetPanResponder: (_, { dx, dy }) => (
       !swipeDisabled
+      && !isTransitioningRef.current
       && cards.length > 1
       && Math.abs(dx) > Math.abs(dy)
       && Math.abs(dx) > 8
     ),
     onPanResponderGrant: () => {
-      if (swipeDisabled || cards.length <= 1) {
+      if (swipeDisabled || cards.length <= 1 || isTransitioningRef.current) {
         return;
       }
 
-      setActiveCardId(cards[0]?.id ?? null);
+      const activeTopId = cards[0]?.id ?? null;
+      setActiveCardId(activeTopId);
       slideAnim.stopAnimation();
       slideAnim.setValue(0);
     },
     onPanResponderMove: (_, { dx }) => {
-      if (swipeDisabled || cards.length <= 1) {
+      if (swipeDisabled || cards.length <= 1 || isTransitioningRef.current) {
         return;
       }
 
       slideAnim.setValue(dx);
     },
-    onPanResponderRelease: (_, { dx, vx }) => {
-      if (swipeDisabled || cards.length <= 1) {
-        return;
-      }
-
-      const isSwipe = Math.abs(dx) > SWIPE_THRESHOLD || Math.abs(vx) > SWIPE_VELOCITY;
-
-      if (!isSwipe) {
-        snapBack();
-        return;
-      }
-
-      const direction = dx > 0 || (dx === 0 && vx > 0) ? 'right' : 'left';
-      triggerLeafSwipe(direction);
-    },
-    onPanResponderTerminate: () => {
-      snapBack();
-    },
+    onPanResponderRelease: handleSwipeRelease,
+    onPanResponderTerminate: handleSwipeRelease,
   }), [
     cards.length,
+    cards,
     onLeafSwipe,
     swipeDisabled,
   ]);
@@ -114,7 +182,7 @@ export function LeafDeck({
       {cards.map((card, visibleIndex) => (
         <Animated.View
           key={`card-wrap-${card.id}`}
-    style={[
+          style={[
             {
               position: 'absolute',
               left: 0,
@@ -124,18 +192,20 @@ export function LeafDeck({
               justifyContent: 'center',
               zIndex: 1000 - visibleIndex,
             },
-            (card.id === activeCardId) ? {
-              transform: [
-                { translateX: slideAnim },
-                {
-                  rotate: slideAnim.interpolate({
-                    inputRange: [-SCREEN_WIDTH, 0, SCREEN_WIDTH],
-                    outputRange: ['-14deg', '0deg', '14deg'],
-                    extrapolate: 'clamp',
-                  }),
-                },
-              ],
-            } : undefined,
+            card.id === activeCardId
+              ? {
+                  transform: [
+                    { translateX: slideAnim },
+                    {
+                      rotate: slideAnim.interpolate({
+                        inputRange: [-SCREEN_WIDTH, 0, SCREEN_WIDTH],
+                        outputRange: ['-14deg', '0deg', '14deg'],
+                        extrapolate: 'clamp',
+                      }),
+                    },
+                  ],
+                }
+              : undefined,
           ]}
         >
           <StackCard
@@ -144,14 +214,17 @@ export function LeafDeck({
             editingIndex={editingIndex}
             editingValue={editingValue}
             focusedCardIndex={focusedCardIndex}
+            focusedCardId={effectiveFocusedCardId}
             layout="leaf"
             key={`card-${card.id}`}
             visibleIndex={visibleIndex}
+            isLeafTopCard={visibleIndex === 0}
             onPress={() => {}}
             onCreateEdit={onCreateEdit}
             onDeleteCard={onDeleteCard}
             onEditingValueChange={onEditingValueChange}
             onToggleCollapse={() => {}}
+            leafTextOpacity={card.id === effectiveFocusedCardId ? focusedTextOpacity : 0}
           />
         </Animated.View>
       ))}

@@ -8,6 +8,7 @@ export function TreeCanvas({
   cards,
   collapsedNodeIds,
   focusedCardIndex,
+  focusedCardId,
   editingIndex,
   editingValue,
   onCardPress,
@@ -144,6 +145,7 @@ export function TreeCanvas({
                   collapsedNodeIds={collapsedNodeIds}
                   editingIndex={editingIndex}
                   editingValue={editingValue}
+                  focusedCardId={focusedCardId}
                   focusedCardIndex={focusedCardIndex}
                   layout="tree"
                   key={`card-${card.id}`}

@@ -1,4 +1,4 @@
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View, Animated } from 'react-native';
 import { styles } from '../styles/appStyles';
 
 export function StackCard({
@@ -8,6 +8,8 @@ export function StackCard({
   editingIndex,
   editingValue,
   focusedCardIndex,
+  focusedCardId = null,
+  isLeafTopCard = false,
   collapsedNodeIds,
   treePosition,
   isCollapsedStacked = false,
@@ -18,6 +20,7 @@ export function StackCard({
   onDeleteCard,
   onEditingValueChange,
   onFocusCard,
+  leafTextOpacity = 1,
 }) {
   const {
     id,
@@ -29,7 +32,13 @@ export function StackCard({
   const isLeafCard = layout === 'leaf';
   const isTreeCard = layout === 'tree';
   const isEditing = editingIndex === index;
-  const isFocusedCard = focusedCardIndex === index;
+  const isFocusedCard = (
+    isLeafTopCard
+      ? true
+      : (focusedCardId != null
+        ? focusedCardId === id
+        : focusedCardIndex === index)
+  );
   const hasChildren = Array.isArray(childIds) && childIds.length > 0;
   const isCollapsed = collapsedNodeIds.has(id);
   const shouldShowControls = isFocusedCard;
@@ -47,7 +56,6 @@ export function StackCard({
         isLeafCard && styles.leafCard,
         isTreeCard && styles.treeCard,
         isTreeCard && isCollapsedStacked && styles.treeCollapsedCard,
-        isFocusedCard && styles.focusedCard,
         isEditing && isLeafCard && styles.leafEditingCard,
         treePosition && {
           left: treePosition.left,
@@ -69,6 +77,7 @@ export function StackCard({
           top: 0,
           zIndex: 2500,
         },
+        isFocusedCard && styles.focusedCard,
       ]}
     >
       <View style={[
@@ -134,36 +143,44 @@ export function StackCard({
       </View>
 
       {isEditing ? (
-        <TextInput
-          onFocus={() => {
-            onFocusCard?.(index);
-            onPressIn?.();
-          }}
-          onTouchStart={() => {
-            onPressIn?.();
-          }}
-          autoCapitalize="sentences"
-          autoCorrect
-          autoFocus
-          multiline
-          onChangeText={onEditingValueChange}
-          placeholder="Write card text"
-          placeholderTextColor="#94A3B8"
-          style={[
-            styles.cardInput,
-            isTreeCard && styles.treeCardInput,
-          ]}
-          value={editingValue}
-        />
-      ) : (
-        <Text style={[
-          styles.cardText,
-          isTreeCard && styles.treeCardText,
-          !text && styles.emptyCardText,
-        ]}
+        <Animated.View
+          style={{ opacity: isLeafCard ? leafTextOpacity : 1 }}
         >
-          {text || 'Empty card'}
-        </Text>
+          <TextInput
+            onFocus={() => {
+              onFocusCard?.(index);
+              onPressIn?.();
+            }}
+            onTouchStart={() => {
+              onPressIn?.();
+            }}
+            autoCapitalize="sentences"
+            autoCorrect
+            autoFocus
+            multiline
+            onChangeText={onEditingValueChange}
+            placeholder="Write card text"
+            placeholderTextColor="#94A3B8"
+            style={[
+              styles.cardInput,
+              isTreeCard && styles.treeCardInput,
+            ]}
+            value={editingValue}
+          />
+        </Animated.View>
+      ) : (
+        <Animated.View
+          style={{ opacity: isLeafCard ? (isFocusedCard ? leafTextOpacity : 0) : 1 }}
+        >
+          <Text style={[
+            styles.cardText,
+            isTreeCard && styles.treeCardText,
+            !text && styles.emptyCardText,
+          ]}
+          >
+            {text || 'Empty card'}
+          </Text>
+        </Animated.View>
       )}
 
       <View style={[

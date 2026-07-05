@@ -25,7 +25,6 @@ import { TreeCanvas } from './src/views/TreeCanvas';
 import { styles } from './src/styles/appStyles';
 
 const LEAF_VISIBLE_COUNT = 4;
-const SWIPE_STEP = 1;
 
 export default function App() {
   const [editingIndex, setEditingIndex] = useState(null);
@@ -34,10 +33,14 @@ export default function App() {
   const [layoutMode, setLayoutMode] = useState('leaf');
   const [collapsedNodeIds, setCollapsedNodeIds] = useState(() => new Set());
   const [leafTopIndex, setLeafTopIndex] = useState(null);
+  const [leafFocusedCardId, setLeafFocusedCardId] = useState(null);
 
   const stack = useSyncExternalStore(subscribe, getSnapshot);
   const cards = useMemo(() => stack.map((card, index) => ({ ...card, index })), [stack]);
   const shouldRenderLeaf = layoutMode === 'leaf';
+  const focusedCardId = focusedCardIndex === null
+    ? null
+    : cards[focusedCardIndex]?.id ?? null;
 
   const visibleCards = useMemo(() => {
     if (cards.length === 0) {
@@ -73,9 +76,13 @@ export default function App() {
 
   useEffect(() => {
     if (cards.length === 0) {
+      setLeafFocusedCardId(null);
       setLeafTopIndex(null);
       return;
     }
+
+    const fallbackTopId = cards[cards.length - 1]?.id ?? null;
+    setLeafFocusedCardId((current) => current ?? fallbackTopId);
 
     setLeafTopIndex((currentTop) => (
       currentTop === null ? cards.length - 1 : Math.min(currentTop, cards.length - 1)
@@ -239,7 +246,7 @@ export default function App() {
     }
   }
 
-  function handleLeafSwipe(_direction) {
+  function handleLeafSwipe(direction) {
     if (editingIndex !== null || cards.length === 0) {
       return false;
     }
@@ -248,20 +255,31 @@ export default function App() {
       return false;
     }
 
-    const normalizedTop = leafTopIndex === null ? cards.length - 1 : Math.max(
-      0,
-      Math.min(leafTopIndex, cards.length - 1),
-    );
-    const nextTop = (normalizedTop + SWIPE_STEP) % cards.length;
-
-    setLeafTopIndex(nextTop);
-    setFocusedCardIndex(nextTop);
+    const directionStep = direction === 'right' ? 1 : -1;
+    setLeafTopIndex((currentTop) => {
+      const normalizedTop = currentTop === null ? cards.length - 1 : Math.max(
+        0,
+        Math.min(currentTop, cards.length - 1),
+      );
+      const nextTop = (normalizedTop + directionStep + cards.length) % cards.length;
+      setLeafFocusedCardId(cards[nextTop]?.id ?? null);
+      return nextTop;
+    });
     return true;
   }
+
+  const visibleTopCardIndex = visibleCards[0]?.index ?? null;
+  const effectiveLeafFocusedIndex = visibleTopCardIndex ?? focusedCardIndex;
 
   useEffect(() => {
     if (!shouldRenderLeaf) {
       return;
+    }
+
+    const visibleTopCardId = visibleCards[0]?.id ?? null;
+
+    if (leafFocusedCardId !== visibleTopCardId) {
+      setLeafFocusedCardId(visibleTopCardId);
     }
 
     const renderedTopIndex = visibleCards[0]?.index ?? null;
@@ -282,6 +300,7 @@ export default function App() {
     visibleCards,
     cards.length,
     focusedCardIndex,
+    leafFocusedCardId,
   ]);
 
   function handleToggleLayout() {
@@ -322,7 +341,8 @@ export default function App() {
             cards={visibleCards}
             editingIndex={editingIndex}
             editingValue={editingValue}
-            focusedCardIndex={focusedCardIndex}
+            focusedCardIndex={effectiveLeafFocusedIndex}
+            focusedCardId={leafFocusedCardId}
             collapsedNodeIds={collapsedNodeIds}
             onCreateEdit={handleToggleEdit}
             onDeleteCard={handleDeleteCard}
@@ -340,6 +360,7 @@ export default function App() {
           cards={cards}
           collapsedNodeIds={collapsedNodeIds}
           focusedCardIndex={focusedCardIndex}
+          focusedCardId={focusedCardId}
           editingIndex={editingIndex}
           editingValue={editingValue}
           onCardPress={handleTreeCardPress}

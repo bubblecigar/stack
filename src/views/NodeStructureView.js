@@ -1,11 +1,9 @@
 import { View } from 'react-native';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { buildTreeLayout } from '../lib/treeLayout';
 import { styles } from '../styles/appStyles';
 
-const MAP_WIDTH = 160;
-const MAP_HEIGHT = 94;
-const MAP_PADDING = 8;
+const MAP_PADDING = 10;
 const MIN_NODE_SCALE = 0.06;
 
 export function NodeStructureView({ cards, focusedCardIndex }) {
@@ -13,28 +11,34 @@ export function NodeStructureView({ cards, focusedCardIndex }) {
     return null;
   }
 
+  const [mapSize, setMapSize] = useState({
+    width: 180,
+    height: 120,
+  });
+
   const mapLayout = useMemo(() => buildTreeLayout(cards, new Set()), [cards]);
 
   const nodeEntries = useMemo(() => {
     const positionedCards = mapLayout.positionedCards || [];
     const maxW = Math.max(mapLayout.maxWidth || 1, 1);
     const maxH = Math.max(mapLayout.maxHeight || 1, 1);
+    const availableWidth = Math.max(mapSize.width - (MAP_PADDING * 2), 1);
+    const availableHeight = Math.max(mapSize.height - (MAP_PADDING * 2), 1);
     const scale = Math.min(
-      (MAP_WIDTH - (MAP_PADDING * 2)) / maxW,
-      (MAP_HEIGHT - (MAP_PADDING * 2)) / maxH,
+      availableWidth / maxW,
+      availableHeight / maxH,
       1,
     );
     const safeScale = Math.max(scale, MIN_NODE_SCALE);
+    const centeredOffsetX = (Math.max(mapSize.width, 1) - maxW * safeScale) / 2;
+    const centeredOffsetY = (Math.max(mapSize.height, 1) - maxH * safeScale) / 2;
 
     return {
       nodes: positionedCards.map((entry) => {
-        const x = MAP_PADDING + (entry.left + (mapLayout.nodeWidth / 2)) * safeScale;
-        const y = MAP_PADDING + (entry.top + (mapLayout.nodeHeight / 2)) * safeScale;
-
         return {
           card: entry.card,
-          x,
-          y,
+          x: MAP_PADDING + centeredOffsetX + (entry.left + (mapLayout.nodeWidth / 2)) * safeScale,
+          y: MAP_PADDING + centeredOffsetY + (entry.top + (mapLayout.nodeHeight / 2)) * safeScale,
           isFocused: entry.card.index === focusedCardIndex,
         };
       }),
@@ -47,6 +51,8 @@ export function NodeStructureView({ cards, focusedCardIndex }) {
     mapLayout.nodeHeight,
     mapLayout.nodeWidth,
     mapLayout.positionedCards,
+    mapSize.height,
+    mapSize.width,
   ]);
 
   const nodeById = useMemo(() => {
@@ -58,7 +64,17 @@ export function NodeStructureView({ cards, focusedCardIndex }) {
   }, [nodeEntries.nodes]);
 
   return (
-    <View style={styles.nodeView}>
+    <View
+      style={styles.nodeView}
+      onLayout={(event) => {
+        const { width, height } = event.nativeEvent.layout;
+        setMapSize((current) => (
+          current.width === width && current.height === height
+            ? current
+            : { width, height }
+        ));
+      }}
+    >
       <View style={styles.nodeViewCanvas}>
         {mapLayout.positionedCards.map((entry) => {
           if (!entry.card || !Array.isArray(entry.card.childIds)) {
