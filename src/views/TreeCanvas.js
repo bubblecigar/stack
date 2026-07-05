@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { styles } from '../styles/appStyles';
 import { buildTreeLayout, TREE_CANVAS_PADDING } from '../lib/treeLayout';
@@ -20,7 +20,7 @@ export function TreeCanvas({
   const treeHorizontalScrollRef = useRef(null);
   const treeVerticalScrollRef = useRef(null);
   const cardTouchRef = useRef(false);
-  const treeViewportRef = useRef({
+  const [treeViewport, setTreeViewport] = useState({
     width: 0,
     height: 0,
   });
@@ -53,7 +53,7 @@ export function TreeCanvas({
       return;
     }
 
-    const viewport = treeViewportRef.current;
+    const viewport = treeViewport;
     if (!viewport.width || !viewport.height) {
       return;
     }
@@ -79,7 +79,16 @@ export function TreeCanvas({
 
     treeHorizontalScrollRef.current?.scrollTo({ x: targetX, animated: true });
     treeVerticalScrollRef.current?.scrollTo({ y: targetY, animated: true });
-  }, [focusedCardIndex, maxHeight, maxWidth, nodeWidth, nodeHeight, positionedCards]);
+  }, [
+    focusedCardIndex,
+    maxHeight,
+    maxWidth,
+    nodeWidth,
+    nodeHeight,
+    positionedCards,
+    treeViewport.width,
+    treeViewport.height,
+  ]);
 
   const paddedPositionedCards = positionedCards.map((entry) => ({
     ...entry,
@@ -97,10 +106,10 @@ export function TreeCanvas({
       }}
       onLayout={(event) => {
         const { height, width } = event.nativeEvent.layout;
-        treeViewportRef.current = {
+        setTreeViewport({
           height,
           width,
-        };
+        });
       }}
     >
       <ScrollView
