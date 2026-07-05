@@ -81,10 +81,6 @@ export const styles = StyleSheet.create({
   treeCollapsedCard: {
     opacity: 0.98,
   },
-  treeEditingCard: {
-    minHeight: 220,
-    justifyContent: 'center',
-  },
   treeCardControls: {
     right: 8,
     bottom: 10,
@@ -240,4 +236,3 @@ export const styles = StyleSheet.create({
     marginTop: -2,
   },
 });
-
