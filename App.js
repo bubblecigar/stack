@@ -20,6 +20,7 @@ import {
 import defaultStackData from './defaultStack.json';
 import { FloatingControls } from './src/components/FloatingControls';
 import { LeafDeck } from './src/views/LeafDeck';
+import { NodeStructureView } from './src/views/NodeStructureView';
 import { TreeCanvas } from './src/views/TreeCanvas';
 import { styles } from './src/styles/appStyles';
 
@@ -314,20 +315,26 @@ export default function App() {
   }
 
   return (
-    <View style={shouldRenderLeaf ? styles.container : styles.containerTreeMode}>
+    <View style={shouldRenderLeaf ? styles.containerLeafMode : styles.containerTreeMode}>
       {shouldRenderLeaf ? (
-        <LeafDeck
-          cards={visibleCards}
-          editingIndex={editingIndex}
-          editingValue={editingValue}
-          focusedCardIndex={focusedCardIndex}
-          collapsedNodeIds={collapsedNodeIds}
-          onCreateEdit={handleToggleEdit}
-          onDeleteCard={handleDeleteCard}
-          onEditingValueChange={setEditingValue}
-          onLeafSwipe={handleLeafSwipe}
-          swipeDisabled={editingIndex !== null}
-        />
+        <>
+          <LeafDeck
+            cards={visibleCards}
+            editingIndex={editingIndex}
+            editingValue={editingValue}
+            focusedCardIndex={focusedCardIndex}
+            collapsedNodeIds={collapsedNodeIds}
+            onCreateEdit={handleToggleEdit}
+            onDeleteCard={handleDeleteCard}
+            onEditingValueChange={setEditingValue}
+            onLeafSwipe={handleLeafSwipe}
+            swipeDisabled={editingIndex !== null}
+          />
+          <NodeStructureView
+            cards={cards}
+            focusedCardIndex={focusedCardIndex}
+          />
+        </>
       ) : (
         <TreeCanvas
           cards={cards}
