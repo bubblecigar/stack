@@ -556,12 +556,13 @@ export default function App() {
     const isCollapsed = collapsedNodeIds.has(id);
     const dependencyText = `A ${parentIds.length} · C ${childIds.length}`;
 
+    const shouldShowControls = layout !== 'leaf' || isFocusedCard;
     const shouldShowEditControl = layout !== 'tree' || isFocusedCard;
 
     return renderCard({
       controls: (
         <>
-          {layout === 'tree' && hasChildren && (
+          {layout === 'tree' && shouldShowControls && hasChildren && (
             <Pressable
               accessibilityLabel={isCollapsed ? 'Expand card' : 'Collapse card'}
               accessibilityRole="button"
@@ -578,7 +579,7 @@ export default function App() {
               <Text style={styles.iconButtonText}>{isCollapsed ? '+' : '-'}</Text>
             </Pressable>
           )}
-          {shouldShowEditControl && (
+          {shouldShowControls && shouldShowEditControl && (
             <Pressable
               accessibilityLabel={isEditing ? 'Confirm card' : 'Edit card'}
               accessibilityRole="button"
@@ -596,38 +597,42 @@ export default function App() {
               </Text>
             </Pressable>
           )}
-          <Pressable
-            accessibilityLabel={
-              isLinkingSource ? 'Cancel card linking' : 'Link card'
-            }
-            accessibilityRole="button"
-            onPress={() => {
-              handleTouchCard(index, layout);
-              handleToggleLinking(index);
-            }}
-            style={({ pressed }) => [
-              styles.iconButton,
-              isLinkingSource && styles.linkButtonActive,
-              pressed && styles.iconButtonPressed,
-            ]}
-          >
-            <Text style={styles.iconButtonText}>↔</Text>
-          </Pressable>
-          <Pressable
-            accessibilityLabel="Delete card"
-            accessibilityRole="button"
-            onPress={() => {
-              handleTouchCard(index, layout);
-              handleDeleteCard(index);
-            }}
-            style={({ pressed }) => [
-              styles.iconButton,
-              styles.dangerButton,
-              pressed && styles.dangerButtonPressed,
-            ]}
-          >
-            <Text style={styles.iconButtonText}>⌫</Text>
-          </Pressable>
+          {shouldShowControls && (
+            <Pressable
+              accessibilityLabel={
+                isLinkingSource ? 'Cancel card linking' : 'Link card'
+              }
+              accessibilityRole="button"
+              onPress={() => {
+                handleTouchCard(index, layout);
+                handleToggleLinking(index);
+              }}
+              style={({ pressed }) => [
+                styles.iconButton,
+                isLinkingSource && styles.linkButtonActive,
+                pressed && styles.iconButtonPressed,
+              ]}
+            >
+              <Text style={styles.iconButtonText}>↔</Text>
+            </Pressable>
+          )}
+          {shouldShowControls && (
+            <Pressable
+              accessibilityLabel="Delete card"
+              accessibilityRole="button"
+              onPress={() => {
+                handleTouchCard(index, layout);
+                handleDeleteCard(index);
+              }}
+              style={({ pressed }) => [
+                styles.iconButton,
+                styles.dangerButton,
+                pressed && styles.dangerButtonPressed,
+              ]}
+            >
+              <Text style={styles.iconButtonText}>⌫</Text>
+            </Pressable>
+          )}
         </>
       ),
       dependencyControls: canLinkToCard && (
