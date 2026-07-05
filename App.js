@@ -554,7 +554,7 @@ export default function App() {
     const isChildLinked = sourceCard?.childIds.includes(id);
     const hasChildren = Array.isArray(childIds) && childIds.length > 0;
     const isCollapsed = collapsedNodeIds.has(id);
-    const dependencyText = `A ${parentIds.length} · C ${childIds.length}`;
+    const dependencyText = '';
 
     const shouldShowControls = layout === 'leaf' || isFocusedCard;
     const shouldShowEditControl = layout !== 'tree' || isFocusedCard;
@@ -635,52 +635,7 @@ export default function App() {
           )}
         </>
       ),
-      dependencyControls: canLinkToCard && shouldShowControls && (
-        <View style={styles.linkTargetControls}>
-          <Pressable
-            accessibilityLabel="Link as ancestor"
-            accessibilityRole="button"
-            onPress={() => {
-              handleTouchCard(index, layout);
-              handleLinkAsAncestor(index);
-            }}
-            style={({ pressed }) => [
-              styles.dependencyButton,
-              isAncestorLinked && styles.dependencyButtonActive,
-              pressed && styles.dependencyButtonPressed,
-            ]}
-          >
-            <Text style={[
-              styles.dependencyButtonText,
-              isAncestorLinked && styles.dependencyButtonTextActive,
-            ]}
-            >
-              A
-            </Text>
-          </Pressable>
-          <Pressable
-            accessibilityLabel="Link as child"
-            accessibilityRole="button"
-            onPress={() => {
-              handleTouchCard(index, layout);
-              handleLinkAsChild(index);
-            }}
-            style={({ pressed }) => [
-              styles.dependencyButton,
-              isChildLinked && styles.dependencyButtonActive,
-              pressed && styles.dependencyButtonPressed,
-            ]}
-          >
-            <Text style={[
-              styles.dependencyButtonText,
-              isChildLinked && styles.dependencyButtonTextActive,
-            ]}
-            >
-              C
-            </Text>
-          </Pressable>
-        </View>
-      ),
+      dependencyControls: null,
       dependencyText,
       isEditing,
       onPress: layout === 'tree'
