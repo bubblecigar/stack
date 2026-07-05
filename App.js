@@ -314,6 +314,7 @@ export default function App() {
     let cursorY = 14;
     let maxX = 0;
     let maxY = 0;
+    let placementOrder = 0;
 
     function placeCard(card, depth, startY, collapsedContext = null) {
       if (!card || seen.has(card.id) || visiting.has(card.id)) {
@@ -335,9 +336,11 @@ export default function App() {
         card,
         left,
         top,
+        placementOrder,
         depth,
         isCollapsedStacked: isHiddenFromCollapsedContext,
       });
+      placementOrder += 1;
 
       seen.add(card.id);
       maxX = Math.max(maxX, left + treeNodeWidth);
@@ -458,7 +461,9 @@ export default function App() {
             left: treePosition.left,
             top: treePosition.top,
             position: 'absolute',
-            zIndex: 900 - (treePosition.depth ?? 0),
+            zIndex: 9000
+              - ((treePosition.depth ?? 0) * 80)
+              - (treePosition.placementOrder ?? 0),
           },
           isLeafCard && {
             top: pileIndex * 12,
@@ -745,11 +750,17 @@ export default function App() {
                 card,
                 left,
                 top,
+                placementOrder,
                 depth,
                 isCollapsedStacked,
               }) => (
                 renderStackCard(card, 0, 'tree', {
-                  treePosition: { left, top, depth },
+                  treePosition: {
+                    depth,
+                    left,
+                    top,
+                    placementOrder,
+                  },
                   isCollapsedStacked,
                 })
               ))}
