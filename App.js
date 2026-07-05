@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
+  addChildLink,
   getSnapshot,
   loadCards,
   push,
@@ -23,7 +24,6 @@ import { View } from 'react-native';
 export default function App() {
   const [editingIndex, setEditingIndex] = useState(null);
   const [editingValue, setEditingValue] = useState('');
-  const [linkingIndex, setLinkingIndex] = useState(null);
   const [focusedCardIndex, setFocusedCardIndex] = useState(null);
   const [layoutMode, setLayoutMode] = useState('leaf');
   const [collapsedNodeIds, setCollapsedNodeIds] = useState(() => new Set());
@@ -66,20 +66,23 @@ export default function App() {
 
   function handleCreateCard() {
     const nextIndex = push('');
+    const parentIndex = layoutMode === 'tree' ? focusedCardIndex : null;
+
+    if (parentIndex !== null) {
+      addChildLink(parentIndex, nextIndex);
+    }
+
     setEditingIndex(nextIndex);
     setEditingValue('');
-    setLinkingIndex(null);
     setFocusedCardIndex(nextIndex);
   }
 
   function handleEditCard(index, text) {
     setEditingIndex(index);
     setEditingValue(text);
-    setLinkingIndex(null);
+    setFocusedCardIndex(index);
 
-    if (layoutMode === 'tree') {
-      setFocusedCardIndex(index);
-    } else {
+    if (layoutMode !== 'tree') {
       setFocusedCardIndex(null);
     }
   }
@@ -113,12 +116,6 @@ export default function App() {
       setEditingIndex(editingIndex - 1);
     }
 
-    if (linkingIndex === index) {
-      setLinkingIndex(null);
-    } else if (linkingIndex > index) {
-      setLinkingIndex(linkingIndex - 1);
-    }
-
     if (focusedCardIndex === index) {
       setFocusedCardIndex(null);
     } else if (focusedCardIndex > index) {
@@ -138,25 +135,6 @@ export default function App() {
     }
 
     removeAt(index);
-  }
-
-  function handleToggleLinking(index) {
-    setEditingIndex(null);
-    setEditingValue('');
-
-    if (layoutMode === 'tree') {
-      setFocusedCardIndex(index);
-    } else {
-      setFocusedCardIndex(null);
-    }
-
-    setLinkingIndex((currentIndex) => (
-      currentIndex === index ? null : index
-    ));
-  }
-
-  function handleTouchCard(index) {
-    setFocusedCardIndex(index);
   }
 
   function handleToggleCollapse(index) {
@@ -201,15 +179,24 @@ export default function App() {
       handleToggleCollapse(index);
     }
 
-    handleTouchCard(index);
+    setFocusedCardIndex((currentFocusedIndex) => (
+      currentFocusedIndex === index ? null : index
+    ));
   }
 
   function handleToggleLayout() {
+    const isLeafToTree = layoutMode === 'leaf';
+
     setLayoutMode((currentMode) => (currentMode === 'leaf' ? 'tree' : 'leaf'));
-    setFocusedCardIndex(null);
+
+    if (isLeafToTree) {
+      setFocusedCardIndex(visibleCards[0]?.index ?? null);
+    } else {
+      setFocusedCardIndex(null);
+    }
+
     setEditingIndex(null);
     setEditingValue('');
-    setLinkingIndex(null);
   }
 
   const shouldRenderLeaf = layoutMode === 'leaf';
@@ -223,9 +210,7 @@ export default function App() {
           editingValue={editingValue}
           focusedCardIndex={focusedCardIndex}
           collapsedNodeIds={collapsedNodeIds}
-          linkingIndex={linkingIndex}
           onCreateEdit={handleToggleEdit}
-          onToggleLinking={handleToggleLinking}
           onDeleteCard={handleDeleteCard}
           onEditingValueChange={setEditingValue}
         />
@@ -236,14 +221,12 @@ export default function App() {
           focusedCardIndex={focusedCardIndex}
           editingIndex={editingIndex}
           editingValue={editingValue}
-          linkingIndex={linkingIndex}
           onCardPress={handleTreeCardPress}
-          onTreeTouch={handleTouchCard}
           onCreateEdit={handleToggleEdit}
           onToggleCollapse={handleToggleCollapse}
-          onToggleLinking={handleToggleLinking}
           onDeleteCard={handleDeleteCard}
           onEditingValueChange={setEditingValue}
+          onCanvasBlur={() => setFocusedCardIndex(null)}
         />
       )}
 

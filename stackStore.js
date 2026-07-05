@@ -121,7 +121,7 @@ export function removeAt(index) {
   emitChange();
 }
 
-export function toggleChildLink(parentIndex, childIndex) {
+export function addChildLink(parentIndex, childIndex) {
   if (
     parentIndex < 0 ||
     parentIndex >= stack.length ||
@@ -134,14 +134,13 @@ export function toggleChildLink(parentIndex, childIndex) {
 
   const parentId = stack[parentIndex].id;
   const childId = stack[childIndex].id;
-  const hasLink = stack[parentIndex].childIds.includes(childId);
 
   stack = stack.map((card) => {
     if (card.id === parentId) {
       return {
         ...card,
-        childIds: hasLink
-          ? card.childIds.filter((id) => id !== childId)
+        childIds: card.childIds.includes(childId)
+          ? card.childIds
           : [...card.childIds, childId],
       };
     }
@@ -149,8 +148,8 @@ export function toggleChildLink(parentIndex, childIndex) {
     if (card.id === childId) {
       return {
         ...card,
-        parentIds: hasLink
-          ? card.parentIds.filter((id) => id !== parentId)
+        parentIds: card.parentIds.includes(parentId)
+          ? card.parentIds
           : [...card.parentIds, parentId],
       };
     }

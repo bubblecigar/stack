@@ -8,22 +8,19 @@ export function StackCard({
   editingIndex,
   editingValue,
   focusedCardIndex,
-  linkingIndex,
   collapsedNodeIds,
   treePosition,
   isCollapsedStacked = false,
   onPress,
-  onTreeTouch,
+  onPressIn,
   onCreateEdit,
   onToggleCollapse,
-  onToggleLinking,
   onDeleteCard,
   onEditingValueChange,
 }) {
   const {
     id,
     index,
-    parentIds,
     childIds,
     text,
   } = card;
@@ -32,7 +29,6 @@ export function StackCard({
   const isTreeCard = layout === 'tree';
   const isEditing = editingIndex === index;
   const isFocusedCard = focusedCardIndex === index;
-  const isLinkingSource = linkingIndex === index;
   const hasChildren = Array.isArray(childIds) && childIds.length > 0;
   const isCollapsed = collapsedNodeIds.has(id);
   const shouldShowControls = isLeafCard || isFocusedCard;
@@ -43,6 +39,7 @@ export function StackCard({
   return (
     <Pressable
       disabled={isLeafCard}
+      onPressIn={onPressIn}
       onPress={onPress}
       style={[
         styles.card,
@@ -84,8 +81,8 @@ export function StackCard({
           <Pressable
             accessibilityLabel={isCollapsed ? 'Expand card' : 'Collapse card'}
             accessibilityRole="button"
+            onPressIn={onPressIn}
             onPress={() => {
-              onTreeTouch?.(index);
               onToggleCollapse?.(index);
             }}
             style={({ pressed }) => [
@@ -102,8 +99,8 @@ export function StackCard({
           <Pressable
             accessibilityLabel={isEditing ? 'Confirm card' : 'Edit card'}
             accessibilityRole="button"
+            onPressIn={onPressIn}
             onPress={() => {
-              onTreeTouch?.(index);
               onCreateEdit(index, text);
             }}
             style={({ pressed }) => [
@@ -119,30 +116,10 @@ export function StackCard({
 
         {shouldShowControls && (
           <Pressable
-            accessibilityLabel={
-              isLinkingSource ? 'Cancel card linking' : 'Link card'
-            }
-            accessibilityRole="button"
-            onPress={() => {
-              onTreeTouch?.(index);
-              onToggleLinking?.(index);
-            }}
-            style={({ pressed }) => [
-              styles.iconButton,
-              isLinkingSource && styles.linkButtonActive,
-              pressed && styles.iconButtonPressed,
-            ]}
-          >
-            <Text style={styles.iconButtonText}>↔</Text>
-          </Pressable>
-        )}
-
-        {shouldShowControls && (
-          <Pressable
             accessibilityLabel="Delete card"
             accessibilityRole="button"
+            onPressIn={onPressIn}
             onPress={() => {
-              onTreeTouch?.(index);
               onDeleteCard?.(index);
             }}
             style={({ pressed }) => [

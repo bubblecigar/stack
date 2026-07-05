@@ -8,9 +8,7 @@ export function LeafDeck({
   editingValue,
   focusedCardIndex,
   collapsedNodeIds,
-  linkingIndex,
   onCreateEdit,
-  onToggleLinking,
   onDeleteCard,
   onEditingValueChange,
 }) {
@@ -23,20 +21,16 @@ export function LeafDeck({
           editingIndex={editingIndex}
           editingValue={editingValue}
           focusedCardIndex={focusedCardIndex}
-          linkingIndex={linkingIndex}
           layout="leaf"
           key={`card-${card.id}`}
           visibleIndex={visibleIndex}
           onPress={() => {}}
           onCreateEdit={onCreateEdit}
-          onToggleLinking={onToggleLinking}
           onDeleteCard={onDeleteCard}
           onEditingValueChange={onEditingValueChange}
-          onTreeTouch={() => {}}
           onToggleCollapse={() => {}}
         />
       ))}
     </View>
   );
 }
-

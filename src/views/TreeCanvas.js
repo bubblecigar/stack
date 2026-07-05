@@ -10,21 +10,35 @@ export function TreeCanvas({
   focusedCardIndex,
   editingIndex,
   editingValue,
-  linkingIndex,
   onCardPress,
-  onTreeTouch,
   onCreateEdit,
   onToggleCollapse,
-  onToggleLinking,
   onDeleteCard,
   onEditingValueChange,
+  onCanvasBlur,
 }) {
   const treeHorizontalScrollRef = useRef(null);
   const treeVerticalScrollRef = useRef(null);
+  const cardTouchRef = useRef(false);
   const treeViewportRef = useRef({
     width: 0,
     height: 0,
   });
+
+  function handleCardPressIn() {
+    cardTouchRef.current = true;
+  }
+
+  function handleCanvasTouchEnd() {
+    const wasCardTouch = cardTouchRef.current;
+    cardTouchRef.current = false;
+
+    if (wasCardTouch) {
+      return;
+    }
+
+    onCanvasBlur?.();
+  }
 
   const {
     maxHeight,
@@ -77,6 +91,10 @@ export function TreeCanvas({
   return (
     <View
       style={styles.treeViewport}
+      onTouchEnd={handleCanvasTouchEnd}
+      onTouchCancel={() => {
+        cardTouchRef.current = false;
+      }}
       onLayout={(event) => {
         const { height, width } = event.nativeEvent.layout;
         treeViewportRef.current = {
@@ -117,10 +135,10 @@ export function TreeCanvas({
                   editingIndex={editingIndex}
                   editingValue={editingValue}
                   focusedCardIndex={focusedCardIndex}
-                  linkingIndex={linkingIndex}
                   layout="tree"
                   key={`card-${card.id}`}
                   visibleIndex={0}
+                  onPressIn={handleCardPressIn}
                   treePosition={{
                     left,
                     top,
@@ -129,10 +147,8 @@ export function TreeCanvas({
                   }}
                   isCollapsedStacked={isCollapsedStacked}
                   onPress={() => onCardPress(card.index)}
-                  onTreeTouch={onTreeTouch}
                   onCreateEdit={onCreateEdit}
                   onToggleCollapse={onToggleCollapse}
-                  onToggleLinking={onToggleLinking}
                   onDeleteCard={onDeleteCard}
                   onEditingValueChange={onEditingValueChange}
                 />
@@ -144,4 +160,3 @@ export function TreeCanvas({
     </View>
   );
 }
-
