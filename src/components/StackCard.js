@@ -109,6 +109,37 @@ export function StackCard({
     action?.();
   }
 
+  const editingInput = (
+    <TextInput
+      onFocus={() => {
+        onFocusCard?.(index);
+        onPressIn?.();
+      }}
+      onTouchStart={() => {
+        onPressIn?.();
+      }}
+      autoCapitalize="sentences"
+      autoCorrect
+      autoFocus
+      multiline
+      returnKeyType="done"
+      scrollEnabled={false}
+      onChangeText={onEditingValueChange}
+      onEndEditing={(event) => {
+        onCompleteEdit?.(index, event.nativeEvent.text);
+      }}
+      onSubmitEditing={(event) => {
+        onCompleteEdit?.(index, event.nativeEvent.text);
+      }}
+      style={[
+        styles.cardInput,
+        isTreeCard && styles.treeCardInput,
+      ]}
+      submitBehavior="submit"
+      value={editingValue}
+    />
+  );
+
   return (
     <Pressable
       disabled={isLeafCard}
@@ -197,36 +228,17 @@ export function StackCard({
       </View>
 
       {isEditing ? (
-        <Animated.View style={styles.cardInputWrap}>
-          <TextInput
-            onFocus={() => {
-              onFocusCard?.(index);
-              onPressIn?.();
-            }}
-            onTouchStart={() => {
-              onPressIn?.();
-            }}
-            autoCapitalize="sentences"
-            autoCorrect
-            autoFocus
-            multiline
-            returnKeyType="done"
-            scrollEnabled={false}
-            onChangeText={onEditingValueChange}
-            onEndEditing={(event) => {
-              onCompleteEdit?.(index, event.nativeEvent.text);
-            }}
-            onSubmitEditing={(event) => {
-              onCompleteEdit?.(index, event.nativeEvent.text);
-            }}
-            style={[
-              styles.cardInput,
-              isTreeCard && styles.treeCardInput,
-            ]}
-            submitBehavior="submit"
-            value={editingValue}
-          />
-        </Animated.View>
+        isLeafCard ? (
+          <View style={styles.leafContentSurface}>
+            <View style={styles.leafContentLayer}>
+              {editingInput}
+            </View>
+          </View>
+        ) : (
+          <Animated.View style={styles.cardInputWrap}>
+            {editingInput}
+          </Animated.View>
+        )
       ) : (
         isLeafCard ? (
           <View style={styles.leafContentSurface}>

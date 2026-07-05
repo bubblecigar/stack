@@ -270,8 +270,8 @@ export const styles = StyleSheet.create({
   leafContentSurface: {
     width: '100%',
     minHeight: 180,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'stretch',
+    justifyContent: 'flex-start',
   },
   leafContentLayer: {
     position: 'absolute',
@@ -279,8 +279,8 @@ export const styles = StyleSheet.create({
     right: 0,
     top: 0,
     bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'stretch',
+    justifyContent: 'flex-start',
   },
   leafPlaceholder: {
     width: '100%',
@@ -337,8 +337,8 @@ export const styles = StyleSheet.create({
     borderStyle: 'solid',
   },
   leafEditingCard: {
-    borderColor: '#2563EB',
-    borderWidth: 2,
+    borderColor: '#E2E8F0',
+    borderWidth: 1,
   },
   cardControls: {
     position: 'absolute',
@@ -379,7 +379,8 @@ export const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: '800',
     lineHeight: 40,
-    textAlign: 'center',
+    textAlign: 'left',
+    width: '100%',
   },
   emptyCardText: {
     color: '#94A3B8',
@@ -392,12 +393,17 @@ export const styles = StyleSheet.create({
     width: '100%',
     maxWidth: '100%',
     minHeight: 180,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
     color: '#0F172A',
     fontSize: 32,
     fontWeight: '800',
     lineHeight: 40,
-    textAlign: 'center',
-    textAlignVertical: 'center',
+    padding: 0,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    textAlign: 'left',
+    textAlignVertical: 'top',
     flexWrap: 'wrap',
   },
   dependencyBar: {
