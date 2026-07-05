@@ -21,6 +21,7 @@ export default function App() {
   const [editingIndex, setEditingIndex] = useState(null);
   const [editingValue, setEditingValue] = useState('');
   const [linkingIndex, setLinkingIndex] = useState(null);
+  const [focusedCardIndex, setFocusedCardIndex] = useState(null);
   const [layoutMode, setLayoutMode] = useState('leaf');
   const stack = useSyncExternalStore(subscribe, getSnapshot);
   const cards = stack.map((card, index) => ({ ...card, index }));
@@ -35,12 +36,18 @@ export default function App() {
     setEditingIndex(nextIndex);
     setEditingValue('');
     setLinkingIndex(null);
+    setFocusedCardIndex(nextIndex);
   }
 
   function handleEditCard(index, text) {
     setEditingIndex(index);
     setEditingValue(text);
     setLinkingIndex(null);
+    if (layoutMode === 'tree') {
+      setFocusedCardIndex(index);
+    } else {
+      setFocusedCardIndex(null);
+    }
   }
 
   function handleConfirmEdit() {
@@ -76,15 +83,34 @@ export default function App() {
       setLinkingIndex(linkingIndex - 1);
     }
 
+    if (focusedCardIndex === index) {
+      setFocusedCardIndex(null);
+    } else if (focusedCardIndex > index) {
+      setFocusedCardIndex(focusedCardIndex - 1);
+    }
+
     removeAt(index);
   }
 
   function handleToggleLinking(index) {
     setEditingIndex(null);
     setEditingValue('');
+    if (layoutMode === 'tree') {
+      setFocusedCardIndex(index);
+    } else {
+      setFocusedCardIndex(null);
+    }
     setLinkingIndex((currentIndex) => (
       currentIndex === index ? null : index
     ));
+  }
+
+  function handleFocusCard(index, layout) {
+    if (layout !== 'tree') {
+      return;
+    }
+
+    setFocusedCardIndex(index);
   }
 
   function handleLinkAsAncestor(index) {
@@ -111,18 +137,23 @@ export default function App() {
     onChangeText,
     dependencyText,
     dependencyControls,
+    onPress,
     pileIndex,
     value,
+    isFocused,
   }) {
     const isLeafCard = layout === 'leaf';
 
     return (
-      <View
+      <Pressable
+        disabled={layout === 'leaf'}
+        onPress={onPress}
         key={key}
         style={[
           styles.card,
           isLeafCard && styles.leafCard,
           !isLeafCard && styles.treeCard,
+          isFocused && styles.focusedCard,
           isEditing && styles.editingCard,
           isLeafCard && {
             top: pileIndex * 12,
@@ -167,7 +198,7 @@ export default function App() {
           <Text style={styles.dependencyText}>{dependencyText}</Text>
           {dependencyControls}
         </View>
-      </View>
+      </Pressable>
     );
   }
 
@@ -181,6 +212,7 @@ export default function App() {
     } = card;
     const pileIndex = visibleIndex;
     const isEditing = editingIndex === index;
+    const isFocusedCard = focusedCardIndex === index;
     const isLinkingSource = linkingIndex === index;
     const canLinkToCard = linkingIndex !== null && linkingIndex !== index;
     const sourceCard = linkingIndex === null ? null : stack[linkingIndex];
@@ -274,6 +306,8 @@ export default function App() {
       ),
       dependencyText,
       isEditing,
+      onPress: () => handleFocusCard(index, layout),
+      isFocused: isFocusedCard,
       key: `card-${id}`,
       layout,
       onChangeText: setEditingValue,
@@ -311,15 +345,19 @@ export default function App() {
       {layoutMode === 'leaf' ? renderLeafView() : renderTreeView()}
 
       <View style={styles.floatingControls}>
-        <Pressable
-          accessibilityLabel="Toggle stack layout"
-          accessibilityRole="button"
-          onPress={() => {
-            setLayoutMode((currentMode) => (
-              currentMode === 'leaf' ? 'tree' : 'leaf'
-            ));
-          }}
-          style={({ pressed }) => [
+          <Pressable
+            accessibilityLabel="Toggle stack layout"
+            accessibilityRole="button"
+            onPress={() => {
+              setLayoutMode((currentMode) => (
+                currentMode === 'leaf' ? 'tree' : 'leaf'
+              ));
+              setFocusedCardIndex(null);
+              setEditingIndex(null);
+              setEditingValue('');
+              setLinkingIndex(null);
+            }}
+            style={({ pressed }) => [
             styles.fab,
             styles.modeFab,
             pressed && styles.modeFabPressed,
@@ -404,6 +442,13 @@ const styles = StyleSheet.create({
   treeCard: {
     position: 'relative',
     minHeight: 260,
+  },
+  focusedCard: {
+    borderColor: '#0EA5E9',
+    borderWidth: 4,
+    shadowColor: '#0EA5E9',
+    shadowOpacity: 0.3,
+    elevation: 14,
   },
   editingCard: {
     zIndex: 20,
