@@ -25,7 +25,12 @@ export default function App() {
   const [linkingIndex, setLinkingIndex] = useState(null);
   const [focusedCardIndex, setFocusedCardIndex] = useState(null);
   const [layoutMode, setLayoutMode] = useState('leaf');
+  const [collapsedNodeIds, setCollapsedNodeIds] = useState(() => new Set());
   const hasLoadedDefaultStack = useRef(false);
+  const treeCardPressState = useRef({
+    index: null,
+    timestamp: 0,
+  });
   const treeHorizontalScrollRef = useRef(null);
   const treeVerticalScrollRef = useRef(null);
   const treeViewportRef = useRef({
@@ -103,6 +108,8 @@ export default function App() {
   }
 
   function handleDeleteCard(index) {
+    const removedCard = stack[index];
+
     if (editingIndex === index) {
       setEditingIndex(null);
       setEditingValue('');
@@ -120,6 +127,18 @@ export default function App() {
       setFocusedCardIndex(null);
     } else if (focusedCardIndex > index) {
       setFocusedCardIndex(focusedCardIndex - 1);
+    }
+
+    if (removedCard) {
+      setCollapsedNodeIds((currentCollapsed) => {
+        if (!currentCollapsed.has(removedCard.id)) {
+          return currentCollapsed;
+        }
+
+        const nextCollapsed = new Set(currentCollapsed);
+        nextCollapsed.delete(removedCard.id);
+        return nextCollapsed;
+      });
     }
 
     removeAt(index);
@@ -149,6 +168,53 @@ export default function App() {
   function handleTouchCard(index, layout) {
     if (layout !== 'tree') {
       return;
+    }
+
+    setFocusedCardIndex(index);
+  }
+
+  function handleToggleCollapse(index) {
+    const card = cards[index];
+
+    if (!card || !Array.isArray(card.childIds) || card.childIds.length === 0) {
+      return;
+    }
+
+    const cardId = card.id;
+
+    setCollapsedNodeIds((currentCollapsed) => {
+      const nextCollapsed = new Set(currentCollapsed);
+
+      if (nextCollapsed.has(cardId)) {
+        nextCollapsed.delete(cardId);
+      } else {
+        nextCollapsed.add(cardId);
+      }
+
+      return nextCollapsed;
+    });
+  }
+
+  function handleTreeCardPress(index) {
+    if (layoutMode !== 'tree') {
+      return;
+    }
+
+    const now = Date.now();
+    const previousIndex = treeCardPressState.current.index;
+    const previousTimestamp = treeCardPressState.current.timestamp;
+    const hasDoubleTapped = (
+      previousIndex === index
+      && now - previousTimestamp <= 280
+    );
+
+    treeCardPressState.current = {
+      index,
+      timestamp: now,
+    };
+
+    if (hasDoubleTapped) {
+      handleToggleCollapse(index);
     }
 
     setFocusedCardIndex(index);
@@ -215,7 +281,7 @@ export default function App() {
       y: targetY,
       animated: true,
     });
-  }, [focusedCardIndex, layoutMode, cards]);
+  }, [focusedCardIndex, layoutMode, cards, collapsedNodeIds]);
 
   function buildTreeLayout() {
     const cardById = new Map(cards.map((card) => [card.id, card]));
@@ -235,6 +301,23 @@ export default function App() {
     let cursorY = 14;
     let maxX = 0;
     let maxY = 0;
+
+    function markSubtreeAsHidden(card) {
+      if (!card || seen.has(card.id) || visiting.has(card.id)) {
+        return;
+      }
+
+      seen.add(card.id);
+      (card.childIds || []).forEach((childId) => {
+        const childCard = cardById.get(childId);
+
+        if (!childCard) {
+          return;
+        }
+
+        markSubtreeAsHidden(childCard);
+      });
+    }
 
     function placeCard(card, depth, startY) {
       if (!card || seen.has(card.id) || visiting.has(card.id)) {
@@ -256,6 +339,8 @@ export default function App() {
       maxX = Math.max(maxX, left + treeNodeWidth);
       maxY = Math.max(maxY, top + treeNodeHeight);
 
+      const isCollapsed = collapsedNodeIds.has(card.id);
+
       let nextY = top + treeNodeHeight - childOverlapY;
       let subtreeBottom = top + treeNodeHeight;
       const processedChildren = new Set();
@@ -271,6 +356,12 @@ export default function App() {
         }
 
         processedChildren.add(childId);
+
+        if (isCollapsed) {
+          markSubtreeAsHidden(childCard);
+          return;
+        }
+
         const childBounds = placeCard(childCard, depth + 1, nextY);
         subtreeBottom = Math.max(subtreeBottom, childBounds.bottom);
         nextY = childBounds.bottom - childOverlapY;
@@ -431,11 +522,30 @@ export default function App() {
     const sourceCard = linkingIndex === null ? null : stack[linkingIndex];
     const isAncestorLinked = sourceCard?.parentIds.includes(id);
     const isChildLinked = sourceCard?.childIds.includes(id);
+    const hasChildren = Array.isArray(childIds) && childIds.length > 0;
+    const isCollapsed = collapsedNodeIds.has(id);
     const dependencyText = `A ${parentIds.length} · C ${childIds.length}`;
 
     return renderCard({
       controls: (
         <>
+          {layout === 'tree' && hasChildren && (
+            <Pressable
+              accessibilityLabel={isCollapsed ? 'Expand card' : 'Collapse card'}
+              accessibilityRole="button"
+              onPress={() => {
+                handleTouchCard(index, layout);
+                handleToggleCollapse(index);
+              }}
+              style={({ pressed }) => [
+                styles.iconButton,
+                isCollapsed && styles.linkButtonActive,
+                pressed && styles.iconButtonPressed,
+              ]}
+            >
+              <Text style={styles.iconButtonText}>{isCollapsed ? '+' : '-'}</Text>
+            </Pressable>
+          )}
           <Pressable
             accessibilityLabel={isEditing ? 'Confirm card' : 'Edit card'}
             accessibilityRole="button"
@@ -534,7 +644,9 @@ export default function App() {
       ),
       dependencyText,
       isEditing,
-      onPress: () => handleFocusCard(index, layout),
+      onPress: layout === 'tree'
+        ? () => handleTreeCardPress(index)
+        : () => handleFocusCard(index, layout),
       treePosition,
       isFocused: isFocusedCard,
       key: `card-${id}`,
