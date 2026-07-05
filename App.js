@@ -309,8 +309,8 @@ export default function App() {
     const depthStepX = treeNodeWidth - treeNodeOverlapX;
     const childOverlapY = 16;
     const rootGapY = 64;
-    const collapsedStackGapY = 12;
-    const collapsedStackPeek = treeNodeHeight / 2;
+    const collapsedStackGapY = 0;
+    const collapsedStackPeek = 0;
     let cursorY = 14;
     let maxX = 0;
     let maxY = 0;
@@ -367,12 +367,12 @@ export default function App() {
         const nextCollapsedContext = {
           left: left,
           baseTop: isCollapsed
-            ? top + treeNodeHeight - collapsedStackPeek + (collapsedChildIndex * collapsedStackGapY)
+            ? top + collapsedStackPeek + (collapsedChildIndex * collapsedStackGapY)
             : 0,
         };
 
         const childStartY = isCollapsed
-          ? top + treeNodeHeight - collapsedStackPeek + (collapsedChildIndex * collapsedStackGapY)
+          ? top + collapsedStackPeek + (collapsedChildIndex * collapsedStackGapY)
           : nextY;
 
         const childBounds = placeCard(
