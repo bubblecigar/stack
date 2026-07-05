@@ -72,6 +72,7 @@ export default function App() {
   const hasLoadedDefaultStack = useRef(false);
   const hasLoadedRemoteCards = useRef(false);
   const isApplyingRemoteCards = useRef(false);
+  const authUserRef = useRef(null);
   const treeCardPressState = useRef({
     index: null,
     timestamp: 0,
@@ -82,6 +83,10 @@ export default function App() {
       UIManager.setLayoutAnimationEnabledExperimental(true);
     }
   }, []);
+
+  useEffect(() => {
+    authUserRef.current = authUser;
+  }, [authUser]);
 
   useEffect(() => {
     let isMounted = true;
@@ -189,7 +194,16 @@ export default function App() {
       try {
         const result = await getMe(authToken);
         if (isMounted) {
-          setAuthUser(result.user);
+          setAuthUser((currentUser) => {
+            if (
+              currentUser?.id === result.user?.id
+              && currentUser?.email === result.user?.email
+            ) {
+              return currentUser;
+            }
+
+            return result.user;
+          });
         }
       } catch (error) {
         if (error.status === 401 && isMounted) {
@@ -197,7 +211,7 @@ export default function App() {
           return;
         }
 
-        if (isMounted && !authUser) {
+        if (isMounted && !authUserRef.current) {
           resetSession();
         }
       }
@@ -210,7 +224,7 @@ export default function App() {
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, [authToken, authUser]);
+  }, [authToken]);
 
   useEffect(() => {
     if (!authToken) {
