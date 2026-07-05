@@ -8,6 +8,11 @@ export const styles = StyleSheet.create({
     paddingTop: 40,
     paddingBottom: 40,
   },
+  containerTreeMode: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+    padding: 0,
+  },
   floatingControls: {
     position: 'absolute',
     right: 24,

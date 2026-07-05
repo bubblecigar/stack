@@ -3,8 +3,11 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
+  View,
 } from 'react-native';
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import {
+  useEffect, useMemo, useRef, useState, useSyncExternalStore,
+} from 'react';
 import {
   addChildLink,
   getSnapshot,
@@ -19,7 +22,9 @@ import { FloatingControls } from './src/components/FloatingControls';
 import { LeafDeck } from './src/views/LeafDeck';
 import { TreeCanvas } from './src/views/TreeCanvas';
 import { styles } from './src/styles/appStyles';
-import { View } from 'react-native';
+
+const LEAF_VISIBLE_COUNT = 4;
+const SWIPE_STEP = 1;
 
 export default function App() {
   const [editingIndex, setEditingIndex] = useState(null);
@@ -27,10 +32,30 @@ export default function App() {
   const [focusedCardIndex, setFocusedCardIndex] = useState(null);
   const [layoutMode, setLayoutMode] = useState('leaf');
   const [collapsedNodeIds, setCollapsedNodeIds] = useState(() => new Set());
+  const [leafTopIndex, setLeafTopIndex] = useState(null);
 
   const stack = useSyncExternalStore(subscribe, getSnapshot);
   const cards = useMemo(() => stack.map((card, index) => ({ ...card, index })), [stack]);
-  const visibleCards = useMemo(() => cards.slice(-4).reverse(), [cards]);
+
+  const visibleCards = useMemo(() => {
+    if (cards.length === 0) {
+      return [];
+    }
+
+    if (leafTopIndex === null) {
+      return cards.slice(-LEAF_VISIBLE_COUNT).reverse();
+    }
+
+    const normalizedTop = Math.max(
+      0,
+      Math.min(leafTopIndex, cards.length - 1),
+    );
+
+    return Array.from(
+      { length: Math.min(LEAF_VISIBLE_COUNT, normalizedTop + 1) },
+      (_, offset) => cards[normalizedTop - offset],
+    );
+  }, [cards, leafTopIndex]);
 
   const hasLoadedDefaultStack = useRef(false);
   const treeCardPressState = useRef({
@@ -43,6 +68,17 @@ export default function App() {
       UIManager.setLayoutAnimationEnabledExperimental(true);
     }
   }, []);
+
+  useEffect(() => {
+    if (cards.length === 0) {
+      setLeafTopIndex(null);
+      return;
+    }
+
+    setLeafTopIndex((currentTop) => (
+      currentTop === null ? cards.length - 1 : Math.min(currentTop, cards.length - 1)
+    ));
+  }, [cards.length]);
 
   useEffect(() => {
     if (!__DEV__) {
@@ -75,12 +111,14 @@ export default function App() {
     setEditingIndex(nextIndex);
     setEditingValue('');
     setFocusedCardIndex(nextIndex);
+    setLeafTopIndex(nextIndex);
   }
 
   function handleEditCard(index, text) {
     setEditingIndex(index);
     setEditingValue(text);
     setFocusedCardIndex(index);
+    setLeafTopIndex(index);
   }
 
   function handleConfirmEdit() {
@@ -117,6 +155,19 @@ export default function App() {
     } else if (focusedCardIndex > index) {
       setFocusedCardIndex(focusedCardIndex - 1);
     }
+
+    setLeafTopIndex((currentTop) => {
+      if (cards.length === 0) {
+        return null;
+      }
+
+      if (currentTop === null) {
+        return Math.max(cards.length - 2, 0);
+      }
+
+      const adjustedTop = currentTop - (index < currentTop ? 1 : 0);
+      return Math.max(0, Math.min(adjustedTop, cards.length - 2));
+    });
 
     if (removedCard) {
       setCollapsedNodeIds((currentCollapsed) => {
@@ -180,6 +231,22 @@ export default function App() {
     ));
   }
 
+  function handleLeafSwipe(direction) {
+    if (editingIndex !== null || cards.length === 0) {
+      return;
+    }
+
+    setLeafTopIndex((currentTop) => {
+      const normalizedTop = currentTop === null ? cards.length - 1 : currentTop;
+
+      if (direction === 'left') {
+        return Math.max(0, normalizedTop - SWIPE_STEP);
+      }
+
+      return Math.min(cards.length - 1, normalizedTop + SWIPE_STEP);
+    });
+  }
+
   function handleToggleLayout() {
     const isLeafToTree = layoutMode === 'leaf';
     const currentlyVisibleLeafCardIndex = visibleCards[0]?.index ?? null;
@@ -187,13 +254,23 @@ export default function App() {
       focusedCardIndex !== null
       && visibleCards.some(({ index }) => index === focusedCardIndex)
     );
+    const focusedCardInRange = (
+      focusedCardIndex !== null
+      && focusedCardIndex >= 0
+      && focusedCardIndex < cards.length
+    );
 
     setLayoutMode((currentMode) => (currentMode === 'leaf' ? 'tree' : 'leaf'));
 
     if (isLeafToTree) {
       setFocusedCardIndex(isFocusedCardVisible ? focusedCardIndex : currentlyVisibleLeafCardIndex);
+      setLeafTopIndex(null);
     } else {
-      setFocusedCardIndex(null);
+      if (focusedCardInRange) {
+        setLeafTopIndex(focusedCardIndex);
+      } else {
+        setLeafTopIndex(cards.length > 0 ? cards.length - 1 : null);
+      }
     }
 
     setEditingIndex(null);
@@ -203,7 +280,7 @@ export default function App() {
   const shouldRenderLeaf = layoutMode === 'leaf';
 
   return (
-    <View style={styles.container}>
+    <View style={shouldRenderLeaf ? styles.container : styles.containerTreeMode}>
       {shouldRenderLeaf ? (
         <LeafDeck
           cards={visibleCards}
@@ -214,6 +291,8 @@ export default function App() {
           onCreateEdit={handleToggleEdit}
           onDeleteCard={handleDeleteCard}
           onEditingValueChange={setEditingValue}
+          onLeafSwipe={handleLeafSwipe}
+          swipeDisabled={editingIndex !== null}
         />
       ) : (
         <TreeCanvas

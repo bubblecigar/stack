@@ -56,18 +56,17 @@ export function StackCard({
             - ((treePosition.depth ?? 0) * 80)
             - (treePosition.placementOrder ?? 0),
         },
-        isLeafCard && {
+        isLeafCard && !isEditing && {
           top: visibleIndex * 12,
           transform: [
             { scale: 1 - visibleIndex * 0.035 },
-            { rotate: `${visibleIndex % 2 === 0 ? 0 : -2}deg` },
+            { rotate: `${visibleIndex % 2 === 0 ? -1.5 : 1.5}deg` },
           ],
-          zIndex: isEditing
-            ? 200
-            : 1000 - visibleIndex,
+          zIndex: 1000 - visibleIndex,
         },
-        isLeafCard && {
-          transform: [{ rotate: `${visibleIndex % 2 === 0 ? -1.5 : 1.5}deg` }],
+        isLeafCard && isEditing && {
+          top: 0,
+          zIndex: 2500,
         },
       ]}
     >
