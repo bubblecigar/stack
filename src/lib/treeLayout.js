@@ -1,6 +1,7 @@
 const DEFAULT_TREE_LAYOUT = {
   treeNodeWidth: 240,
   treeNodeHeight: 125,
+  childOverlapX: 160,
   childOverlapY: 16,
   rootGapY: 64,
   collapsedStackGapY: 0,
@@ -22,8 +23,10 @@ export function buildTreeLayout(cards = [], collapsedNodeIds = new Set(), overri
   const visiting = new Set();
   const positionedCards = [];
 
-  const treeNodeOverlapX = config.treeNodeWidth / 2;
-  const depthStepX = config.treeNodeWidth - treeNodeOverlapX;
+  const depthStepX = Math.max(
+    config.treeNodeWidth - config.childOverlapX,
+    config.treeNodeWidth / 4,
+  );
 
   let cursorY = 14;
   let maxX = 0;
