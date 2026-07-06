@@ -12,6 +12,7 @@ import {
 import { styles } from '../styles/appStyles';
 
 const treeViewCardImage = require('../../assets/tree_view.png');
+const clockButtonImage = require('../../assets/card/clock.png');
 
 const DELETE_HOLD_MS = 500;
 const ADD_POINT_DEAD_ZONE = 16;
@@ -91,9 +92,11 @@ export function FloatingControls({
   onAddPreviewChange,
   onAddHoldChange,
   onDeleteHoldChange,
+  onStartFocusMode,
   canDeleteCurrentCard = false,
 }) {
   const shouldShowDelete = canDeleteCurrentCard;
+  const shouldShowFocus = layoutMode === 'leaf';
   const [isAddPressed, setIsAddPressed] = useState(false);
   const [addCardRotation, setAddCardRotation] = useState(ADD_CARD_BASE_ROTATION);
   const [addCardOffsetX, setAddCardOffsetX] = useState(0);
@@ -236,6 +239,26 @@ export function FloatingControls({
 
   return (
     <>
+      {shouldShowFocus ? (
+        <View style={styles.focusFloatingControl}>
+          <Pressable
+            accessibilityLabel="Clock"
+            accessibilityRole="button"
+            onPress={onStartFocusMode}
+            style={({ pressed }) => [
+              styles.fab,
+              styles.focusFab,
+              pressed && styles.focusFabPressed,
+            ]}
+          >
+            <Image
+              source={clockButtonImage}
+              style={styles.focusFabImage}
+            />
+          </Pressable>
+        </View>
+      ) : null}
+
       {shouldShowDelete ? (
         <View style={styles.floatingControls}>
           <Pressable

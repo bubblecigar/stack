@@ -562,6 +562,12 @@ export default function App() {
     setEditingValue('');
   }
 
+  function handleClockPress() {
+    if (!shouldRenderLeaf) {
+      return;
+    }
+  }
+
   if (!fontsLoaded || isRestoringSession || (authToken && !authUser)) {
     return (
       <>
@@ -655,6 +661,7 @@ export default function App() {
         onAddPreviewChange={setAddPreviewRelation}
         onToggleMode={handleToggleLayout}
         onCreateCard={handleCreateCard}
+        onStartFocusMode={handleClockPress}
       />
 
       <StatusBar style="light" />

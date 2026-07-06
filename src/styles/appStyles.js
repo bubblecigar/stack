@@ -114,6 +114,15 @@ export const styles = StyleSheet.create({
     zIndex: 6200,
     elevation: 34,
   },
+  focusFloatingControl: {
+    position: 'absolute',
+    left: '58%',
+    bottom: 182,
+    marginLeft: 24,
+    alignItems: 'center',
+    zIndex: 6200,
+    elevation: 34,
+  },
   addFloatingControl: {
     position: 'absolute',
     left: '50%',
@@ -655,6 +664,22 @@ export const styles = StyleSheet.create({
   fabPressed: {
     backgroundColor: '#1D4ED8',
     transform: [{ scale: 0.96 }],
+  },
+  focusFab: {
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  focusFabPressed: {
+    backgroundColor: 'transparent',
+    opacity: 0.78,
+    transform: [{ scale: 0.96 }],
+  },
+  focusFabImage: {
+    width: 64,
+    height: 64,
+    resizeMode: 'cover',
   },
   addCardControl: {
     width: 360,
