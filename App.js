@@ -93,6 +93,60 @@ function getLeafRootScopedCards(cards, currentCardId) {
   return cards.filter((card) => scopedIds.has(card.id));
 }
 
+function getRootTreeCardIds(cards, currentCardId) {
+  if (currentCardId === null || currentCardId === undefined) {
+    return new Set();
+  }
+
+  const cardById = new Map(cards.map((card) => [card.id, card]));
+  const currentCard = cardById.get(currentCardId);
+  if (!currentCard) {
+    return new Set();
+  }
+
+  const rootIds = new Set();
+  const visitedAncestors = new Set();
+
+  function collectRootIds(card) {
+    if (!card || visitedAncestors.has(card.id)) {
+      return;
+    }
+
+    visitedAncestors.add(card.id);
+    const parentCards = (Array.isArray(card.parentIds) ? card.parentIds : [])
+      .map((parentId) => cardById.get(parentId))
+      .filter(Boolean);
+
+    if (parentCards.length === 0) {
+      rootIds.add(card.id);
+      return;
+    }
+
+    parentCards.forEach(collectRootIds);
+  }
+
+  collectRootIds(currentCard);
+
+  const rootTreeCardIds = new Set();
+  function collectDescendantIds(card) {
+    if (!card || rootTreeCardIds.has(card.id)) {
+      return;
+    }
+
+    rootTreeCardIds.add(card.id);
+    (card.childIds || [])
+      .map((childId) => cardById.get(childId))
+      .filter(Boolean)
+      .forEach(collectDescendantIds);
+  }
+
+  rootIds.forEach((rootId) => {
+    collectDescendantIds(cardById.get(rootId));
+  });
+
+  return rootTreeCardIds;
+}
+
 export default function App() {
   const [fontsLoaded] = useFonts({
     Kalam_400Regular,
@@ -680,8 +734,31 @@ export default function App() {
     setLayoutMode((currentMode) => (currentMode === 'leaf' ? 'tree' : 'leaf'));
 
     if (isLeafToTree) {
+      const treeFocusedCardIndex = isFocusedCardVisible
+        ? nextFocusedCardIndex
+        : currentlyVisibleLeafCardIndex;
+      const treeFocusedCardId = treeFocusedCardIndex === null
+        ? null
+        : cards[treeFocusedCardIndex]?.id ?? null;
+      const expandedRootTreeIds = getRootTreeCardIds(cards, treeFocusedCardId);
+
+      if (expandedRootTreeIds.size > 0) {
+        setCollapsedNodeIds((currentCollapsed) => {
+          let didExpand = false;
+          const nextCollapsed = new Set(currentCollapsed);
+
+          expandedRootTreeIds.forEach((cardId) => {
+            if (nextCollapsed.delete(cardId)) {
+              didExpand = true;
+            }
+          });
+
+          return didExpand ? nextCollapsed : currentCollapsed;
+        });
+      }
+
       setLeafPinnedDoneCardId(null);
-      setFocusedCardIndex(isFocusedCardVisible ? nextFocusedCardIndex : currentlyVisibleLeafCardIndex);
+      setFocusedCardIndex(treeFocusedCardIndex);
       setLeafTopIndex(null);
     } else {
       if (focusedCardInRange) {
