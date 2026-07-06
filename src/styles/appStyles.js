@@ -687,18 +687,26 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingTop: 34,
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  addCardButtonImage: {
+    position: 'absolute',
+    top: 5,
+    left: 5,
+    width: 310,
+    height: 310,
+    opacity: 0.9,
+    resizeMode: 'contain',
+  },
+  addCardButtonBackImage: {
+    transform: [{ rotate: '-90deg' }],
   },
   addCardFace: {
     position: 'absolute',
     top: 0,
     left: 0,
     backfaceVisibility: 'hidden',
-  },
-  addCardButtonBack: {
-    backgroundColor: '#DCFCE7',
-    borderColor: '#86EFAC',
   },
   deleteFab: {
     backgroundColor: '#DC2626',

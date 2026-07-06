@@ -1,6 +1,7 @@
 import {
   Animated,
   Easing,
+  Image,
   PanResponder,
   Pressable,
   View,
@@ -9,6 +10,8 @@ import {
   useEffect, useMemo, useRef, useState,
 } from 'react';
 import { styles } from '../styles/appStyles';
+
+const treeViewCardImage = require('../../assets/tree_view.png');
 
 const DELETE_HOLD_MS = 500;
 const ADD_POINT_DEAD_ZONE = 16;
@@ -292,12 +295,16 @@ export function FloatingControls({
                   ],
                 },
               ]}
-            />
+            >
+              <Image
+                source={treeViewCardImage}
+                style={styles.addCardButtonImage}
+              />
+            </Animated.View>
             <Animated.View
               style={[
                 styles.addCardButton,
                 styles.addCardFace,
-                styles.addCardButtonBack,
                 {
                   transform: [
                     { perspective: 900 },
@@ -310,7 +317,15 @@ export function FloatingControls({
                   ],
                 },
               ]}
-            />
+            >
+              <Image
+                source={treeViewCardImage}
+                style={[
+                  styles.addCardButtonImage,
+                  styles.addCardButtonBackImage,
+                ]}
+              />
+            </Animated.View>
           </Animated.View>
         </View>
       </View>
