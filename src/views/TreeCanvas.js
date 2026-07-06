@@ -153,6 +153,19 @@ export function TreeCanvas({
     top: entry.top + TREE_CANVAS_PADDING,
     isCollapsedStacked: entry.isCollapsedStacked,
   }));
+  const rootTimelineEntries = paddedPositionedCards
+    .filter((entry) => entry.depth === 0 && !entry.isCollapsedStacked)
+    .sort((a, b) => a.top - b.top);
+  const shouldRenderRootTimeline = rootTimelineEntries.length > 0;
+  const rootTimelineX = shouldRenderRootTimeline
+    ? rootTimelineEntries[0].left - 34
+    : 0;
+  const rootTimelineStartY = shouldRenderRootTimeline
+    ? rootTimelineEntries[0].top + (nodeHeight / 2)
+    : 0;
+  const rootTimelineEndY = shouldRenderRootTimeline
+    ? rootTimelineEntries[rootTimelineEntries.length - 1].top + (nodeHeight / 2)
+    : 0;
 
   return (
     <View
@@ -195,6 +208,33 @@ export function TreeCanvas({
               },
             ]}
           >
+            {shouldRenderRootTimeline ? (
+              <View pointerEvents="none" style={styles.rootTimelineLayer}>
+                <View
+                  style={[
+                    styles.rootTimelineRail,
+                    {
+                      height: Math.max(rootTimelineEndY - rootTimelineStartY, 0),
+                      left: rootTimelineX,
+                      top: rootTimelineStartY,
+                    },
+                  ]}
+                />
+                {rootTimelineEntries.map((entry, index) => (
+                  <View
+                    key={`root-timeline-${entry.card.id}`}
+                    style={[
+                      styles.rootTimelineStation,
+                      index === 0 && styles.rootTimelineStationFirst,
+                      {
+                        left: rootTimelineX,
+                        top: entry.top + (nodeHeight / 2),
+                      },
+                    ]}
+                  />
+                ))}
+              </View>
+            ) : null}
             {paddedPositionedCards.map((entry) => {
               const { card, left, top, depth, placementOrder, isCollapsedStacked } = entry;
 
