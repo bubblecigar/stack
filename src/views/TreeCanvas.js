@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import {
+  useEffect, useMemo, useRef, useState,
+} from 'react';
+import { PanResponder, ScrollView, View } from 'react-native';
 import { styles } from '../styles/appStyles';
 import { buildTreeLayout, TREE_CANVAS_PADDING } from '../lib/treeLayout';
 import { StackCard } from '../components/StackCard';
@@ -25,6 +27,15 @@ export function TreeCanvas({
   const treeHorizontalScrollRef = useRef(null);
   const treeVerticalScrollRef = useRef(null);
   const cardTouchRef = useRef(false);
+  const didCanvasPanRef = useRef(false);
+  const treeScrollOffsetRef = useRef({
+    x: 0,
+    y: 0,
+  });
+  const treePanStartOffsetRef = useRef({
+    x: 0,
+    y: 0,
+  });
   const [treeViewport, setTreeViewport] = useState({
     width: 0,
     height: 0,
@@ -35,10 +46,12 @@ export function TreeCanvas({
   }
 
   function handleCanvasTouchEnd() {
+    const didCanvasPan = didCanvasPanRef.current;
     const wasCardTouch = cardTouchRef.current;
+    didCanvasPanRef.current = false;
     cardTouchRef.current = false;
 
-    if (wasCardTouch) {
+    if (wasCardTouch || didCanvasPan) {
       return;
     }
 
@@ -52,6 +65,44 @@ export function TreeCanvas({
     nodeHeight,
     positionedCards,
   } = buildTreeLayout(cards, collapsedNodeIds);
+
+  const contentWidth = maxWidth + (TREE_CANVAS_PADDING * 2);
+  const contentHeight = maxHeight + (TREE_CANVAS_PADDING * 2);
+  const maxScrollX = Math.max(contentWidth - treeViewport.width, 0);
+  const maxScrollY = Math.max(contentHeight - treeViewport.height, 0);
+
+  function scrollTreeTo(x, y, animated = false) {
+    const targetX = Math.min(Math.max(x, 0), maxScrollX);
+    const targetY = Math.min(Math.max(y, 0), maxScrollY);
+
+    treeScrollOffsetRef.current = {
+      x: targetX,
+      y: targetY,
+    };
+    treeHorizontalScrollRef.current?.scrollTo({ x: targetX, animated });
+    treeVerticalScrollRef.current?.scrollTo({ y: targetY, animated });
+  }
+
+  const treePanResponder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => false,
+    onMoveShouldSetPanResponder: (_, gestureState) => (
+      Math.hypot(gestureState.dx, gestureState.dy) > 6
+    ),
+    onPanResponderGrant: () => {
+      didCanvasPanRef.current = false;
+      treePanStartOffsetRef.current = treeScrollOffsetRef.current;
+    },
+    onPanResponderMove: (_, gestureState) => {
+      didCanvasPanRef.current = true;
+      scrollTreeTo(
+        treePanStartOffsetRef.current.x - gestureState.dx,
+        treePanStartOffsetRef.current.y - gestureState.dy,
+      );
+    },
+  }), [
+    maxScrollX,
+    maxScrollY,
+  ]);
 
   useEffect(() => {
     if (focusedCardIndex === null) {
@@ -68,8 +119,6 @@ export function TreeCanvas({
       return;
     }
 
-    const contentWidth = maxWidth + (TREE_CANVAS_PADDING * 2);
-    const contentHeight = maxHeight + (TREE_CANVAS_PADDING * 2);
     const centeredX = focusedEntry.left + TREE_CANVAS_PADDING + (nodeWidth / 2);
     const bottomAlignedY = focusedEntry.top + TREE_CANVAS_PADDING + nodeHeight;
 
@@ -82,12 +131,15 @@ export function TreeCanvas({
       Math.max(contentHeight - viewport.height, 0),
     );
 
-    treeHorizontalScrollRef.current?.scrollTo({ x: targetX, animated: true });
-    treeVerticalScrollRef.current?.scrollTo({ y: targetY, animated: true });
+    scrollTreeTo(targetX, targetY, true);
   }, [
+    contentHeight,
+    contentWidth,
     focusedCardIndex,
     maxHeight,
     maxWidth,
+    maxScrollX,
+    maxScrollY,
     nodeWidth,
     nodeHeight,
     positionedCards,
@@ -104,10 +156,12 @@ export function TreeCanvas({
 
   return (
     <View
+      {...treePanResponder.panHandlers}
       style={styles.treeViewport}
       onTouchEnd={handleCanvasTouchEnd}
       onTouchCancel={() => {
         cardTouchRef.current = false;
+        didCanvasPanRef.current = false;
       }}
       onLayout={(event) => {
         const { height, width } = event.nativeEvent.layout;
@@ -121,6 +175,7 @@ export function TreeCanvas({
         ref={treeHorizontalScrollRef}
         style={styles.treeScroll}
         horizontal
+        scrollEnabled={false}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.treeHorizontalContent}
       >
@@ -128,6 +183,7 @@ export function TreeCanvas({
           ref={treeVerticalScrollRef}
           style={styles.treeScroll}
           contentContainerStyle={styles.treeContent}
+          scrollEnabled={false}
           showsVerticalScrollIndicator={false}
         >
           <View
