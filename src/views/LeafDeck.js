@@ -257,6 +257,7 @@ export function LeafDeck({
   const topCard = getCircularCard(cards, normalizedTopIndex, 0);
   const activeCard = displayCard ?? topCard;
   const activeCardDone = Boolean(activeCard?.done);
+  const canSwipeDeck = visualSlots.length > 1 || activeCardDone;
   const effectiveFocusedCardId = controlledFocusedCardId ?? topCard?.id ?? null;
   const visualCard = {
     id: 'leaf-visual-card',
@@ -440,7 +441,7 @@ export function LeafDeck({
   }
 
   function animateSwipeOut(direction) {
-    if (isAnimatingRef.current || swipeDisabled || visualSlots.length <= 1) {
+    if (isAnimatingRef.current || swipeDisabled || !canSwipeDeck) {
       return;
     }
 
@@ -530,7 +531,7 @@ export function LeafDeck({
   }
 
   function handleRelease(_, gestureState) {
-    if (swipeDisabled || visualSlots.length <= 1 || isAnimatingRef.current) {
+    if (swipeDisabled || !canSwipeDeck || isAnimatingRef.current) {
       return;
     }
 
@@ -621,11 +622,11 @@ export function LeafDeck({
       !swipeDisabled
       && !isDeleteHoldActive
       && !isAnimatingRef.current
-      && visualSlots.length > 1
+      && canSwipeDeck
       && Math.max(Math.abs(dx), Math.abs(dy)) > 8
     ),
     onPanResponderGrant: () => {
-      if (swipeDisabled || visualSlots.length <= 1 || isAnimatingRef.current) {
+      if (swipeDisabled || !canSwipeDeck || isAnimatingRef.current) {
         return;
       }
 
@@ -633,7 +634,7 @@ export function LeafDeck({
       resetDrag();
     },
     onPanResponderMove: (_, { dx, dy }) => {
-      if (swipeDisabled || visualSlots.length <= 1 || isAnimatingRef.current) {
+      if (swipeDisabled || !canSwipeDeck || isAnimatingRef.current) {
         return;
       }
 
@@ -647,6 +648,7 @@ export function LeafDeck({
     onPanResponderRelease: handleRelease,
     onPanResponderTerminate: handleRelease,
   }), [
+    canSwipeDeck,
     visualSlots.length,
     onLeafSwipe,
     swipeDisabled,

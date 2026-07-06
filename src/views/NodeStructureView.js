@@ -134,6 +134,7 @@ function buildPreviewCards(cards, focusedCardIndex, relation) {
 export function NodeStructureView({
   cards,
   focusedCardIndex,
+  focusedCardId: controlledFocusedCardId = null,
   addPreviewRelation = null,
   deleteTargetActive = false,
 }) {
@@ -146,9 +147,9 @@ export function NodeStructureView({
     height: 120,
   });
 
-  const focusedCardId = focusedCardIndex === null
+  const focusedCardId = controlledFocusedCardId ?? (focusedCardIndex === null
     ? null
-    : cards[focusedCardIndex]?.id ?? null;
+    : cards[focusedCardIndex]?.id ?? null);
   const previewCards = useMemo(
     () => buildPreviewCards(cards, focusedCardIndex, addPreviewRelation),
     [addPreviewRelation, cards, focusedCardIndex],

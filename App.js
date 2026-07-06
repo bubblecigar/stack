@@ -50,6 +50,7 @@ export default function App() {
   const [collapsedNodeIds, setCollapsedNodeIds] = useState(() => new Set());
   const [leafTopIndex, setLeafTopIndex] = useState(null);
   const [leafFocusedCardId, setLeafFocusedCardId] = useState(null);
+  const [leafPinnedDoneCardId, setLeafPinnedDoneCardId] = useState(null);
   const [isDeleteHoldActive, setIsDeleteHoldActive] = useState(false);
   const [addPreviewRelation, setAddPreviewRelation] = useState(null);
   const [isAddHoldActive, setIsAddHoldActive] = useState(false);
@@ -61,23 +62,39 @@ export default function App() {
     ? null
     : cards[focusedCardIndex]?.id ?? null;
 
+  const leafCards = useMemo(() => cards.filter((card) => (
+    !card.done || (leafPinnedDoneCardId !== null && card.id === leafPinnedDoneCardId)
+  )), [cards, leafPinnedDoneCardId]);
+
+  const leafTopPosition = useMemo(() => {
+    if (leafCards.length === 0) {
+      return null;
+    }
+
+    if (leafTopIndex === null) {
+      return leafCards.length - 1;
+    }
+
+    const matchingPosition = leafCards.findIndex((card) => card.index === leafTopIndex);
+    return matchingPosition >= 0 ? matchingPosition : leafCards.length - 1;
+  }, [leafCards, leafTopIndex]);
+
   const visibleCards = useMemo(() => {
-    if (cards.length === 0) {
+    if (leafCards.length === 0) {
       return [];
     }
 
-    const normalizedTop = leafTopIndex === null
-      ? cards.length - 1
-      : Math.max(
-        0,
-        Math.min(leafTopIndex, cards.length - 1),
-      );
+    if (leafTopPosition === null) {
+      return [];
+    }
+
+    const normalizedTop = leafTopPosition;
 
     return Array.from(
-      { length: Math.min(LEAF_VISIBLE_COUNT, cards.length) },
-      (_, offset) => cards[(normalizedTop + offset) % cards.length],
+      { length: Math.min(LEAF_VISIBLE_COUNT, leafCards.length) },
+      (_, offset) => leafCards[(normalizedTop + offset) % leafCards.length],
     );
-  }, [cards, leafTopIndex]);
+  }, [leafCards, leafTopPosition]);
 
   const hasLoadedDefaultStack = useRef(false);
   const hasLoadedRemoteCards = useRef(false);
@@ -125,16 +142,18 @@ export default function App() {
     if (cards.length === 0) {
       setLeafFocusedCardId(null);
       setLeafTopIndex(null);
+      setLeafPinnedDoneCardId(null);
       return;
     }
 
-    const fallbackTopId = cards[cards.length - 1]?.id ?? null;
+    const fallbackTopCard = leafCards[leafCards.length - 1] ?? null;
+    const fallbackTopId = fallbackTopCard?.id ?? null;
     setLeafFocusedCardId((current) => current ?? fallbackTopId);
 
     setLeafTopIndex((currentTop) => (
-      currentTop === null ? cards.length - 1 : Math.min(currentTop, cards.length - 1)
+      currentTop === null ? fallbackTopCard?.index ?? null : Math.min(currentTop, cards.length - 1)
     ));
-  }, [cards.length]);
+  }, [cards.length, leafCards]);
 
   useEffect(() => {
     if (!__DEV__) {
@@ -172,6 +191,7 @@ export default function App() {
     setFocusedCardIndex(null);
     setLeafTopIndex(null);
     setLeafFocusedCardId(null);
+    setLeafPinnedDoneCardId(null);
     setIsDeleteHoldActive(false);
     setCollapsedNodeIds(new Set());
     hasLoadedDefaultStack.current = false;
@@ -307,6 +327,7 @@ export default function App() {
 
   function handleCreateCard(relation = 'child') {
     setAddPreviewRelation(null);
+    setLeafPinnedDoneCardId(null);
     const currentIndex = shouldRenderLeaf
       ? visibleTopCardIndex
       : focusedCardIndex;
@@ -321,6 +342,7 @@ export default function App() {
   }
 
   function handleEditCard(index, text) {
+    setLeafPinnedDoneCardId(null);
     setEditingIndex(index);
     setEditingValue(text);
     setFocusedCardIndex(index);
@@ -357,6 +379,9 @@ export default function App() {
   function handleDeleteCard(index) {
     const removedCard = stack[index];
     setIsDeleteHoldActive(false);
+    if (removedCard?.id === leafPinnedDoneCardId) {
+      setLeafPinnedDoneCardId(null);
+    }
 
     if (editingIndex === index) {
       setEditingIndex(null);
@@ -456,22 +481,38 @@ export default function App() {
   }
 
   function handleLeafSwipe(direction) {
-    if (editingIndex !== null || cards.length === 0) {
+    if (editingIndex !== null || leafCards.length === 0) {
       return false;
     }
 
-    if (cards.length === 1) {
-      return false;
+    const traversalCards = cards.filter((card) => !card.done);
+
+    if (traversalCards.length === 0) {
+      if (!visibleCards[0]?.done) {
+        return false;
+      }
+
+      setLeafPinnedDoneCardId(null);
+      setLeafFocusedCardId(null);
+      setLeafTopIndex(null);
+      return true;
     }
 
-    const currentCardId = visibleCards[0]?.id ?? leafFocusedCardId ?? cards[0]?.id;
+    const currentCardId = visibleCards[0]?.id ?? leafFocusedCardId ?? traversalCards[0]?.id;
     const traversalMode = direction === 'left' || direction === 'right' ? 'dfs' : 'bfs';
-    const nextCard = moveInTraversal(cards, currentCardId, direction, traversalMode);
+    const nextCard = traversalCards.length === 1
+      ? traversalCards[0]
+      : moveInTraversal(traversalCards, currentCardId, direction, traversalMode);
 
     if (!nextCard || nextCard.index === undefined) {
       return false;
     }
 
+    if (nextCard.id === currentCardId && !visibleCards[0]?.done) {
+      return false;
+    }
+
+    setLeafPinnedDoneCardId(null);
     setLeafFocusedCardId(nextCard.id);
     setLeafTopIndex(nextCard.index);
     return true;
@@ -482,6 +523,11 @@ export default function App() {
   const canDeleteCurrentCard = shouldRenderLeaf
     ? visibleTopCardIndex !== null
     : focusedCardIndex !== null;
+  const nodeMapCards = shouldRenderLeaf ? cards.filter((card) => !card.done) : cards;
+  const nodeMapFocusedCardId = shouldRenderLeaf ? leafFocusedCardId : focusedCardId;
+  const nodeMapFocusedCardIndex = nodeMapFocusedCardId === null
+    ? null
+    : nodeMapCards.findIndex((card) => card.id === nodeMapFocusedCardId);
 
   function handleDeleteCurrentLeafCard() {
     if (!shouldRenderLeaf || visibleTopCardIndex === null) {
@@ -497,7 +543,23 @@ export default function App() {
       return;
     }
 
-    setDoneAt(visibleTopCardIndex, !cards[visibleTopCardIndex]?.done);
+    const currentCard = cards[visibleTopCardIndex];
+    if (!currentCard) {
+      return;
+    }
+
+    if (currentCard.done) {
+      setDoneAt(visibleTopCardIndex, false);
+      setLeafPinnedDoneCardId(null);
+      setLeafFocusedCardId(currentCard.id);
+      setLeafTopIndex(visibleTopCardIndex);
+      return;
+    }
+
+    setLeafPinnedDoneCardId(currentCard.id);
+    setDoneAt(visibleTopCardIndex, true);
+    setLeafFocusedCardId(currentCard.id);
+    setLeafTopIndex(visibleTopCardIndex);
   }
 
   useEffect(() => {
@@ -556,13 +618,16 @@ export default function App() {
     setLayoutMode((currentMode) => (currentMode === 'leaf' ? 'tree' : 'leaf'));
 
     if (isLeafToTree) {
+      setLeafPinnedDoneCardId(null);
       setFocusedCardIndex(isFocusedCardVisible ? nextFocusedCardIndex : currentlyVisibleLeafCardIndex);
       setLeafTopIndex(null);
     } else {
       if (focusedCardInRange) {
+        setLeafPinnedDoneCardId(cards[nextFocusedCardIndex]?.done ? cards[nextFocusedCardIndex]?.id ?? null : null);
         setFocusedCardIndex(nextFocusedCardIndex);
         setLeafTopIndex(nextFocusedCardIndex);
       } else {
+        setLeafPinnedDoneCardId(null);
         setLeafTopIndex(cards.length > 0 ? cards.length - 1 : null);
       }
     }
@@ -608,8 +673,8 @@ export default function App() {
         ) : null}
         {shouldRenderLeaf ? (
           <LeafDeck
-            cards={cards}
-            topIndex={leafTopIndex}
+            cards={leafCards}
+            topIndex={leafTopPosition}
             visibleCount={LEAF_VISIBLE_COUNT}
             editingIndex={editingIndex}
             editingValue={editingValue}
@@ -652,9 +717,10 @@ export default function App() {
 
       <NodeStructureView
         addPreviewRelation={addPreviewRelation}
-        cards={cards}
+        cards={nodeMapCards}
         deleteTargetActive={isDeleteHoldActive}
-        focusedCardIndex={focusedCardIndex}
+        focusedCardId={nodeMapFocusedCardId}
+        focusedCardIndex={nodeMapFocusedCardIndex >= 0 ? nodeMapFocusedCardIndex : null}
       />
 
       <FloatingControls
