@@ -1,6 +1,11 @@
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
+  appShell: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+    position: 'relative',
+  },
   containerLeafMode: {
     flex: 1,
     backgroundColor: '#F8FAFC',
@@ -113,6 +118,8 @@ export const styles = StyleSheet.create({
     bottom: 132,
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 6100,
+    elevation: 32,
   },
   deck: {
     flex: 1,
@@ -184,6 +191,79 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  leafAddIndicatorOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2400,
+    elevation: 28,
+  },
+  leafAddIndicator: {
+    width: 118,
+    height: 118,
+    borderRadius: 59,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0F172A',
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 14,
+    elevation: 14,
+  },
+  leafAddIndicatorCenter: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#2563EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  leafAddIndicatorPlusHorizontal: {
+    position: 'absolute',
+    width: 24,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#FFFFFF',
+  },
+  leafAddIndicatorPlusVertical: {
+    position: 'absolute',
+    width: 4,
+    height: 24,
+    borderRadius: 2,
+    backgroundColor: '#FFFFFF',
+  },
+  leafAddDirectionSegment: {
+    position: 'absolute',
+    width: 12,
+    height: 26,
+    borderRadius: 6,
+    backgroundColor: 'rgba(148, 163, 184, 0.34)',
+  },
+  leafAddDirectionSegmentActive: {
+    backgroundColor: '#F97316',
+  },
+  leafAddDirectionLeft: {
+    left: 16,
+    transform: [{ rotate: '90deg' }],
+  },
+  leafAddDirectionRight: {
+    right: 16,
+    transform: [{ rotate: '90deg' }],
+  },
+  leafAddDirectionUp: {
+    top: 12,
+  },
+  leafAddDirectionDown: {
+    bottom: 12,
+  },
   leafTrashIcon: {
     width: 34,
     height: 36,
@@ -227,20 +307,20 @@ export const styles = StyleSheet.create({
   nodeView: {
     position: 'absolute',
     left: 14,
-    right: 104,
-    bottom: 96,
-    height: 136,
+    width: '58%',
+    bottom: 104,
+    height: 220,
     backgroundColor: 'transparent',
     borderRadius: 28,
     overflow: 'hidden',
     borderWidth: 0,
+    padding: 14,
     shadowOpacity: 0,
     elevation: 0,
   },
   nodeViewCanvas: {
     position: 'relative',
     flex: 1,
-    margin: 8,
     height: '100%',
     width: '100%',
     backgroundColor: 'transparent',
@@ -648,49 +728,5 @@ export const styles = StyleSheet.create({
     fontWeight: '500',
     lineHeight: 42,
     marginTop: -2,
-  },
-  addDirectionPad: {
-    position: 'absolute',
-    left: -82,
-    right: -82,
-    top: -82,
-    bottom: -82,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1,
-  },
-  addDirectionHint: {
-    position: 'absolute',
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: 'rgba(15, 23, 42, 0.78)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.38)',
-  },
-  addDirectionHintActive: {
-    backgroundColor: '#F97316',
-    borderColor: '#FFEDD5',
-    transform: [{ scale: 1.12 }],
-  },
-  addDirectionHintLeft: {
-    left: 20,
-  },
-  addDirectionHintRight: {
-    right: 20,
-  },
-  addDirectionHintUp: {
-    top: 20,
-  },
-  addDirectionHintDown: {
-    bottom: 20,
-  },
-  addDirectionHintText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '900',
-    lineHeight: 20,
   },
 });

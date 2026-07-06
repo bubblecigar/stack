@@ -111,6 +111,45 @@ function LeafTrashCanIcon() {
   );
 }
 
+function LeafAddDirectionIndicator({ relation }) {
+  return (
+    <View style={styles.leafAddIndicator}>
+      <View
+        style={[
+          styles.leafAddDirectionSegment,
+          styles.leafAddDirectionLeft,
+          relation === 'parent' && styles.leafAddDirectionSegmentActive,
+        ]}
+      />
+      <View
+        style={[
+          styles.leafAddDirectionSegment,
+          styles.leafAddDirectionRight,
+          relation === 'child' && styles.leafAddDirectionSegmentActive,
+        ]}
+      />
+      <View
+        style={[
+          styles.leafAddDirectionSegment,
+          styles.leafAddDirectionUp,
+          relation === 'previousSibling' && styles.leafAddDirectionSegmentActive,
+        ]}
+      />
+      <View
+        style={[
+          styles.leafAddDirectionSegment,
+          styles.leafAddDirectionDown,
+          relation === 'nextSibling' && styles.leafAddDirectionSegmentActive,
+        ]}
+      />
+      <View style={styles.leafAddIndicatorCenter}>
+        <View style={styles.leafAddIndicatorPlusHorizontal} />
+        <View style={styles.leafAddIndicatorPlusVertical} />
+      </View>
+    </View>
+  );
+}
+
 export function LeafDeck({
   cards,
   topIndex,
@@ -126,6 +165,8 @@ export function LeafDeck({
   onCompleteEdit,
   onLeafSwipe,
   isDeleteHoldActive = false,
+  isAddHoldActive = false,
+  addPreviewRelation = null,
   onDeleteCurrentCard,
   swipeDisabled,
 }) {
@@ -692,6 +733,11 @@ export function LeafDeck({
                       <LeafTrashCanIcon />
                     </View>
                   </View>
+                </View>
+              ) : null}
+              {shouldRenderActiveTopSlot && isAddHoldActive ? (
+                <View pointerEvents="none" style={styles.leafAddIndicatorOverlay}>
+                  <LeafAddDirectionIndicator relation={addPreviewRelation} />
                 </View>
               ) : null}
             </View>

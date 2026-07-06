@@ -4,7 +4,7 @@ import { buildTreeLayout } from '../lib/treeLayout';
 import { styles } from '../styles/appStyles';
 
 const MAP_PADDING = 10;
-const MIN_NODE_SCALE = 0.06;
+const MIN_NODE_SCALE = 0.01;
 const PREVIEW_CARD_ID = 'add-preview-card';
 
 function insertNearSibling(childIds, targetId, previewId, placement) {
@@ -165,15 +165,21 @@ export function NodeStructureView({ cards, focusedCardIndex, addPreviewRelation 
       1,
     );
     const safeScale = Math.max(scale, MIN_NODE_SCALE);
-    const centeredOffsetX = (Math.max(mapSize.width, 1) - maxW * safeScale) / 2;
-    const centeredOffsetY = (Math.max(mapSize.height, 1) - maxH * safeScale) / 2;
+    const nodeCenters = positionedCards.map((entry) => ({
+      x: entry.left + (mapLayout.nodeWidth / 2),
+      y: entry.top + (mapLayout.nodeHeight / 2),
+    }));
+    const minCenterX = Math.min(...nodeCenters.map((center) => center.x), 0);
+    const minCenterY = Math.min(...nodeCenters.map((center) => center.y), 0);
 
     return {
-      nodes: positionedCards.map((entry) => {
+      nodes: positionedCards.map((entry, entryIndex) => {
+        const center = nodeCenters[entryIndex];
+
         return {
           card: entry.card,
-          x: MAP_PADDING + centeredOffsetX + (entry.left + (mapLayout.nodeWidth / 2)) * safeScale,
-          y: MAP_PADDING + centeredOffsetY + (entry.top + (mapLayout.nodeHeight / 2)) * safeScale,
+          x: MAP_PADDING + (center.x - minCenterX) * safeScale,
+          y: MAP_PADDING + (center.y - minCenterY) * safeScale,
           isFocused: entry.card.id === focusedCardId,
           isPreview: entry.card.id === PREVIEW_CARD_ID,
         };

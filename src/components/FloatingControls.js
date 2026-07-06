@@ -8,11 +8,16 @@ import { useMemo, useRef, useState } from 'react';
 import { styles } from '../styles/appStyles';
 
 const DELETE_HOLD_MS = 1000;
-const ADD_POINT_SWITCH_DISTANCE = 36;
-const ADD_POINT_AXIS_BIAS = 1.2;
+const ADD_POINT_DEAD_ZONE = 16;
+const ADD_POINT_SWITCH_DISTANCE = 24;
+const ADD_POINT_AXIS_BIAS = 1.25;
 
-function getAddRelationFromPoint(dx, dy, fallbackRelation = 'child') {
+function getAddRelationFromPoint(dx, dy, fallbackRelation = null) {
   const distance = Math.hypot(dx, dy);
+
+  if (distance <= ADD_POINT_DEAD_ZONE) {
+    return null;
+  }
 
   if (distance < ADD_POINT_SWITCH_DISTANCE) {
     return fallbackRelation;
@@ -50,18 +55,38 @@ export function FloatingControls({
   onToggleMode,
   onCreateCard,
   onAddPreviewChange,
+  onAddHoldChange,
   onDeleteHoldChange,
   canDeleteCurrentCard = false,
 }) {
   const shouldShowDelete = layoutMode === 'leaf' && canDeleteCurrentCard;
   const [isAddPressed, setIsAddPressed] = useState(false);
-  const [addRelation, setAddRelation] = useState(null);
-  const addRelationRef = useRef('child');
+  const addRelationRef = useRef(null);
+  const addStartRef = useRef({
+    pageX: 0,
+    pageY: 0,
+  });
 
-  function updateAddRelation(gestureState) {
+  function getAddGestureDelta(event, gestureState) {
+    const { pageX, pageY } = event.nativeEvent;
+
+    if (typeof pageX === 'number' && typeof pageY === 'number') {
+      return {
+        dx: pageX - addStartRef.current.pageX,
+        dy: pageY - addStartRef.current.pageY,
+      };
+    }
+
+    return {
+      dx: gestureState.dx,
+      dy: gestureState.dy,
+    };
+  }
+
+  function updateAddRelation(dx, dy) {
     const relation = getAddRelationFromPoint(
-      gestureState.dx,
-      gestureState.dy,
+      dx,
+      dy,
       addRelationRef.current,
     );
 
@@ -70,41 +95,52 @@ export function FloatingControls({
     }
 
     addRelationRef.current = relation;
-    setAddRelation(relation);
     onAddPreviewChange?.(relation);
   }
 
   function resetAddPointing() {
     setIsAddPressed(false);
-    setAddRelation(null);
+    addRelationRef.current = null;
+    onAddHoldChange?.(false);
     onAddPreviewChange?.(null);
   }
 
   const addPanResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onMoveShouldSetPanResponder: () => true,
-    onPanResponderGrant: () => {
-      addRelationRef.current = 'child';
+    onPanResponderTerminationRequest: () => false,
+    onPanResponderGrant: (event) => {
+      const { pageX = 0, pageY = 0 } = event.nativeEvent;
+      addStartRef.current = {
+        pageX,
+        pageY,
+      };
+      addRelationRef.current = null;
       setIsAddPressed(true);
-      setAddRelation('child');
-      onAddPreviewChange?.('child');
+      onAddHoldChange?.(true);
+      onAddPreviewChange?.(null);
     },
-    onPanResponderMove: (_, gestureState) => {
-      updateAddRelation(gestureState);
+    onPanResponderMove: (event, gestureState) => {
+      const { dx, dy } = getAddGestureDelta(event, gestureState);
+      updateAddRelation(dx, dy);
     },
-    onPanResponderRelease: (_, gestureState) => {
+    onPanResponderRelease: (event, gestureState) => {
+      const { dx, dy } = getAddGestureDelta(event, gestureState);
       const relation = getAddRelationFromPoint(
-        gestureState.dx,
-        gestureState.dy,
+        dx,
+        dy,
         addRelationRef.current,
       );
       resetAddPointing();
-      onCreateCard?.(relation);
+      if (relation) {
+        onCreateCard?.(relation);
+      }
     },
     onPanResponderTerminate: () => {
       resetAddPointing();
     },
   }), [
+    onAddHoldChange,
     onAddPreviewChange,
     onCreateCard,
   ]);
@@ -155,46 +191,6 @@ export function FloatingControls({
       ) : null}
 
       <View style={styles.addFloatingControl}>
-        {isAddPressed ? (
-          <View pointerEvents="none" style={styles.addDirectionPad}>
-            <View
-              style={[
-                styles.addDirectionHint,
-                styles.addDirectionHintLeft,
-                addRelation === 'parent' && styles.addDirectionHintActive,
-              ]}
-            >
-              <Text style={styles.addDirectionHintText}>P</Text>
-            </View>
-            <View
-              style={[
-                styles.addDirectionHint,
-                styles.addDirectionHintRight,
-                addRelation === 'child' && styles.addDirectionHintActive,
-              ]}
-            >
-              <Text style={styles.addDirectionHintText}>C</Text>
-            </View>
-            <View
-              style={[
-                styles.addDirectionHint,
-                styles.addDirectionHintUp,
-                addRelation === 'previousSibling' && styles.addDirectionHintActive,
-              ]}
-            >
-              <Text style={styles.addDirectionHintText}>↑</Text>
-            </View>
-            <View
-              style={[
-                styles.addDirectionHint,
-                styles.addDirectionHintDown,
-                addRelation === 'nextSibling' && styles.addDirectionHintActive,
-              ]}
-            >
-              <Text style={styles.addDirectionHintText}>↓</Text>
-            </View>
-          </View>
-        ) : null}
         <View
           {...addPanResponder.panHandlers}
           accessibilityLabel="Add card"

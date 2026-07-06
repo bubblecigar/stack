@@ -51,6 +51,7 @@ export default function App() {
   const [leafFocusedCardId, setLeafFocusedCardId] = useState(null);
   const [isDeleteHoldActive, setIsDeleteHoldActive] = useState(false);
   const [addPreviewRelation, setAddPreviewRelation] = useState(null);
+  const [isAddHoldActive, setIsAddHoldActive] = useState(false);
 
   const stack = useSyncExternalStore(subscribe, getSnapshot);
   const cards = useMemo(() => stack.map((card, index) => ({ ...card, index })), [stack]);
@@ -581,54 +582,58 @@ export default function App() {
   }
 
   return (
-    <View style={shouldRenderLeaf ? styles.containerLeafMode : styles.containerTreeMode}>
-      {isLoadingUserData ? (
-        <View style={styles.syncBanner}>
-          <Text style={styles.syncBannerText}>Loading user data</Text>
-        </View>
-      ) : null}
-      {syncError ? (
-        <View style={styles.syncBanner}>
-          <Text style={styles.syncBannerText}>{syncError}</Text>
-        </View>
-      ) : null}
-      {shouldRenderLeaf ? (
-        <LeafDeck
-          cards={cards}
-          topIndex={leafTopIndex}
-          visibleCount={LEAF_VISIBLE_COUNT}
-          editingIndex={editingIndex}
-          editingValue={editingValue}
-          focusedCardIndex={effectiveLeafFocusedIndex}
-          focusedCardId={leafFocusedCardId}
-          collapsedNodeIds={collapsedNodeIds}
-          onCreateEdit={handleToggleEdit}
-          onDeleteCard={handleDeleteCard}
-          onEditingValueChange={setEditingValue}
-          onCompleteEdit={handleCompleteEdit}
-          onLeafSwipe={handleLeafSwipe}
-          isDeleteHoldActive={isDeleteHoldActive}
-          onDeleteCurrentCard={handleDeleteCurrentLeafCard}
-          swipeDisabled={editingIndex !== null}
-        />
-      ) : (
-        <TreeCanvas
-          cards={cards}
-          collapsedNodeIds={collapsedNodeIds}
-          focusedCardIndex={focusedCardIndex}
-          focusedCardId={focusedCardId}
-          editingIndex={editingIndex}
-          editingValue={editingValue}
-          onCardPress={handleTreeCardPress}
-          onCardFocus={handleTreeCardFocus}
-          onCreateEdit={handleToggleEdit}
-          onToggleCollapse={handleToggleCollapse}
-          onDeleteCard={handleDeleteCard}
-          onEditingValueChange={setEditingValue}
-          onCompleteEdit={handleCompleteEdit}
-          onCanvasBlur={() => setFocusedCardIndex(null)}
-        />
-      )}
+    <View style={styles.appShell}>
+      <View style={shouldRenderLeaf ? styles.containerLeafMode : styles.containerTreeMode}>
+        {isLoadingUserData ? (
+          <View style={styles.syncBanner}>
+            <Text style={styles.syncBannerText}>Loading user data</Text>
+          </View>
+        ) : null}
+        {syncError ? (
+          <View style={styles.syncBanner}>
+            <Text style={styles.syncBannerText}>{syncError}</Text>
+          </View>
+        ) : null}
+        {shouldRenderLeaf ? (
+          <LeafDeck
+            cards={cards}
+            topIndex={leafTopIndex}
+            visibleCount={LEAF_VISIBLE_COUNT}
+            editingIndex={editingIndex}
+            editingValue={editingValue}
+            focusedCardIndex={effectiveLeafFocusedIndex}
+            focusedCardId={leafFocusedCardId}
+            collapsedNodeIds={collapsedNodeIds}
+            onCreateEdit={handleToggleEdit}
+            onDeleteCard={handleDeleteCard}
+            onEditingValueChange={setEditingValue}
+            onCompleteEdit={handleCompleteEdit}
+            onLeafSwipe={handleLeafSwipe}
+            isDeleteHoldActive={isDeleteHoldActive}
+            isAddHoldActive={isAddHoldActive}
+            addPreviewRelation={addPreviewRelation}
+            onDeleteCurrentCard={handleDeleteCurrentLeafCard}
+            swipeDisabled={editingIndex !== null}
+          />
+        ) : (
+          <TreeCanvas
+            cards={cards}
+            collapsedNodeIds={collapsedNodeIds}
+            focusedCardIndex={focusedCardIndex}
+            focusedCardId={focusedCardId}
+            editingIndex={editingIndex}
+            editingValue={editingValue}
+            onCardPress={handleTreeCardPress}
+            onCardFocus={handleTreeCardFocus}
+            onCreateEdit={handleToggleEdit}
+            onToggleCollapse={handleToggleCollapse}
+            onDeleteCard={handleDeleteCard}
+            onEditingValueChange={setEditingValue}
+            onCompleteEdit={handleCompleteEdit}
+            onCanvasBlur={() => setFocusedCardIndex(null)}
+          />
+        )}
+      </View>
 
       <NodeStructureView
         addPreviewRelation={addPreviewRelation}
@@ -640,6 +645,7 @@ export default function App() {
         canDeleteCurrentCard={shouldRenderLeaf && visibleTopCardIndex !== null}
         layoutMode={layoutMode}
         onDeleteHoldChange={setIsDeleteHoldActive}
+        onAddHoldChange={setIsAddHoldActive}
         onAddPreviewChange={setAddPreviewRelation}
         onToggleMode={handleToggleLayout}
         onCreateCard={handleCreateCard}
