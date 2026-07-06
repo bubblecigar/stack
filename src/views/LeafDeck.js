@@ -13,6 +13,7 @@ import { StackCard } from '../components/StackCard';
 import { styles } from '../styles/appStyles';
 
 const doneStampImage = require('../../assets/card/done_stamp_gray.png');
+const undoneStampImage = require('../../assets/card/done_stamp_red.png');
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -255,6 +256,7 @@ export function LeafDeck({
   );
   const topCard = getCircularCard(cards, normalizedTopIndex, 0);
   const activeCard = displayCard ?? topCard;
+  const activeCardDone = Boolean(activeCard?.done);
   const effectiveFocusedCardId = controlledFocusedCardId ?? topCard?.id ?? null;
   const visualCard = {
     id: 'leaf-visual-card',
@@ -979,8 +981,12 @@ export function LeafDeck({
       {activeCard?.index >= 0 ? (
         <View
           {...doneStampPanResponder.panHandlers}
-          accessibilityHint="Drag onto the current card to mark it done"
-          accessibilityLabel="Mark current card done"
+          accessibilityHint={activeCardDone
+            ? 'Drag onto the current card to clear done'
+            : 'Drag onto the current card to mark it done'}
+          accessibilityLabel={activeCardDone
+            ? 'Clear current card done'
+            : 'Mark current card done'}
           accessibilityRole="button"
           style={[
             styles.leafDoneStampButton,
@@ -995,7 +1001,7 @@ export function LeafDeck({
         >
           <Image
             pointerEvents="none"
-            source={doneStampImage}
+            source={activeCardDone ? undoneStampImage : doneStampImage}
             style={styles.leafDoneStampIcon}
           />
         </View>
