@@ -168,6 +168,7 @@ export function StackCard({
           position: 'absolute',
         },
         isFocusedCard && !isLeafCard && styles.focusedCard,
+        isFocusedCard && isTreeCard && isDeleteHoldActive && styles.deleteFocusedCard,
         zLayer != null ? { zIndex: zLayer } : null,
       ]}
     >
