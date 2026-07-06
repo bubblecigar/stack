@@ -18,6 +18,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "export:web": "expo export --platform web --output-dir dist --clear",
+    "deploy:vultr": "bash scripts/deploy-vultr.sh",
     "authserver": "AUTH_HOST=0.0.0.0 node server/authserver.mjs",
     "apiserver": "API_HOST=0.0.0.0 node server/apiserver.mjs"
   },
