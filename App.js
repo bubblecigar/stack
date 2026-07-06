@@ -34,6 +34,65 @@ import { styles } from './src/styles/appStyles';
 
 const LEAF_VISIBLE_COUNT = 5;
 
+function getLeafRootScopedCards(cards, currentCardId) {
+  if (currentCardId === null || currentCardId === undefined) {
+    return cards;
+  }
+
+  const cardById = new Map(cards.map((card) => [card.id, card]));
+  const currentCard = cardById.get(currentCardId);
+  if (!currentCard) {
+    return cards;
+  }
+
+  const ancestorRootIds = new Set();
+  const visitedAncestors = new Set();
+
+  function collectAncestorRoots(card) {
+    if (!card || visitedAncestors.has(card.id)) {
+      return;
+    }
+
+    visitedAncestors.add(card.id);
+    const parentIds = Array.isArray(card.parentIds) ? card.parentIds : [];
+    const parentCards = parentIds
+      .map((parentId) => cardById.get(parentId))
+      .filter(Boolean);
+
+    if (parentCards.length === 0) {
+      ancestorRootIds.add(card.id);
+      return;
+    }
+
+    parentCards.forEach(collectAncestorRoots);
+  }
+
+  collectAncestorRoots(currentCard);
+
+  if (ancestorRootIds.size === 0) {
+    return cards;
+  }
+
+  const scopedIds = new Set();
+  function collectDescendants(card) {
+    if (!card || scopedIds.has(card.id)) {
+      return;
+    }
+
+    scopedIds.add(card.id);
+    (card.childIds || [])
+      .map((childId) => cardById.get(childId))
+      .filter(Boolean)
+      .forEach(collectDescendants);
+  }
+
+  ancestorRootIds.forEach((rootId) => {
+    collectDescendants(cardById.get(rootId));
+  });
+
+  return cards.filter((card) => scopedIds.has(card.id));
+}
+
 export default function App() {
   const [fontsLoaded] = useFonts({
     Kalam_400Regular,
@@ -485,7 +544,9 @@ export default function App() {
       return false;
     }
 
-    const traversalCards = cards.filter((card) => !card.done);
+    const currentCardId = visibleCards[0]?.id ?? leafFocusedCardId ?? cards[0]?.id;
+    const rootScopedCards = getLeafRootScopedCards(cards, currentCardId);
+    const traversalCards = rootScopedCards.filter((card) => !card.done);
 
     if (traversalCards.length === 0) {
       if (!visibleCards[0]?.done) {
@@ -498,7 +559,6 @@ export default function App() {
       return true;
     }
 
-    const currentCardId = visibleCards[0]?.id ?? leafFocusedCardId ?? traversalCards[0]?.id;
     const traversalMode = direction === 'left' || direction === 'right' ? 'dfs' : 'bfs';
     const nextCard = traversalCards.length === 1
       ? traversalCards[0]
@@ -523,8 +583,10 @@ export default function App() {
   const canDeleteCurrentCard = shouldRenderLeaf
     ? visibleTopCardIndex !== null
     : focusedCardIndex !== null;
-  const nodeMapCards = cards;
   const nodeMapFocusedCardId = shouldRenderLeaf ? leafFocusedCardId : focusedCardId;
+  const nodeMapCards = shouldRenderLeaf
+    ? getLeafRootScopedCards(cards, nodeMapFocusedCardId)
+    : cards;
   const nodeMapFocusedCardIndex = nodeMapFocusedCardId === null
     ? null
     : nodeMapCards.findIndex((card) => card.id === nodeMapFocusedCardId);
