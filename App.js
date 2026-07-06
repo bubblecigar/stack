@@ -724,7 +724,7 @@ export default function App() {
       />
 
       <FloatingControls
-        canDeleteCurrentCard={canDeleteCurrentCard}
+        canDeleteCurrentCard={!shouldRenderLeaf && canDeleteCurrentCard}
         layoutMode={layoutMode}
         onDeleteHoldChange={setIsDeleteHoldActive}
         onAddHoldChange={setIsAddHoldActive}
