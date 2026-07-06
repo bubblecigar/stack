@@ -311,6 +311,7 @@ export function StackCard({
                 >
                   <Text style={[
                     styles.cardText,
+                    done && styles.doneCardText,
                     !text && styles.emptyCardText,
                   ]}
                   >
@@ -334,6 +335,7 @@ export function StackCard({
             <Text style={[
               styles.cardText,
               isTreeCard && styles.treeCardText,
+              done && styles.doneCardText,
               !text && styles.emptyCardText,
             ]}
             >
