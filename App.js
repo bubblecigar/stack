@@ -523,7 +523,7 @@ export default function App() {
   const canDeleteCurrentCard = shouldRenderLeaf
     ? visibleTopCardIndex !== null
     : focusedCardIndex !== null;
-  const nodeMapCards = shouldRenderLeaf ? cards.filter((card) => !card.done) : cards;
+  const nodeMapCards = cards;
   const nodeMapFocusedCardId = shouldRenderLeaf ? leafFocusedCardId : focusedCardId;
   const nodeMapFocusedCardIndex = nodeMapFocusedCardId === null
     ? null
