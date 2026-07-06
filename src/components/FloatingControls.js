@@ -81,7 +81,7 @@ export function FloatingControls({
   onDeleteHoldChange,
   canDeleteCurrentCard = false,
 }) {
-  const shouldShowDelete = layoutMode === 'leaf' && canDeleteCurrentCard;
+  const shouldShowDelete = canDeleteCurrentCard;
   const [isAddPressed, setIsAddPressed] = useState(false);
   const [addCardRotation, setAddCardRotation] = useState(ADD_CARD_BASE_ROTATION);
   const [addCardOffsetY, setAddCardOffsetY] = useState(0);

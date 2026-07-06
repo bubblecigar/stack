@@ -7,6 +7,7 @@ import {
   View,
 } from 'react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { DeleteHoldIndicator } from '../components/DeleteHoldIndicator';
 import { StackCard } from '../components/StackCard';
 import { styles } from '../styles/appStyles';
 
@@ -26,8 +27,6 @@ const SLOT_OPACITY_STEP = 0.12;
 const SLOT_ROTATE_STEP = 1.1;
 const DOUBLE_TAP_DELAY_MS = 280;
 const TAP_MOVE_TOLERANCE = 12;
-const DELETE_HOLD_MS = 500;
-const DELETE_RING_SEGMENTS = 48;
 const ADD_PREVIEW_DURATION = 220;
 const ADD_PREVIEW_START_X = SCREEN_WIDTH * 0.42;
 const ADD_PREVIEW_START_Y = SCREEN_HEIGHT * 0.22;
@@ -103,19 +102,6 @@ function getSwipeTarget(direction) {
     x: 0,
     y: direction === 'down' ? SWIPE_OUT_DISTANCE_Y : -SWIPE_OUT_DISTANCE_Y,
   };
-}
-
-function LeafTrashCanIcon() {
-  return (
-    <View style={styles.leafTrashIcon}>
-      <View style={styles.leafTrashIconLid} />
-      <View style={styles.leafTrashIconHandle} />
-      <View style={styles.leafTrashIconBody}>
-        <View style={styles.leafTrashIconLine} />
-        <View style={styles.leafTrashIconLine} />
-      </View>
-    </View>
-  );
 }
 
 function getAddPreviewStartTarget(relation) {
@@ -222,16 +208,13 @@ export function LeafDeck({
   const dragY = useRef(new Animated.Value(0)).current;
   const swipeProgressValue = useRef(new Animated.Value(0)).current;
   const insertProgress = useRef(new Animated.Value(1)).current;
-  const deleteProgress = useRef(new Animated.Value(0)).current;
   const addPreviewProgress = useRef(new Animated.Value(0)).current;
   const addPreviewPulse = useRef(new Animated.Value(0)).current;
   const animationRef = useRef(null);
   const insertAnimationRef = useRef(null);
-  const deleteAnimationRef = useRef(null);
   const addPreviewAnimationRef = useRef(null);
   const addPreviewPulseRef = useRef(null);
   const isAnimatingRef = useRef(false);
-  const deleteCompletedRef = useRef(false);
   const lastTapRef = useRef({
     timestamp: 0,
   });
@@ -239,8 +222,6 @@ export function LeafDeck({
   const inputTouchRef = useRef(false);
   const [insertingDirection, setInsertingDirection] = useState(null);
   const [displayCard, setDisplayCard] = useState(null);
-  const [deleteProgressSnapshot, setDeleteProgressSnapshot] = useState(0);
-  const [isDeleteVisualActive, setIsDeleteVisualActive] = useState(false);
   const [animatedAddPreviewRelation, setAnimatedAddPreviewRelation] = useState(null);
 
   const normalizedTopIndex = normalizeTopIndex(cards, topIndex);
@@ -274,11 +255,6 @@ export function LeafDeck({
       insertAnimationRef.current = null;
     }
 
-    if (deleteAnimationRef.current) {
-      deleteAnimationRef.current.stop();
-      deleteAnimationRef.current = null;
-    }
-
     if (addPreviewAnimationRef.current) {
       addPreviewAnimationRef.current.stop();
       addPreviewAnimationRef.current = null;
@@ -289,63 +265,6 @@ export function LeafDeck({
       addPreviewPulseRef.current = null;
     }
   }, []);
-
-  useEffect(() => {
-    const listenerId = deleteProgress.addListener(({ value }) => {
-      setDeleteProgressSnapshot(value);
-    });
-
-    return () => {
-      deleteProgress.removeListener(listenerId);
-    };
-  }, [
-    deleteProgress,
-  ]);
-
-  useEffect(() => {
-    if (!isDeleteHoldActive) {
-      deleteCompletedRef.current = false;
-      if (deleteAnimationRef.current) {
-        deleteAnimationRef.current.stop();
-        deleteAnimationRef.current = null;
-      }
-      deleteProgress.setValue(0);
-      setIsDeleteVisualActive(false);
-      return;
-    }
-
-    if (deleteCompletedRef.current || !activeCard || activeCard.index < 0) {
-      if (deleteAnimationRef.current) {
-        deleteAnimationRef.current.stop();
-        deleteAnimationRef.current = null;
-      }
-      deleteProgress.setValue(0);
-      setIsDeleteVisualActive(false);
-      return;
-    }
-
-    deleteProgress.setValue(0);
-    setIsDeleteVisualActive(true);
-    deleteAnimationRef.current = Animated.timing(deleteProgress, {
-      toValue: 1,
-      duration: DELETE_HOLD_MS,
-      easing: Easing.linear,
-      useNativeDriver: false,
-    });
-
-    deleteAnimationRef.current.start(({ finished }) => {
-      deleteAnimationRef.current = null;
-
-      if (finished) {
-        deleteCompletedRef.current = true;
-        setIsDeleteVisualActive(false);
-        animateDeleteSwipeAway();
-      }
-    });
-  }, [
-    activeCard,
-    isDeleteHoldActive,
-  ]);
 
   useEffect(() => {
     if (isAnimatingRef.current) {
@@ -580,8 +499,6 @@ export function LeafDeck({
     ]);
 
     animationRef.current.start(() => {
-      deleteProgress.setValue(0);
-      setIsDeleteVisualActive(false);
       onDeleteCurrentCard?.();
       resetDrag();
       unlockDeck();
@@ -719,10 +636,6 @@ export function LeafDeck({
   const insertStartRotate = insertingDirection === 'left' || insertingDirection === 'up'
     ? '-10deg'
     : '10deg';
-  const completedDeleteRingSegments = Math.min(
-    DELETE_RING_SEGMENTS,
-    Math.floor(deleteProgressSnapshot * DELETE_RING_SEGMENTS),
-  );
   const addPreviewStartTarget = getAddPreviewStartTarget(animatedAddPreviewRelation);
   const addPreviewEndTarget = getAddPreviewEndTarget(animatedAddPreviewRelation);
   const addPreviewTranslateX = addPreviewProgress.interpolate({
@@ -869,32 +782,11 @@ export function LeafDeck({
                     : 'placeholder'
                 }
               />
-              {shouldRenderActiveTopSlot && isDeleteVisualActive ? (
-                <View pointerEvents="none" style={styles.leafDeleteProgressOverlay}>
-                  <View style={styles.leafDeleteProgressRing}>
-                    {Array.from({ length: DELETE_RING_SEGMENTS }, (_, segmentIndex) => (
-                      <View
-                        key={`delete-progress-segment-${segmentIndex}`}
-                        style={[
-                          styles.leafDeleteProgressTickSlot,
-                          {
-                            transform: [{ rotate: `${(360 / DELETE_RING_SEGMENTS) * segmentIndex}deg` }],
-                          },
-                        ]}
-                      >
-                        <View
-                          style={[
-                            styles.leafDeleteProgressTick,
-                            segmentIndex < completedDeleteRingSegments && styles.leafDeleteProgressTickActive,
-                          ]}
-                        />
-                      </View>
-                    ))}
-                    <View style={styles.leafDeleteProgressCenter}>
-                      <LeafTrashCanIcon />
-                    </View>
-                  </View>
-                </View>
+              {shouldRenderActiveTopSlot ? (
+                <DeleteHoldIndicator
+                  active={isDeleteHoldActive && activeCard?.index >= 0}
+                  onComplete={animateDeleteSwipeAway}
+                />
               ) : null}
               {shouldRenderActiveTopSlot && isAddHoldActive && animatedAddPreviewRelation ? (
                 <Animated.View

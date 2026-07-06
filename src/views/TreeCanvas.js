@@ -16,9 +16,11 @@ export function TreeCanvas({
   onCreateEdit,
   onToggleCollapse,
   onDeleteCard,
+  onDeleteHoldComplete,
   onEditingValueChange,
   onCompleteEdit,
   onCanvasBlur,
+  isDeleteHoldActive = false,
 }) {
   const treeHorizontalScrollRef = useRef(null);
   const treeVerticalScrollRef = useRef(null);
@@ -160,10 +162,12 @@ export function TreeCanvas({
                     placementOrder,
                   }}
                   isCollapsedStacked={isCollapsedStacked}
+                  isDeleteHoldActive={isDeleteHoldActive}
                   onPress={() => onCardPress(card.index)}
                   onCreateEdit={onCreateEdit}
                   onToggleCollapse={onToggleCollapse}
                   onDeleteCard={onDeleteCard}
+                  onDeleteHoldComplete={onDeleteHoldComplete}
                   onEditingValueChange={onEditingValueChange}
                   onCompleteEdit={onCompleteEdit}
                 />

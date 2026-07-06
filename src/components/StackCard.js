@@ -7,6 +7,7 @@ import {
   View,
 } from 'react-native';
 import { useEffect, useRef } from 'react';
+import { DeleteHoldIndicator } from './DeleteHoldIndicator';
 import { styles } from '../styles/appStyles';
 
 export function StackCard({
@@ -27,9 +28,11 @@ export function StackCard({
   onCreateEdit,
   onToggleCollapse,
   onDeleteCard,
+  onDeleteHoldComplete,
   onEditingValueChange,
   onCompleteEdit,
   onFocusCard,
+  isDeleteHoldActive = false,
   leafContentMode = 'text',
 }) {
   const {
@@ -215,7 +218,7 @@ export function StackCard({
           </Pressable>
         )}
 
-        {shouldShowControls && (
+        {shouldShowControls && !isTreeCard && (
           <Pressable
             accessibilityLabel="Delete card"
             accessibilityRole="button"
@@ -234,6 +237,15 @@ export function StackCard({
         )}
 
       </View>
+
+      {isTreeCard && isFocusedCard ? (
+        <DeleteHoldIndicator
+          active={isDeleteHoldActive}
+          onComplete={() => {
+            onDeleteHoldComplete?.(index);
+          }}
+        />
+      ) : null}
 
       {isEditing ? (
         isLeafCard ? (

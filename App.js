@@ -478,6 +478,9 @@ export default function App() {
 
   const visibleTopCardIndex = visibleCards[0]?.index ?? null;
   const effectiveLeafFocusedIndex = visibleTopCardIndex ?? focusedCardIndex;
+  const canDeleteCurrentCard = shouldRenderLeaf
+    ? visibleTopCardIndex !== null
+    : focusedCardIndex !== null;
 
   function handleDeleteCurrentLeafCard() {
     if (!shouldRenderLeaf || visibleTopCardIndex === null) {
@@ -628,8 +631,10 @@ export default function App() {
             onCreateEdit={handleToggleEdit}
             onToggleCollapse={handleToggleCollapse}
             onDeleteCard={handleDeleteCard}
+            onDeleteHoldComplete={handleDeleteCard}
             onEditingValueChange={setEditingValue}
             onCompleteEdit={handleCompleteEdit}
+            isDeleteHoldActive={isDeleteHoldActive}
             onCanvasBlur={() => setFocusedCardIndex(null)}
           />
         )}
@@ -643,7 +648,7 @@ export default function App() {
       />
 
       <FloatingControls
-        canDeleteCurrentCard={shouldRenderLeaf && visibleTopCardIndex !== null}
+        canDeleteCurrentCard={canDeleteCurrentCard}
         layoutMode={layoutMode}
         onDeleteHoldChange={setIsDeleteHoldActive}
         onAddHoldChange={setIsAddHoldActive}
