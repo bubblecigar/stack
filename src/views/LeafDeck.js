@@ -28,12 +28,13 @@ const DOUBLE_TAP_DELAY_MS = 280;
 const TAP_MOVE_TOLERANCE = 12;
 const DELETE_HOLD_MS = 1000;
 const DELETE_RING_SEGMENTS = 48;
-const ADD_PREVIEW_DURATION = 180;
+const ADD_PREVIEW_DURATION = 220;
 const ADD_PREVIEW_START_X = SCREEN_WIDTH * 0.42;
 const ADD_PREVIEW_START_Y = SCREEN_HEIGHT * 0.22;
 const ADD_PREVIEW_END_X = 34;
 const ADD_PREVIEW_END_Y = 24;
-const ADD_PREVIEW_PULSE_DURATION = 320;
+const ADD_PREVIEW_DOWN_END_Y = 76;
+const ADD_PREVIEW_PULSE_DURATION = 900;
 
 function normalizeTopIndex(cards, topIndex) {
   if (cards.length === 0) {
@@ -171,7 +172,7 @@ function getAddPreviewEndTarget(relation) {
   }
 
   if (relation === 'nextSibling') {
-    return { x: 0, y: -ADD_PREVIEW_END_Y };
+    return { x: 0, y: -ADD_PREVIEW_DOWN_END_Y };
   }
 
   return { x: 0, y: 0 };
@@ -740,13 +741,13 @@ export function LeafDeck({
     extrapolate: 'clamp',
   });
   const addPreviewBaseOpacity = addPreviewProgress.interpolate({
-    inputRange: [0, 0.18, 1],
-    outputRange: [0, 0.56, 0.95],
+    inputRange: [0, 0.24, 1],
+    outputRange: [0, 0.68, 0.86],
     extrapolate: 'clamp',
   });
   const addPreviewPulseOpacity = addPreviewPulse.interpolate({
     inputRange: [0, 1],
-    outputRange: [1, 0.34],
+    outputRange: [1, 0.9],
     extrapolate: 'clamp',
   });
   const addPreviewOpacity = Animated.multiply(addPreviewBaseOpacity, addPreviewPulseOpacity);
