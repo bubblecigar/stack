@@ -114,10 +114,11 @@ export const styles = StyleSheet.create({
   },
   addFloatingControl: {
     position: 'absolute',
-    right: '30%',
-    bottom: 132,
+    left: '50%',
+    bottom: 28,
     alignItems: 'center',
     justifyContent: 'center',
+    transform: [{ translateX: -32 }],
     zIndex: 6100,
     elevation: 32,
   },

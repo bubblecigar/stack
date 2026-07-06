@@ -7,7 +7,7 @@ import {
 import { useMemo, useRef, useState } from 'react';
 import { styles } from '../styles/appStyles';
 
-const DELETE_HOLD_MS = 1000;
+const DELETE_HOLD_MS = 500;
 const ADD_POINT_DEAD_ZONE = 16;
 const ADD_POINT_SWITCH_DISTANCE = 24;
 const ADD_POINT_AXIS_BIAS = 1.25;
