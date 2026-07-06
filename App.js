@@ -1,4 +1,4 @@
-import { Kalam_700Bold } from '@expo-google-fonts/kalam';
+import { Kalam_400Regular } from '@expo-google-fonts/kalam';
 import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -12,7 +12,6 @@ import {
   useEffect, useMemo, useRef, useState, useSyncExternalStore,
 } from 'react';
 import {
-  addStampAt,
   getSnapshot,
   insertRelativeTo,
   loadCards,
@@ -36,7 +35,7 @@ const LEAF_VISIBLE_COUNT = 5;
 
 export default function App() {
   const [fontsLoaded] = useFonts({
-    Kalam_700Bold,
+    Kalam_400Regular,
   });
   const [authToken, setAuthToken] = useState(null);
   const [authUser, setAuthUser] = useState(null);
@@ -53,7 +52,6 @@ export default function App() {
   const [isDeleteHoldActive, setIsDeleteHoldActive] = useState(false);
   const [addPreviewRelation, setAddPreviewRelation] = useState(null);
   const [isAddHoldActive, setIsAddHoldActive] = useState(false);
-  const [leafCardFrame, setLeafCardFrame] = useState(null);
 
   const stack = useSyncExternalStore(subscribe, getSnapshot);
   const cards = useMemo(() => stack.map((card, index) => ({ ...card, index })), [stack]);
@@ -564,30 +562,6 @@ export default function App() {
     setEditingValue('');
   }
 
-  function handleClockDrop({ pageX, pageY }) {
-    if (!shouldRenderLeaf || visibleTopCardIndex === null || !leafCardFrame) {
-      return;
-    }
-
-    const isInsideCard = (
-      pageX >= leafCardFrame.x
-      && pageX <= leafCardFrame.x + leafCardFrame.width
-      && pageY >= leafCardFrame.y
-      && pageY <= leafCardFrame.y + leafCardFrame.height
-    );
-
-    if (!isInsideCard) {
-      return;
-    }
-
-    addStampAt(visibleTopCardIndex, {
-      id: `clock-${Date.now()}`,
-      type: 'clock',
-      x: (pageX - leafCardFrame.x) / leafCardFrame.width,
-      y: (pageY - leafCardFrame.y) / leafCardFrame.height,
-    });
-  }
-
   if (!fontsLoaded || isRestoringSession || (authToken && !authUser)) {
     return (
       <>
@@ -642,7 +616,6 @@ export default function App() {
             isAddHoldActive={isAddHoldActive}
             addPreviewRelation={addPreviewRelation}
             onDeleteCurrentCard={handleDeleteCurrentLeafCard}
-            onTopCardFrameChange={setLeafCardFrame}
             swipeDisabled={editingIndex !== null}
           />
         ) : (
@@ -682,7 +655,6 @@ export default function App() {
         onAddPreviewChange={setAddPreviewRelation}
         onToggleMode={handleToggleLayout}
         onCreateCard={handleCreateCard}
-        onClockDrop={handleClockDrop}
       />
 
       <StatusBar style="light" />

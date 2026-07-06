@@ -1,6 +1,5 @@
 import {
   Animated,
-  Image,
   Pressable,
   ScrollView,
   Text,
@@ -10,8 +9,6 @@ import {
 import { useEffect, useRef } from 'react';
 import { DeleteHoldIndicator } from './DeleteHoldIndicator';
 import { styles } from '../styles/appStyles';
-
-const clockStampImage = require('../../assets/card/clock.png');
 
 export function StackCard({
   card,
@@ -42,7 +39,6 @@ export function StackCard({
     id,
     index,
     childIds,
-    stamps = [],
     text,
   } = card;
 
@@ -60,7 +56,6 @@ export function StackCard({
   const isCollapsed = collapsedNodeIds.has(id);
   const shouldShowControls = !hideControls && isFocusedCard;
   const shouldShowEdit = isFocusedCard;
-  const visibleStamps = Array.isArray(stamps) ? stamps : [];
 
   const treeStackLayer = treePosition
     ? (
@@ -259,20 +254,6 @@ export function StackCard({
             <View style={styles.leafContentLayer}>
               {editingInput}
             </View>
-            {visibleStamps.map((stamp) => (
-              <Image
-                key={stamp.id}
-                pointerEvents="none"
-                source={clockStampImage}
-                style={[
-                  styles.leafStamp,
-                  {
-                    left: `${Math.min(Math.max(Number(stamp.x) || 0, 0), 1) * 100}%`,
-                    top: `${Math.min(Math.max(Number(stamp.y) || 0, 0), 1) * 100}%`,
-                  },
-                ]}
-              />
-            ))}
           </View>
         ) : (
           <Animated.View style={styles.cardInputWrap}>
@@ -334,20 +315,6 @@ export function StackCard({
                 </ScrollView>
               </View>
             ) : null}
-            {visibleStamps.map((stamp) => (
-              <Image
-                key={stamp.id}
-                pointerEvents="none"
-                source={clockStampImage}
-                style={[
-                  styles.leafStamp,
-                  {
-                    left: `${Math.min(Math.max(Number(stamp.x) || 0, 0), 1) * 100}%`,
-                    top: `${Math.min(Math.max(Number(stamp.y) || 0, 0), 1) * 100}%`,
-                  },
-                ]}
-              />
-            ))}
           </View>
         ) : (
           <Animated.View
