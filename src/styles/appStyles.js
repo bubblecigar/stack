@@ -337,7 +337,6 @@ export const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#94A3B8',
     opacity: 0.6,
-    transformOrigin: 'left center',
   },
   treeScroll: {
     flex: 1,

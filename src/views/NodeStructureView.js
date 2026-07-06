@@ -6,6 +6,40 @@ import { styles } from '../styles/appStyles';
 const MAP_PADDING = 10;
 const MIN_NODE_SCALE = 0.01;
 const PREVIEW_CARD_ID = 'add-preview-card';
+const MAP_EDGE_THICKNESS = 1;
+const MAP_TREE_LAYOUT_OVERRIDES = {
+  childOverlapX: 96,
+};
+
+function getOrthogonalEdgeSegments(fromNode, toNode) {
+  const elbowX = fromNode.x + ((toNode.x - fromNode.x) / 2);
+  const points = [
+    { x: fromNode.x, y: fromNode.y },
+    { x: elbowX, y: fromNode.y },
+    { x: elbowX, y: toNode.y },
+    { x: toNode.x, y: toNode.y },
+  ];
+
+  return points.slice(0, -1).map((start, index) => {
+    const end = points[index + 1];
+    const isHorizontal = start.y === end.y;
+    const left = Math.min(start.x, end.x);
+    const top = Math.min(start.y, end.y);
+    const width = isHorizontal ? Math.abs(end.x - start.x) : MAP_EDGE_THICKNESS;
+    const height = isHorizontal ? MAP_EDGE_THICKNESS : Math.abs(end.y - start.y);
+
+    if (width <= 0 && height <= 0) {
+      return null;
+    }
+
+    return {
+      height: Math.max(height, MAP_EDGE_THICKNESS),
+      left,
+      top,
+      width: Math.max(width, MAP_EDGE_THICKNESS),
+    };
+  }).filter(Boolean);
+}
 
 function insertNearSibling(childIds, targetId, previewId, placement) {
   const existingIds = childIds.filter((id) => id !== previewId);
@@ -155,7 +189,7 @@ export function NodeStructureView({
     [addPreviewRelation, cards, focusedCardIndex],
   );
   const mapLayout = useMemo(
-    () => buildTreeLayout(previewCards, new Set()),
+    () => buildTreeLayout(previewCards, new Set(), MAP_TREE_LAYOUT_OVERRIDES),
     [previewCards],
   );
 
@@ -244,32 +278,23 @@ export function NodeStructureView({
               return null;
             }
 
-            const dx = toNode.x - fromNode.x;
-            const dy = toNode.y - fromNode.y;
-            const length = Math.hypot(dx, dy);
+            const edgeSegments = getOrthogonalEdgeSegments(fromNode, toNode);
 
-            if (length <= 0) {
+            if (edgeSegments.length === 0) {
               return null;
             }
 
-            return (
+            return edgeSegments.map((segment, segmentIndex) => (
               <View
-                key={`edge-${entry.card.id}-${childId}`}
+                key={`edge-${entry.card.id}-${childId}-${segmentIndex}`}
                 style={[
                   styles.nodeViewMapLine,
                   (entry.card.id === PREVIEW_CARD_ID || childId === PREVIEW_CARD_ID)
                     && styles.nodeViewMapLinePreview,
-                  {
-                    left: fromNode.x,
-                    top: fromNode.y,
-                    width: length,
-                    transform: [{
-                      rotate: `${(Math.atan2(dy, dx) * 180) / Math.PI}deg`,
-                    }],
-                  },
+                  segment,
                 ]}
               />
-            );
+            ));
           });
         })}
         {nodeEntries.nodes.map((entry) => (
