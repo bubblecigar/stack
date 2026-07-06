@@ -1,5 +1,6 @@
 import {
   Animated,
+  Image,
   Pressable,
   ScrollView,
   Text,
@@ -9,6 +10,8 @@ import {
 import { useEffect, useRef } from 'react';
 import { DeleteHoldIndicator } from './DeleteHoldIndicator';
 import { styles } from '../styles/appStyles';
+
+const doneStampImage = require('../../assets/card/done_stamp_gray.png');
 
 export function StackCard({
   card,
@@ -39,6 +42,7 @@ export function StackCard({
     id,
     index,
     childIds,
+    done = false,
     text,
   } = card;
 
@@ -314,6 +318,13 @@ export function StackCard({
                   </Text>
                 </ScrollView>
               </View>
+            ) : null}
+            {done ? (
+              <Image
+                pointerEvents="none"
+                source={doneStampImage}
+                style={styles.leafDoneStampOverlay}
+              />
             ) : null}
           </View>
         ) : (

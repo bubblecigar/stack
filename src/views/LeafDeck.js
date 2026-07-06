@@ -2,6 +2,7 @@ import {
   Animated,
   Dimensions,
   Easing,
+  Image,
   Keyboard,
   PanResponder,
   View,
@@ -10,6 +11,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { DeleteHoldIndicator } from '../components/DeleteHoldIndicator';
 import { StackCard } from '../components/StackCard';
 import { styles } from '../styles/appStyles';
+
+const doneStampImage = require('../../assets/card/done_stamp_gray.png');
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -34,6 +37,7 @@ const ADD_PREVIEW_END_X = 34;
 const ADD_PREVIEW_END_Y = 24;
 const ADD_PREVIEW_DOWN_END_Y = 76;
 const ADD_PREVIEW_PULSE_DURATION = 900;
+const DONE_STAMP_DRAG_THRESHOLD = 6;
 
 function normalizeTopIndex(cards, topIndex) {
   if (cards.length === 0) {
@@ -202,6 +206,7 @@ export function LeafDeck({
   isAddHoldActive = false,
   addPreviewRelation = null,
   onDeleteCurrentCard,
+  onDoneCurrentCard,
   swipeDisabled,
 }) {
   const dragX = useRef(new Animated.Value(0)).current;
@@ -220,9 +225,25 @@ export function LeafDeck({
   });
   const touchStartRef = useRef(null);
   const inputTouchRef = useRef(false);
+  const topCardFrameRef = useRef(null);
+  const topCardFrameBoundsRef = useRef(null);
+  const [doneStampOffsetX, setDoneStampOffsetX] = useState(0);
+  const [doneStampOffsetY, setDoneStampOffsetY] = useState(0);
+  const [isDoneStampDragging, setIsDoneStampDragging] = useState(false);
   const [insertingDirection, setInsertingDirection] = useState(null);
   const [displayCard, setDisplayCard] = useState(null);
   const [animatedAddPreviewRelation, setAnimatedAddPreviewRelation] = useState(null);
+
+  function reportTopCardFrame() {
+    topCardFrameRef.current?.measureInWindow?.((x, y, width, height) => {
+      topCardFrameBoundsRef.current = {
+        height,
+        width,
+        x,
+        y,
+      };
+    });
+  }
 
   const normalizedTopIndex = normalizeTopIndex(cards, topIndex);
   const visualSlots = useMemo(
@@ -272,6 +293,7 @@ export function LeafDeck({
     }
 
     setDisplayCard(topCard);
+    requestAnimationFrame(reportTopCardFrame);
   }, [
     topCard,
   ]);
@@ -628,6 +650,57 @@ export function LeafDeck({
     swipeDisabled,
   ]);
 
+  const doneStampPanResponder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => activeCard?.index >= 0,
+    onMoveShouldSetPanResponder: () => activeCard?.index >= 0,
+    onPanResponderTerminationRequest: () => false,
+    onPanResponderGrant: () => {
+      reportTopCardFrame();
+      setDoneStampOffsetX(0);
+      setDoneStampOffsetY(0);
+      setIsDoneStampDragging(true);
+    },
+    onPanResponderMove: (_, gestureState) => {
+      setDoneStampOffsetX(gestureState.dx);
+      setDoneStampOffsetY(gestureState.dy);
+    },
+    onPanResponderRelease: (event, gestureState) => {
+      const dropX = typeof gestureState.moveX === 'number'
+        ? gestureState.moveX
+        : event.nativeEvent.pageX;
+      const dropY = typeof gestureState.moveY === 'number'
+        ? gestureState.moveY
+        : event.nativeEvent.pageY;
+      const bounds = topCardFrameBoundsRef.current;
+      const didDrag = Math.hypot(gestureState.dx, gestureState.dy) >= DONE_STAMP_DRAG_THRESHOLD;
+      const isInsideCard = Boolean(
+        bounds
+        && typeof dropX === 'number'
+        && typeof dropY === 'number'
+        && dropX >= bounds.x
+        && dropX <= bounds.x + bounds.width
+        && dropY >= bounds.y
+        && dropY <= bounds.y + bounds.height,
+      );
+
+      setDoneStampOffsetX(0);
+      setDoneStampOffsetY(0);
+      setIsDoneStampDragging(false);
+
+      if (didDrag && isInsideCard) {
+        onDoneCurrentCard?.();
+      }
+    },
+    onPanResponderTerminate: () => {
+      setDoneStampOffsetX(0);
+      setDoneStampOffsetY(0);
+      setIsDoneStampDragging(false);
+    },
+  }), [
+    activeCard?.index,
+    onDoneCurrentCard,
+  ]);
+
   const bottomSlot = Math.max(visualSlots.length - 1, 0);
   const bottomMetrics = getSlotMetrics(bottomSlot);
   const insertStartTarget = insertingDirection
@@ -754,7 +827,9 @@ export function LeafDeck({
             ]}
           >
             <View
+              ref={shouldRenderActiveTopSlot ? topCardFrameRef : null}
               style={styles.leafCardFrame}
+              onLayout={shouldRenderActiveTopSlot ? reportTopCardFrame : undefined}
             >
               <StackCard
                 card={shouldRenderActiveTopSlot ? activeCard : visualCard}
@@ -900,6 +975,30 @@ export function LeafDeck({
             leafContentMode="placeholder"
           />
         </Animated.View>
+      ) : null}
+      {activeCard?.index >= 0 ? (
+        <View
+          {...doneStampPanResponder.panHandlers}
+          accessibilityHint="Drag onto the current card to mark it done"
+          accessibilityLabel="Mark current card done"
+          accessibilityRole="button"
+          style={[
+            styles.leafDoneStampButton,
+            isDoneStampDragging && styles.leafDoneStampButtonPressed,
+            {
+              transform: [
+                { translateX: doneStampOffsetX },
+                { translateY: doneStampOffsetY },
+              ],
+            },
+          ]}
+        >
+          <Image
+            pointerEvents="none"
+            source={doneStampImage}
+            style={styles.leafDoneStampIcon}
+          />
+        </View>
       ) : null}
     </View>
   );

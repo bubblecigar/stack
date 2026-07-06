@@ -424,6 +424,26 @@ export const styles = StyleSheet.create({
     width: '100%',
     minHeight: 360,
   },
+  leafDoneStampButton: {
+    position: 'absolute',
+    top: 440,
+    alignSelf: 'center',
+    width: 64,
+    height: 64,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2200,
+    elevation: 24,
+  },
+  leafDoneStampButtonPressed: {
+    opacity: 0.72,
+  },
+  leafDoneStampIcon: {
+    width: 64,
+    height: 64,
+    opacity: 0.72,
+    resizeMode: 'contain',
+  },
   treeCard: {
     position: 'relative',
     width: 220,
@@ -470,6 +490,7 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
   },
   leafContentSurface: {
+    position: 'relative',
     flex: 1,
     width: '100%',
     minHeight: 284,
@@ -533,6 +554,20 @@ export const styles = StyleSheet.create({
   },
   leafFocusedText: {
     color: '#0F172A',
+  },
+  leafDoneStampOverlay: {
+    position: 'absolute',
+    width: 250,
+    height: 250,
+    left: '50%',
+    top: '50%',
+    marginLeft: -125,
+    marginTop: -125,
+    opacity: 0.64,
+    resizeMode: 'contain',
+    transform: [{ rotate: '-8deg' }],
+    zIndex: 28,
+    elevation: 28,
   },
   leafPlaceholderBar: {
     width: '88%',

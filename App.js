@@ -17,6 +17,7 @@ import {
   loadCards,
   push,
   removeAt,
+  setDoneAt,
   subscribe,
   updateAt,
 } from './stackStore';
@@ -491,6 +492,14 @@ export default function App() {
     handleDeleteCard(visibleTopCardIndex);
   }
 
+  function handleDoneCurrentLeafCard() {
+    if (!shouldRenderLeaf || visibleTopCardIndex === null) {
+      return;
+    }
+
+    setDoneAt(visibleTopCardIndex, !cards[visibleTopCardIndex]?.done);
+  }
+
   useEffect(() => {
     if (!shouldRenderLeaf) {
       return;
@@ -616,6 +625,7 @@ export default function App() {
             isAddHoldActive={isAddHoldActive}
             addPreviewRelation={addPreviewRelation}
             onDeleteCurrentCard={handleDeleteCurrentLeafCard}
+            onDoneCurrentCard={handleDoneCurrentLeafCard}
             swipeDisabled={editingIndex !== null}
           />
         ) : (

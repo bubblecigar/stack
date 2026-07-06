@@ -26,6 +26,7 @@ export function push(value) {
     ...stack,
     {
       childIds: [],
+      done: false,
       id: nextCardId,
       parentIds: [],
       stamps: [],
@@ -41,6 +42,7 @@ export function push(value) {
 function createCard(value) {
   const card = {
     childIds: [],
+    done: false,
     id: nextCardId,
     parentIds: [],
     stamps: [],
@@ -212,6 +214,7 @@ function normalizeIncomingCard(rawCard, nextGeneratedId) {
 
   return {
     childIds,
+    done: Boolean(rawCard?.done),
     id,
     parentIds,
     stamps,
@@ -265,6 +268,17 @@ export function updateAt(index, value) {
 
   stack = stack.map((card, itemIndex) => (
     itemIndex === index ? { ...card, text: nextValue } : card
+  ));
+  emitChange();
+}
+
+export function setDoneAt(index, done = true) {
+  if (index < 0 || index >= stack.length) {
+    return;
+  }
+
+  stack = stack.map((card, itemIndex) => (
+    itemIndex === index ? { ...card, done: Boolean(done) } : card
   ));
   emitChange();
 }
