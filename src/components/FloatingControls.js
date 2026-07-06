@@ -11,6 +11,28 @@ const DELETE_HOLD_MS = 500;
 const ADD_POINT_DEAD_ZONE = 16;
 const ADD_POINT_SWITCH_DISTANCE = 24;
 const ADD_POINT_AXIS_BIAS = 1.25;
+const ADD_CARD_BASE_ROTATION = 45;
+const ADD_CARD_MAX_TILT = 18;
+const ADD_CARD_MAX_VERTICAL_OFFSET = 34;
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function getAddCardRotation(dx, dy) {
+  if (Math.hypot(dx, dy) <= ADD_POINT_DEAD_ZONE) {
+    return ADD_CARD_BASE_ROTATION;
+  }
+
+  const horizontalTilt = clamp(dx / 4, -ADD_CARD_MAX_TILT, ADD_CARD_MAX_TILT);
+  const verticalTilt = clamp(dy / 8, -8, 8);
+
+  return ADD_CARD_BASE_ROTATION + horizontalTilt + verticalTilt;
+}
+
+function getAddCardVerticalOffset(dy) {
+  return clamp(dy / 2.5, -ADD_CARD_MAX_VERTICAL_OFFSET, ADD_CARD_MAX_VERTICAL_OFFSET);
+}
 
 function getAddRelationFromPoint(dx, dy, fallbackRelation = null) {
   const distance = Math.hypot(dx, dy);
@@ -61,6 +83,8 @@ export function FloatingControls({
 }) {
   const shouldShowDelete = layoutMode === 'leaf' && canDeleteCurrentCard;
   const [isAddPressed, setIsAddPressed] = useState(false);
+  const [addCardRotation, setAddCardRotation] = useState(ADD_CARD_BASE_ROTATION);
+  const [addCardOffsetY, setAddCardOffsetY] = useState(0);
   const addRelationRef = useRef(null);
   const addStartRef = useRef({
     pageX: 0,
@@ -84,6 +108,9 @@ export function FloatingControls({
   }
 
   function updateAddRelation(dx, dy) {
+    setAddCardRotation(getAddCardRotation(dx, dy));
+    setAddCardOffsetY(getAddCardVerticalOffset(dy));
+
     const relation = getAddRelationFromPoint(
       dx,
       dy,
@@ -100,6 +127,8 @@ export function FloatingControls({
 
   function resetAddPointing() {
     setIsAddPressed(false);
+    setAddCardRotation(ADD_CARD_BASE_ROTATION);
+    setAddCardOffsetY(0);
     addRelationRef.current = null;
     onAddHoldChange?.(false);
     onAddPreviewChange?.(null);
@@ -117,6 +146,8 @@ export function FloatingControls({
       };
       addRelationRef.current = null;
       setIsAddPressed(true);
+      setAddCardRotation(ADD_CARD_BASE_ROTATION);
+      setAddCardOffsetY(0);
       onAddHoldChange?.(true);
       onAddPreviewChange?.(null);
     },
@@ -196,11 +227,21 @@ export function FloatingControls({
           accessibilityLabel="Add card"
           accessibilityRole="button"
           style={[
-            styles.fab,
-            isAddPressed && styles.fabPressed,
+            styles.addCardControl,
+            isAddPressed && styles.addCardControlPressed,
           ]}
         >
-          <Text style={styles.fabIcon}>+</Text>
+          <View
+            style={[
+              styles.addCardButton,
+              {
+                transform: [
+                  { translateY: addCardOffsetY },
+                  { rotate: `${addCardRotation}deg` },
+                ],
+              },
+            ]}
+          />
         </View>
       </View>
     </>
