@@ -12,8 +12,8 @@ import { DeleteHoldIndicator } from '../components/DeleteHoldIndicator';
 import { StackCard } from '../components/StackCard';
 import { styles } from '../styles/appStyles';
 
-const doneStampImage = require('../../assets/card/done_stamp_gray.png');
-const undoneStampImage = require('../../assets/card/done_stamp_red.png');
+const doneStampImage = require('../../assets/card/done_stamp_red.png');
+const undoneStampImage = require('../../assets/card/done_stamp_gray.png');
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
