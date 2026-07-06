@@ -1,10 +1,13 @@
 import {
+  Animated,
+  Easing,
   PanResponder,
   Pressable,
-  Text,
   View,
 } from 'react-native';
-import { useMemo, useRef, useState } from 'react';
+import {
+  useEffect, useMemo, useRef, useState,
+} from 'react';
 import { styles } from '../styles/appStyles';
 
 const DELETE_HOLD_MS = 500;
@@ -14,6 +17,7 @@ const ADD_POINT_AXIS_BIAS = 1.25;
 const ADD_CARD_BASE_ROTATION = 45;
 const ADD_CARD_MAX_TILT = 18;
 const ADD_CARD_MAX_VERTICAL_OFFSET = 82;
+const MODE_DOUBLE_TAP_DELAY_MS = 280;
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -85,11 +89,25 @@ export function FloatingControls({
   const [isAddPressed, setIsAddPressed] = useState(false);
   const [addCardRotation, setAddCardRotation] = useState(ADD_CARD_BASE_ROTATION);
   const [addCardOffsetY, setAddCardOffsetY] = useState(0);
+  const flipProgress = useRef(new Animated.Value(layoutMode === 'tree' ? 1 : 0)).current;
   const addRelationRef = useRef(null);
+  const lastModeTapRef = useRef(0);
   const addStartRef = useRef({
     pageX: 0,
     pageY: 0,
   });
+
+  useEffect(() => {
+    Animated.timing(flipProgress, {
+      toValue: layoutMode === 'tree' ? 1 : 0,
+      duration: 420,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [
+    flipProgress,
+    layoutMode,
+  ]);
 
   function getAddGestureDelta(event, gestureState) {
     const { pageX, pageY } = event.nativeEvent;
@@ -134,6 +152,22 @@ export function FloatingControls({
     onAddPreviewChange?.(null);
   }
 
+  function handleModeTap(dx, dy) {
+    if (Math.hypot(dx, dy) > ADD_POINT_DEAD_ZONE) {
+      lastModeTapRef.current = 0;
+      return;
+    }
+
+    const now = Date.now();
+    const isDoubleTap = now - lastModeTapRef.current <= MODE_DOUBLE_TAP_DELAY_MS;
+    lastModeTapRef.current = now;
+
+    if (isDoubleTap) {
+      lastModeTapRef.current = 0;
+      onToggleMode?.();
+    }
+  }
+
   const addPanResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onMoveShouldSetPanResponder: () => true,
@@ -165,7 +199,10 @@ export function FloatingControls({
       resetAddPointing();
       if (relation) {
         onCreateCard?.(relation);
+        return;
       }
+
+      handleModeTap(dx, dy);
     },
     onPanResponderTerminate: () => {
       resetAddPointing();
@@ -174,6 +211,7 @@ export function FloatingControls({
     onAddHoldChange,
     onAddPreviewChange,
     onCreateCard,
+    onToggleMode,
   ]);
 
   function handleDeletePressIn() {
@@ -186,21 +224,6 @@ export function FloatingControls({
 
   return (
     <>
-      <Pressable
-        accessibilityLabel="Toggle stack layout"
-        accessibilityRole="button"
-        onPress={onToggleMode}
-        style={({ pressed }) => [
-          styles.fab,
-          styles.modeFab,
-          pressed && styles.modeFabPressed,
-        ]}
-      >
-        <Text style={styles.modeFabText}>
-          {layoutMode === 'leaf' ? 'L' : 'T'}
-        </Text>
-      </Pressable>
-
       {shouldShowDelete ? (
         <View style={styles.floatingControls}>
           <Pressable
@@ -224,16 +247,17 @@ export function FloatingControls({
       <View style={styles.addFloatingControl}>
         <View
           {...addPanResponder.panHandlers}
-          accessibilityLabel="Add card"
+          accessibilityHint="Drag to insert a card. Double tap to toggle leaf or tree view."
+          accessibilityLabel="Insert card or toggle view"
           accessibilityRole="button"
           style={[
             styles.addCardControl,
             isAddPressed && styles.addCardControlPressed,
           ]}
         >
-          <View
+          <Animated.View
             style={[
-              styles.addCardButton,
+              styles.addCardButtonShell,
               {
                 transform: [
                   { translateY: addCardOffsetY },
@@ -241,7 +265,44 @@ export function FloatingControls({
                 ],
               },
             ]}
-          />
+          >
+            <Animated.View
+              style={[
+                styles.addCardButton,
+                styles.addCardFace,
+                {
+                  transform: [
+                    { perspective: 900 },
+                    {
+                      rotateY: flipProgress.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0deg', '180deg'],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            />
+            <Animated.View
+              style={[
+                styles.addCardButton,
+                styles.addCardFace,
+                styles.addCardFaceBack,
+                styles.addCardButtonBack,
+                {
+                  transform: [
+                    { perspective: 900 },
+                    {
+                      rotateY: flipProgress.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['180deg', '360deg'],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            />
+          </Animated.View>
         </View>
       </View>
     </>

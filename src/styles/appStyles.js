@@ -628,6 +628,10 @@ export const styles = StyleSheet.create({
   addCardControlPressed: {
     transform: [{ scale: 0.96 }],
   },
+  addCardButtonShell: {
+    width: 320,
+    height: 320,
+  },
   addCardButton: {
     width: 320,
     height: 320,
@@ -647,17 +651,17 @@ export const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 16,
   },
-  modeFab: {
-    position: 'absolute',
-    left: 24,
-    bottom: 28,
-    backgroundColor: '#0F172A',
-    zIndex: 6200,
-    elevation: 34,
+  addCardFace: {
+    backfaceVisibility: 'hidden',
   },
-  modeFabPressed: {
-    backgroundColor: '#334155',
-    transform: [{ scale: 0.96 }],
+  addCardFaceBack: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
+  addCardButtonBack: {
+    backgroundColor: '#DCFCE7',
+    borderColor: '#86EFAC',
   },
   deleteFab: {
     backgroundColor: '#DC2626',
@@ -706,11 +710,5 @@ export const styles = StyleSheet.create({
     height: 12,
     borderRadius: 1,
     backgroundColor: '#FFFFFF',
-  },
-  modeFabText: {
-    color: '#FFFFFF',
-    fontSize: 22,
-    fontWeight: '800',
-    lineHeight: 26,
   },
 });
