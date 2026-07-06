@@ -13,10 +13,11 @@ import { styles } from '../styles/appStyles';
 
 const treeViewCardImage = require('../../assets/tree_view.png');
 const clockButtonImage = require('../../assets/card/clock.png');
+const trashButtonImage = require('../../assets/card/trash_icon.png');
 
 const DELETE_HOLD_MS = 500;
-const ADD_POINT_DEAD_ZONE = 16;
-const ADD_POINT_SWITCH_DISTANCE = 24;
+const ADD_POINT_DEAD_ZONE = 28;
+const ADD_POINT_SWITCH_DISTANCE = 36;
 const ADD_POINT_AXIS_BIAS = 1.25;
 const ADD_CARD_BASE_ROTATION = 45;
 const ADD_CARD_MAX_TILT = 18;
@@ -24,6 +25,7 @@ const ADD_CARD_MAX_HORIZONTAL_OFFSET = 96;
 const ADD_CARD_MAX_VERTICAL_OFFSET = 82;
 const MODE_DOUBLE_TAP_DELAY_MS = 280;
 const CLOCK_DRAG_THRESHOLD = 8;
+const DELETE_CARD_TOGGLE_DURATION_MS = 220;
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -73,19 +75,6 @@ function getAddRelationFromPoint(dx, dy, fallbackRelation = null) {
   return fallbackRelation;
 }
 
-function TrashCanIcon() {
-  return (
-    <View style={styles.trashIcon}>
-      <View style={styles.trashIconLid} />
-      <View style={styles.trashIconHandle} />
-      <View style={styles.trashIconBody}>
-        <View style={styles.trashIconLine} />
-        <View style={styles.trashIconLine} />
-      </View>
-    </View>
-  );
-}
-
 export function FloatingControls({
   layoutMode,
   onToggleMode,
@@ -104,7 +93,9 @@ export function FloatingControls({
   const [addCardOffsetY, setAddCardOffsetY] = useState(0);
   const [clockOffsetX, setClockOffsetX] = useState(0);
   const [clockOffsetY, setClockOffsetY] = useState(0);
+  const [shouldRenderDelete, setShouldRenderDelete] = useState(shouldShowDelete);
   const flipProgress = useRef(new Animated.Value(layoutMode === 'tree' ? 1 : 0)).current;
+  const deleteSlideProgress = useRef(new Animated.Value(shouldShowDelete ? 1 : 0)).current;
   const addRelationRef = useRef(null);
   const lastModeTapRef = useRef(0);
   const addStartRef = useRef({
@@ -122,6 +113,29 @@ export function FloatingControls({
   }, [
     flipProgress,
     layoutMode,
+  ]);
+
+  useEffect(() => {
+    if (shouldShowDelete) {
+      setShouldRenderDelete(true);
+    } else {
+      onDeleteHoldChange?.(false);
+    }
+
+    Animated.timing(deleteSlideProgress, {
+      toValue: shouldShowDelete ? 1 : 0,
+      duration: DELETE_CARD_TOGGLE_DURATION_MS,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (finished && !shouldShowDelete) {
+        setShouldRenderDelete(false);
+      }
+    });
+  }, [
+    deleteSlideProgress,
+    onDeleteHoldChange,
+    shouldShowDelete,
   ]);
 
   const clockPanResponder = useMemo(() => PanResponder.create({
@@ -300,8 +314,24 @@ export function FloatingControls({
         </View>
       ) : null}
 
-      {shouldShowDelete ? (
-        <View style={styles.floatingControls}>
+      {shouldRenderDelete ? (
+        <Animated.View
+          pointerEvents={shouldShowDelete ? 'auto' : 'none'}
+          style={[
+            styles.deleteCardFloatingControl,
+            {
+              opacity: deleteSlideProgress,
+              transform: [
+                {
+                  translateX: deleteSlideProgress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [84, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
           <Pressable
             accessibilityHint="Hold until the circle completes to delete the current card"
             accessibilityLabel="Delete current card"
@@ -310,14 +340,16 @@ export function FloatingControls({
             onPressIn={handleDeletePressIn}
             onPressOut={handleDeletePressOut}
             style={({ pressed }) => [
-              styles.fab,
-              styles.deleteFab,
-              pressed && styles.deleteFabPressed,
+              styles.deleteCardButton,
+              pressed && styles.deleteCardButtonPressed,
             ]}
           >
-            <TrashCanIcon />
+            <Image
+              source={trashButtonImage}
+              style={styles.deleteCardIcon}
+            />
           </Pressable>
-        </View>
+        </Animated.View>
       ) : null}
 
       <View style={styles.addFloatingControl}>
