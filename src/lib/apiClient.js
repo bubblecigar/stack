@@ -89,3 +89,17 @@ export function saveRemoteCards(token, cards) {
     body: JSON.stringify({ cards }),
   });
 }
+
+export function loadRemoteUserData(token, key) {
+  return requestJson(`${API_BASE_URL}/api/user-data?key=${encodeURIComponent(key)}`, {
+    headers: authHeaders(token),
+  });
+}
+
+export function saveRemoteUserData(token, key, value) {
+  return requestJson(`${API_BASE_URL}/api/user-data?key=${encodeURIComponent(key)}`, {
+    method: 'PUT',
+    headers: authHeaders(token),
+    body: JSON.stringify({ key, value }),
+  });
+}

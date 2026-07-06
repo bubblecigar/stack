@@ -315,10 +315,11 @@ export function addStampAt(index, stamp) {
 
 export function removeAt(index) {
   if (index < 0 || index >= stack.length) {
-    return;
+    return [];
   }
 
   const removedCardId = stack[index].id;
+  const removedCards = [stack[index]];
 
   stack = stack
     .filter((_, itemIndex) => itemIndex !== index)
@@ -328,6 +329,41 @@ export function removeAt(index) {
       parentIds: card.parentIds.filter((id) => id !== removedCardId),
     }));
   emitChange();
+  return removedCards;
+}
+
+export function removeSubtreeAt(index) {
+  if (index < 0 || index >= stack.length) {
+    return [];
+  }
+
+  const cardById = new Map(stack.map((card) => [card.id, card]));
+  const removedIds = new Set();
+
+  function collectDescendants(card) {
+    if (!card || removedIds.has(card.id)) {
+      return;
+    }
+
+    removedIds.add(card.id);
+    (card.childIds || [])
+      .map((childId) => cardById.get(childId))
+      .filter(Boolean)
+      .forEach(collectDescendants);
+  }
+
+  collectDescendants(stack[index]);
+
+  const removedCards = stack.filter((card) => removedIds.has(card.id));
+  stack = stack
+    .filter((card) => !removedIds.has(card.id))
+    .map((card) => ({
+      ...card,
+      childIds: card.childIds.filter((id) => !removedIds.has(id)),
+      parentIds: card.parentIds.filter((id) => !removedIds.has(id)),
+    }));
+  emitChange();
+  return removedCards;
 }
 
 export function addChildLink(parentIndex, childIndex) {

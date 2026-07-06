@@ -17,6 +17,7 @@ import {
   loadCards,
   push,
   removeAt,
+  removeSubtreeAt,
   setDoneAt,
   subscribe,
   updateAt,
@@ -27,12 +28,33 @@ import { AuthScreen } from './src/views/AuthScreen';
 import { LeafDeck } from './src/views/LeafDeck';
 import { NodeStructureView } from './src/views/NodeStructureView';
 import { TreeCanvas } from './src/views/TreeCanvas';
-import { getMe, loadRemoteCards, saveRemoteCards } from './src/lib/apiClient';
+import {
+  getMe,
+  loadRemoteCards,
+  loadRemoteUserData,
+  saveRemoteCards,
+  saveRemoteUserData,
+} from './src/lib/apiClient';
 import { clearStoredAuthToken, getStoredAuthToken, setStoredAuthToken } from './src/lib/authTokenStore';
 import { moveInTraversal } from './src/lib/cardTraversal';
 import { styles } from './src/styles/appStyles';
 
 const LEAF_VISIBLE_COUNT = 5;
+const TREE_COMPLETION_CANVAS_KEY = 'treeCompletionCanvas';
+const TREE_COMPLETION_CANVAS_WIDTH = 1600;
+const TREE_COMPLETION_CANVAS_HEIGHT = 1200;
+const TREE_COMPLETION_CANVAS_PADDING = 48;
+const TREE_COMPLETION_CANVAS_LINE_HEIGHT = 30;
+const TREE_COMPLETION_TEXT_START_X = 460;
+const TREE_COMPLETION_TEXT_START_Y = 580;
+const EMPTY_TREE_COMPLETION_CANVAS = {
+  imagePng: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADElEQVR42mP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC',
+  width: TREE_COMPLETION_CANVAS_WIDTH,
+  height: TREE_COMPLETION_CANVAS_HEIGHT,
+  entries: [],
+  nextY: TREE_COMPLETION_TEXT_START_Y,
+  updatedAt: null,
+};
 
 function getLeafRootScopedCards(cards, currentCardId) {
   if (currentCardId === null || currentCardId === undefined) {
@@ -147,6 +169,43 @@ function getRootTreeCardIds(cards, currentCardId) {
   return rootTreeCardIds;
 }
 
+function wrapCanvasText(context, text, maxWidth) {
+  const words = String(text || '').trim().split(/\s+/).filter(Boolean);
+  const lines = [];
+  let currentLine = '';
+
+  words.forEach((word) => {
+    const nextLine = currentLine ? `${currentLine} ${word}` : word;
+    if (context.measureText(nextLine).width <= maxWidth || !currentLine) {
+      currentLine = nextLine;
+      return;
+    }
+
+    lines.push(currentLine);
+    currentLine = word;
+  });
+
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+
+  return lines.length > 0 ? lines : [''];
+}
+
+function loadCanvasImage(source) {
+  return new Promise((resolve) => {
+    if (!source || typeof window === 'undefined' || !window.Image) {
+      resolve(null);
+      return;
+    }
+
+    const image = new window.Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => resolve(null);
+    image.src = source;
+  });
+}
+
 export default function App() {
   const [fontsLoaded] = useFonts({
     Kalam_400Regular,
@@ -167,6 +226,7 @@ export default function App() {
   const [isDeleteHoldActive, setIsDeleteHoldActive] = useState(false);
   const [addPreviewRelation, setAddPreviewRelation] = useState(null);
   const [isAddHoldActive, setIsAddHoldActive] = useState(false);
+  const [treeCompletionCanvas, setTreeCompletionCanvas] = useState(EMPTY_TREE_COMPLETION_CANVAS);
 
   const stack = useSyncExternalStore(subscribe, getSnapshot);
   const cards = useMemo(() => stack.map((card, index) => ({ ...card, index })), [stack]);
@@ -307,6 +367,7 @@ export default function App() {
     setLeafPinnedDoneCardId(null);
     setIsDeleteHoldActive(false);
     setCollapsedNodeIds(new Set());
+    setTreeCompletionCanvas(EMPTY_TREE_COMPLETION_CANVAS);
     hasLoadedDefaultStack.current = false;
     hasLoadedRemoteCards.current = false;
     isApplyingRemoteCards.current = true;
@@ -381,16 +442,28 @@ export default function App() {
 
     async function loadCardsForUser() {
       try {
-        const result = await loadRemoteCards(authToken);
+        const [cardsResult, canvasResult] = await Promise.all([
+          loadRemoteCards(authToken),
+          loadRemoteUserData(authToken, TREE_COMPLETION_CANVAS_KEY),
+        ]);
 
         if (!isMounted) {
           return;
         }
 
         isApplyingRemoteCards.current = true;
-        loadCards(Array.isArray(result.cards) ? result.cards : []);
+        loadCards(Array.isArray(cardsResult.cards) ? cardsResult.cards : []);
         isApplyingRemoteCards.current = false;
+        setTreeCompletionCanvas(canvasResult.value || EMPTY_TREE_COMPLETION_CANVAS);
         hasLoadedRemoteCards.current = true;
+
+        if (!canvasResult.value) {
+          saveRemoteUserData(
+            authToken,
+            TREE_COMPLETION_CANVAS_KEY,
+            EMPTY_TREE_COMPLETION_CANVAS,
+          ).catch(() => {});
+        }
       } catch (error) {
         if (!isMounted) {
           return;
@@ -489,49 +562,219 @@ export default function App() {
     handleEditCard(index, text);
   }
 
+  async function writeRemovedCardsToTreeCanvas(removedCards) {
+    const removedTexts = removedCards
+      .map((card) => String(card?.text || '').trim())
+      .filter(Boolean);
+
+    if (removedTexts.length === 0) {
+      return;
+    }
+
+    const currentCanvas = treeCompletionCanvas || EMPTY_TREE_COMPLETION_CANVAS;
+    const baseWidth = Math.max(
+      Number(currentCanvas.width) || TREE_COMPLETION_CANVAS_WIDTH,
+      TREE_COMPLETION_CANVAS_WIDTH,
+    );
+    const baseHeight = Math.max(
+      Number(currentCanvas.height) || TREE_COMPLETION_CANVAS_HEIGHT,
+      TREE_COMPLETION_CANVAS_HEIGHT,
+    );
+    const startY = Math.max(
+      Number(currentCanvas.nextY) || TREE_COMPLETION_TEXT_START_Y,
+      TREE_COMPLETION_TEXT_START_Y,
+    );
+
+    if (Platform.OS !== 'web' || typeof document === 'undefined') {
+      const nextEntries = [
+        ...(Array.isArray(currentCanvas.entries) ? currentCanvas.entries : []),
+        ...removedTexts.map((text, textIndex) => ({
+          id: `removed-${Date.now()}-${textIndex}`,
+          text,
+          x: TREE_COMPLETION_TEXT_START_X,
+          y: startY + (textIndex * TREE_COMPLETION_CANVAS_LINE_HEIGHT),
+        })),
+      ];
+      const nextCanvas = {
+        ...currentCanvas,
+        entries: nextEntries,
+        height: baseHeight,
+        nextY: startY + (removedTexts.length * TREE_COMPLETION_CANVAS_LINE_HEIGHT),
+        updatedAt: Date.now(),
+        width: baseWidth,
+      };
+
+      setTreeCompletionCanvas(nextCanvas);
+      if (authToken) {
+        saveRemoteUserData(
+          authToken,
+          TREE_COMPLETION_CANVAS_KEY,
+          nextCanvas,
+        ).catch(() => {});
+      }
+      return;
+    }
+
+    const measureCanvas = document.createElement('canvas');
+    const measureContext = measureCanvas.getContext('2d');
+    measureContext.font = '28px Kalam, Kalam_400Regular, cursive';
+    const maxTextWidth = baseWidth - TREE_COMPLETION_TEXT_START_X - TREE_COMPLETION_CANVAS_PADDING;
+    const wrappedLines = removedTexts.flatMap((text) => (
+      wrapCanvasText(measureContext, text, maxTextWidth)
+    ));
+    const requiredHeight = startY
+      + (wrappedLines.length * TREE_COMPLETION_CANVAS_LINE_HEIGHT)
+      + TREE_COMPLETION_CANVAS_PADDING;
+    const nextHeight = Math.max(baseHeight, requiredHeight);
+    const existingImage = await loadCanvasImage(currentCanvas.imagePng);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = baseWidth;
+    canvas.height = nextHeight;
+    const context = canvas.getContext('2d');
+    context.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (existingImage) {
+      context.drawImage(existingImage, 0, 0, baseWidth, baseHeight);
+    }
+
+    context.font = '28px Kalam, Kalam_400Regular, cursive';
+    context.fillStyle = '#475569';
+    context.globalAlpha = 0.72;
+    let y = startY;
+    wrappedLines.forEach((line) => {
+      context.fillText(line, TREE_COMPLETION_TEXT_START_X, y);
+      y += TREE_COMPLETION_CANVAS_LINE_HEIGHT;
+    });
+    context.globalAlpha = 1;
+
+    const nextCanvas = {
+      entries: [
+        ...(Array.isArray(currentCanvas.entries) ? currentCanvas.entries : []),
+        ...wrappedLines.map((text, lineIndex) => ({
+          id: `removed-${Date.now()}-${lineIndex}`,
+          text,
+          x: TREE_COMPLETION_TEXT_START_X,
+          y: startY + (lineIndex * TREE_COMPLETION_CANVAS_LINE_HEIGHT),
+        })),
+      ],
+      imagePng: canvas.toDataURL('image/png'),
+      width: baseWidth,
+      height: nextHeight,
+      nextY: y + TREE_COMPLETION_CANVAS_LINE_HEIGHT,
+      updatedAt: Date.now(),
+    };
+
+    setTreeCompletionCanvas(nextCanvas);
+    if (authToken) {
+      saveRemoteUserData(
+        authToken,
+        TREE_COMPLETION_CANVAS_KEY,
+        nextCanvas,
+      ).catch(() => {});
+    }
+  }
+
   function handleDeleteCard(index) {
-    const removedCard = stack[index];
+    const removedCard = cards[index];
+    if (!removedCard) {
+      return;
+    }
+
+    const cardById = new Map(cards.map((card) => [card.id, card]));
+    const removedCards = [];
+    const removedCardIds = new Set();
+
+    function collectRemovedCards(card) {
+      if (!card || removedCardIds.has(card.id)) {
+        return;
+      }
+
+      removedCardIds.add(card.id);
+      removedCards.push(card);
+
+      if (!removedCard.done) {
+        return;
+      }
+
+      (card.childIds || [])
+        .map((childId) => cardById.get(childId))
+        .filter(Boolean)
+        .forEach(collectRemovedCards);
+    }
+
+    collectRemovedCards(removedCard);
+
+    const removedIndexes = removedCards
+      .map((card) => card.index)
+      .filter((itemIndex) => Number.isInteger(itemIndex))
+      .sort((left, right) => left - right);
+    const nextCardCount = Math.max(cards.length - removedIndexes.length, 0);
+
+    function adjustIndexAfterRemoval(currentIndex) {
+      if (currentIndex === null || currentIndex === undefined) {
+        return null;
+      }
+
+      const currentCard = cards[currentIndex];
+      if (currentCard && removedCardIds.has(currentCard.id)) {
+        return null;
+      }
+
+      const removedBeforeCount = removedIndexes.filter((removedIndex) => (
+        removedIndex < currentIndex
+      )).length;
+      const adjustedIndex = currentIndex - removedBeforeCount;
+      return nextCardCount > 0
+        ? Math.max(0, Math.min(adjustedIndex, nextCardCount - 1))
+        : null;
+    }
+
     setIsDeleteHoldActive(false);
-    if (removedCard?.id === leafPinnedDoneCardId) {
+    if (removedCardIds.has(leafPinnedDoneCardId)) {
       setLeafPinnedDoneCardId(null);
     }
 
-    if (editingIndex === index) {
+    const nextEditingIndex = adjustIndexAfterRemoval(editingIndex);
+    if (nextEditingIndex === null) {
       setEditingIndex(null);
       setEditingValue('');
-    } else if (editingIndex > index) {
-      setEditingIndex(editingIndex - 1);
+    } else if (nextEditingIndex !== editingIndex) {
+      setEditingIndex(nextEditingIndex);
     }
 
-    if (focusedCardIndex === index) {
-      setFocusedCardIndex(null);
-    } else if (focusedCardIndex > index) {
-      setFocusedCardIndex(focusedCardIndex - 1);
-    }
+    setFocusedCardIndex(adjustIndexAfterRemoval(focusedCardIndex));
 
     setLeafTopIndex((currentTop) => {
-      if (cards.length === 0) {
+      if (nextCardCount === 0) {
         return null;
       }
 
       if (currentTop === null) {
-        return Math.max(cards.length - 2, 0);
+        return nextCardCount - 1;
       }
 
-      const adjustedTop = currentTop - (index < currentTop ? 1 : 0);
-      return Math.max(0, Math.min(adjustedTop, cards.length - 2));
+      return adjustIndexAfterRemoval(currentTop) ?? Math.min(currentTop, nextCardCount - 1);
     });
 
-    if (removedCard) {
+    if (removedCardIds.size > 0) {
       setCollapsedNodeIds((currentCollapsed) => {
-        if (!currentCollapsed.has(removedCard.id)) {
+        if (![...removedCardIds].some((cardId) => currentCollapsed.has(cardId))) {
           return currentCollapsed;
         }
 
         const nextCollapsed = new Set(currentCollapsed);
-        nextCollapsed.delete(removedCard.id);
+        removedCardIds.forEach((cardId) => {
+          nextCollapsed.delete(cardId);
+        });
         return nextCollapsed;
       });
+    }
+
+    if (removedCard.done) {
+      removeSubtreeAt(index);
+      writeRemovedCardsToTreeCanvas(removedCards);
+      return;
     }
 
     removeAt(index);
@@ -838,6 +1081,7 @@ export default function App() {
             collapsedNodeIds={collapsedNodeIds}
             focusedCardIndex={focusedCardIndex}
             focusedCardId={focusedCardId}
+            treeCompletionCanvas={treeCompletionCanvas}
             editingIndex={editingIndex}
             editingValue={editingValue}
             onCardPress={handleTreeCardPress}
