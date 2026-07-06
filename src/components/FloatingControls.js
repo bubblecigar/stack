@@ -16,6 +16,7 @@ const ADD_POINT_SWITCH_DISTANCE = 24;
 const ADD_POINT_AXIS_BIAS = 1.25;
 const ADD_CARD_BASE_ROTATION = 45;
 const ADD_CARD_MAX_TILT = 18;
+const ADD_CARD_MAX_HORIZONTAL_OFFSET = 96;
 const ADD_CARD_MAX_VERTICAL_OFFSET = 82;
 const MODE_DOUBLE_TAP_DELAY_MS = 280;
 
@@ -36,6 +37,10 @@ function getAddCardRotation(dx, dy) {
 
 function getAddCardVerticalOffset(dy) {
   return clamp(dy * 0.72, -ADD_CARD_MAX_VERTICAL_OFFSET, ADD_CARD_MAX_VERTICAL_OFFSET);
+}
+
+function getAddCardHorizontalOffset(dx) {
+  return clamp(dx * 0.72, -ADD_CARD_MAX_HORIZONTAL_OFFSET, ADD_CARD_MAX_HORIZONTAL_OFFSET);
 }
 
 function getAddRelationFromPoint(dx, dy, fallbackRelation = null) {
@@ -88,6 +93,7 @@ export function FloatingControls({
   const shouldShowDelete = canDeleteCurrentCard;
   const [isAddPressed, setIsAddPressed] = useState(false);
   const [addCardRotation, setAddCardRotation] = useState(ADD_CARD_BASE_ROTATION);
+  const [addCardOffsetX, setAddCardOffsetX] = useState(0);
   const [addCardOffsetY, setAddCardOffsetY] = useState(0);
   const flipProgress = useRef(new Animated.Value(layoutMode === 'tree' ? 1 : 0)).current;
   const addRelationRef = useRef(null);
@@ -127,6 +133,7 @@ export function FloatingControls({
 
   function updateAddRelation(dx, dy) {
     setAddCardRotation(getAddCardRotation(dx, dy));
+    setAddCardOffsetX(getAddCardHorizontalOffset(dx));
     setAddCardOffsetY(getAddCardVerticalOffset(dy));
 
     const relation = getAddRelationFromPoint(
@@ -146,6 +153,7 @@ export function FloatingControls({
   function resetAddPointing() {
     setIsAddPressed(false);
     setAddCardRotation(ADD_CARD_BASE_ROTATION);
+    setAddCardOffsetX(0);
     setAddCardOffsetY(0);
     addRelationRef.current = null;
     onAddHoldChange?.(false);
@@ -181,6 +189,7 @@ export function FloatingControls({
       addRelationRef.current = null;
       setIsAddPressed(true);
       setAddCardRotation(ADD_CARD_BASE_ROTATION);
+      setAddCardOffsetX(0);
       setAddCardOffsetY(0);
       onAddHoldChange?.(true);
       onAddPreviewChange?.(null);
@@ -260,6 +269,7 @@ export function FloatingControls({
               styles.addCardButtonShell,
               {
                 transform: [
+                  { translateX: addCardOffsetX },
                   { translateY: addCardOffsetY },
                   { rotate: `${addCardRotation}deg` },
                 ],
@@ -287,7 +297,6 @@ export function FloatingControls({
               style={[
                 styles.addCardButton,
                 styles.addCardFace,
-                styles.addCardFaceBack,
                 styles.addCardButtonBack,
                 {
                   transform: [

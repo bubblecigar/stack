@@ -631,6 +631,15 @@ export const styles = StyleSheet.create({
   addCardButtonShell: {
     width: 320,
     height: 320,
+    borderRadius: 8,
+    shadowColor: '#0F172A',
+    shadowOffset: {
+      width: 0,
+      height: 12,
+    },
+    shadowOpacity: 0.18,
+    shadowRadius: 20,
+    elevation: 16,
   },
   addCardButton: {
     width: 320,
@@ -642,22 +651,12 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
     paddingTop: 34,
-    shadowColor: '#0F172A',
-    shadowOffset: {
-      width: 0,
-      height: 12,
-    },
-    shadowOpacity: 0.18,
-    shadowRadius: 20,
-    elevation: 16,
   },
   addCardFace: {
-    backfaceVisibility: 'hidden',
-  },
-  addCardFaceBack: {
     position: 'absolute',
     top: 0,
     left: 0,
+    backfaceVisibility: 'hidden',
   },
   addCardButtonBack: {
     backgroundColor: '#DCFCE7',
