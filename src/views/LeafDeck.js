@@ -230,6 +230,7 @@ export function LeafDeck({
   const [doneStampOffsetX, setDoneStampOffsetX] = useState(0);
   const [doneStampOffsetY, setDoneStampOffsetY] = useState(0);
   const [isDoneStampDragging, setIsDoneStampDragging] = useState(false);
+  const [isCardSwipeActive, setIsCardSwipeActive] = useState(false);
   const [insertingDirection, setInsertingDirection] = useState(null);
   const [displayCard, setDisplayCard] = useState(null);
   const [animatedAddPreviewRelation, setAnimatedAddPreviewRelation] = useState(null);
@@ -435,6 +436,7 @@ export function LeafDeck({
 
     animationRef.current.start(() => {
       resetDrag();
+      setIsCardSwipeActive(false);
       unlockDeck();
     });
   }
@@ -473,6 +475,7 @@ export function LeafDeck({
     animationRef.current.start(({ finished }) => {
       if (!finished) {
         resetDrag();
+        setIsCardSwipeActive(false);
         unlockDeck();
         return;
       }
@@ -487,6 +490,7 @@ export function LeafDeck({
       setDisplayCard(null);
       requestAnimationFrame(() => {
         resetDrag();
+        setIsCardSwipeActive(false);
         unlockDeck();
       });
     });
@@ -531,6 +535,7 @@ export function LeafDeck({
 
   function handleRelease(_, gestureState) {
     if (swipeDisabled || !canSwipeDeck || isAnimatingRef.current) {
+      setIsCardSwipeActive(false);
       return;
     }
 
@@ -631,6 +636,7 @@ export function LeafDeck({
 
       stopCurrentAnimation();
       resetDrag();
+      setIsCardSwipeActive(true);
     },
     onPanResponderMove: (_, { dx, dy }) => {
       if (swipeDisabled || !canSwipeDeck || isAnimatingRef.current) {
@@ -761,8 +767,8 @@ export function LeafDeck({
         const shouldRenderActiveTopSlot = isTopSlot && activeCard;
         const currentMetrics = getSlotMetrics(slot);
         const promotedMetrics = getSlotMetrics(slot - 1);
-        const zIndex = 1000 - slot;
-        const elevation = Math.max(12 - slot, 1);
+        const zIndex = isTopSlot && isCardSwipeActive ? 1100 : 1000 - slot;
+        const elevation = isTopSlot && isCardSwipeActive ? 14 : Math.max(12 - slot, 1);
         const slotOpacity = isTopSlot
           ? currentMetrics.opacity
           : swipeProgress.interpolate({
@@ -980,35 +986,50 @@ export function LeafDeck({
         </Animated.View>
       ) : null}
       {activeCard?.index >= 0 ? (
-        <View
-          {...doneStampPanResponder.panHandlers}
-          accessibilityHint={activeCardDone
-            ? 'Drag onto the current card to clear done'
-            : 'Drag onto the current card to mark it done'}
-          accessibilityLabel={activeCardDone
-            ? 'Clear current card done'
-            : 'Mark current card done'}
-          accessibilityRole="button"
-          style={[
-            styles.leafDoneStampButton,
-            isDoneStampDragging && styles.leafDoneStampButtonPressed,
-            {
-              transform: [
-                { translateX: doneStampOffsetX },
-                { translateY: doneStampOffsetY },
-              ],
-            },
-          ]}
-        >
-          <Image
+        <>
+          <View
             pointerEvents="none"
-            source={doneStampImage}
             style={[
-              styles.leafDoneStampIcon,
-              activeCardDone && styles.leafDoneStampIconToggleOff,
+              styles.leafDoneStampButton,
+              isDoneStampDragging && styles.leafDoneStampButtonDragging,
+              isDoneStampDragging && styles.leafDoneStampButtonPressed,
+              {
+                transform: [
+                  { translateX: doneStampOffsetX },
+                  { translateY: doneStampOffsetY },
+                ],
+              },
+            ]}
+          >
+            <Image
+              pointerEvents="none"
+              source={doneStampImage}
+              style={[
+                styles.leafDoneStampIcon,
+                activeCardDone && styles.leafDoneStampIconToggleOff,
+              ]}
+            />
+          </View>
+          <View
+            {...doneStampPanResponder.panHandlers}
+            accessibilityHint={activeCardDone
+              ? 'Drag onto the current card to clear done'
+              : 'Drag onto the current card to mark it done'}
+            accessibilityLabel={activeCardDone
+              ? 'Clear current card done'
+              : 'Mark current card done'}
+            accessibilityRole="button"
+            style={[
+              styles.leafDoneStampHitTarget,
+              {
+                transform: [
+                  { translateX: doneStampOffsetX },
+                  { translateY: doneStampOffsetY },
+                ],
+              },
             ]}
           />
-        </View>
+        </>
       ) : null}
     </View>
   );
