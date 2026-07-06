@@ -1,4 +1,18 @@
-const fallbackHost = '192.168.1.101';
+import Constants from 'expo-constants';
+
+function getExpoHost() {
+  const hostUri = Constants.expoConfig?.hostUri
+    || Constants.manifest2?.extra?.expoGo?.debuggerHost
+    || Constants.manifest?.debuggerHost;
+
+  if (!hostUri || typeof hostUri !== 'string') {
+    return null;
+  }
+
+  return hostUri.split(':')[0] || null;
+}
+
+const fallbackHost = getExpoHost() || '192.168.1.101';
 const DEFAULT_AUTH_BASE_URL = `http://${fallbackHost}:4100`;
 const DEFAULT_API_BASE_URL = `http://${fallbackHost}:4101`;
 
