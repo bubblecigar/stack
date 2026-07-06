@@ -28,6 +28,12 @@ const DOUBLE_TAP_DELAY_MS = 280;
 const TAP_MOVE_TOLERANCE = 12;
 const DELETE_HOLD_MS = 1000;
 const DELETE_RING_SEGMENTS = 48;
+const ADD_PREVIEW_DURATION = 180;
+const ADD_PREVIEW_START_X = SCREEN_WIDTH * 0.42;
+const ADD_PREVIEW_START_Y = SCREEN_HEIGHT * 0.22;
+const ADD_PREVIEW_END_X = 34;
+const ADD_PREVIEW_END_Y = 24;
+const ADD_PREVIEW_PULSE_DURATION = 320;
 
 function normalizeTopIndex(cards, topIndex) {
   if (cards.length === 0) {
@@ -111,43 +117,84 @@ function LeafTrashCanIcon() {
   );
 }
 
-function LeafAddDirectionIndicator({ relation }) {
-  return (
-    <View style={styles.leafAddIndicator}>
-      <View
-        style={[
-          styles.leafAddDirectionSegment,
-          styles.leafAddDirectionLeft,
-          relation === 'parent' && styles.leafAddDirectionSegmentActive,
-        ]}
-      />
-      <View
-        style={[
-          styles.leafAddDirectionSegment,
-          styles.leafAddDirectionRight,
-          relation === 'child' && styles.leafAddDirectionSegmentActive,
-        ]}
-      />
-      <View
-        style={[
-          styles.leafAddDirectionSegment,
-          styles.leafAddDirectionUp,
-          relation === 'previousSibling' && styles.leafAddDirectionSegmentActive,
-        ]}
-      />
-      <View
-        style={[
-          styles.leafAddDirectionSegment,
-          styles.leafAddDirectionDown,
-          relation === 'nextSibling' && styles.leafAddDirectionSegmentActive,
-        ]}
-      />
-      <View style={styles.leafAddIndicatorCenter}>
-        <View style={styles.leafAddIndicatorPlusHorizontal} />
-        <View style={styles.leafAddIndicatorPlusVertical} />
-      </View>
-    </View>
-  );
+function getAddPreviewStartTarget(relation) {
+  if (relation === 'parent') {
+    return { x: ADD_PREVIEW_START_X, y: 0 };
+  }
+
+  if (relation === 'child') {
+    return { x: -ADD_PREVIEW_START_X, y: 0 };
+  }
+
+  if (relation === 'previousSibling') {
+    return { x: 0, y: ADD_PREVIEW_START_Y };
+  }
+
+  if (relation === 'nextSibling') {
+    return { x: 0, y: -ADD_PREVIEW_START_Y };
+  }
+
+  return { x: 0, y: 0 };
+}
+
+function getAddPreviewStartRotation(relation) {
+  if (relation === 'parent') {
+    return '-7deg';
+  }
+
+  if (relation === 'child') {
+    return '7deg';
+  }
+
+  if (relation === 'previousSibling') {
+    return '-5deg';
+  }
+
+  if (relation === 'nextSibling') {
+    return '5deg';
+  }
+
+  return '0deg';
+}
+
+function getAddPreviewEndTarget(relation) {
+  if (relation === 'parent') {
+    return { x: ADD_PREVIEW_END_X, y: 0 };
+  }
+
+  if (relation === 'child') {
+    return { x: -ADD_PREVIEW_END_X, y: 0 };
+  }
+
+  if (relation === 'previousSibling') {
+    return { x: 0, y: ADD_PREVIEW_END_Y };
+  }
+
+  if (relation === 'nextSibling') {
+    return { x: 0, y: -ADD_PREVIEW_END_Y };
+  }
+
+  return { x: 0, y: 0 };
+}
+
+function getAddPreviewEndRotation(relation) {
+  if (relation === 'parent') {
+    return '-4deg';
+  }
+
+  if (relation === 'child') {
+    return '4deg';
+  }
+
+  if (relation === 'previousSibling') {
+    return '-3deg';
+  }
+
+  if (relation === 'nextSibling') {
+    return '3deg';
+  }
+
+  return '0deg';
 }
 
 export function LeafDeck({
@@ -175,9 +222,13 @@ export function LeafDeck({
   const swipeProgressValue = useRef(new Animated.Value(0)).current;
   const insertProgress = useRef(new Animated.Value(1)).current;
   const deleteProgress = useRef(new Animated.Value(0)).current;
+  const addPreviewProgress = useRef(new Animated.Value(0)).current;
+  const addPreviewPulse = useRef(new Animated.Value(0)).current;
   const animationRef = useRef(null);
   const insertAnimationRef = useRef(null);
   const deleteAnimationRef = useRef(null);
+  const addPreviewAnimationRef = useRef(null);
+  const addPreviewPulseRef = useRef(null);
   const isAnimatingRef = useRef(false);
   const deleteCompletedRef = useRef(false);
   const lastTapRef = useRef({
@@ -189,6 +240,7 @@ export function LeafDeck({
   const [displayCard, setDisplayCard] = useState(null);
   const [deleteProgressSnapshot, setDeleteProgressSnapshot] = useState(0);
   const [isDeleteVisualActive, setIsDeleteVisualActive] = useState(false);
+  const [animatedAddPreviewRelation, setAnimatedAddPreviewRelation] = useState(null);
 
   const normalizedTopIndex = normalizeTopIndex(cards, topIndex);
   const visualSlots = useMemo(
@@ -224,6 +276,16 @@ export function LeafDeck({
     if (deleteAnimationRef.current) {
       deleteAnimationRef.current.stop();
       deleteAnimationRef.current = null;
+    }
+
+    if (addPreviewAnimationRef.current) {
+      addPreviewAnimationRef.current.stop();
+      addPreviewAnimationRef.current = null;
+    }
+
+    if (addPreviewPulseRef.current) {
+      addPreviewPulseRef.current.stop();
+      addPreviewPulseRef.current = null;
     }
   }, []);
 
@@ -292,6 +354,68 @@ export function LeafDeck({
     setDisplayCard(topCard);
   }, [
     topCard,
+  ]);
+
+  useEffect(() => {
+    if (addPreviewAnimationRef.current) {
+      addPreviewAnimationRef.current.stop();
+      addPreviewAnimationRef.current = null;
+    }
+
+    if (addPreviewPulseRef.current) {
+      addPreviewPulseRef.current.stop();
+      addPreviewPulseRef.current = null;
+    }
+
+    if (!isAddHoldActive || !addPreviewRelation) {
+      addPreviewProgress.setValue(0);
+      addPreviewPulse.setValue(0);
+      setAnimatedAddPreviewRelation(null);
+      return;
+    }
+
+    addPreviewProgress.setValue(0);
+    addPreviewPulse.setValue(0);
+    setAnimatedAddPreviewRelation(addPreviewRelation);
+
+    addPreviewAnimationRef.current = Animated.timing(addPreviewProgress, {
+      toValue: 1,
+      duration: ADD_PREVIEW_DURATION,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    });
+
+    addPreviewAnimationRef.current.start(({ finished }) => {
+      addPreviewAnimationRef.current = null;
+
+      if (!finished) {
+        return;
+      }
+
+      addPreviewPulseRef.current = Animated.loop(
+        Animated.sequence([
+          Animated.timing(addPreviewPulse, {
+            toValue: 1,
+            duration: ADD_PREVIEW_PULSE_DURATION,
+            easing: Easing.inOut(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          Animated.timing(addPreviewPulse, {
+            toValue: 0,
+            duration: ADD_PREVIEW_PULSE_DURATION,
+            easing: Easing.inOut(Easing.cubic),
+            useNativeDriver: true,
+          }),
+        ]),
+      );
+
+      addPreviewPulseRef.current.start();
+    });
+  }, [
+    addPreviewProgress,
+    addPreviewPulse,
+    addPreviewRelation,
+    isAddHoldActive,
   ]);
 
   function stopCurrentAnimation() {
@@ -598,6 +722,42 @@ export function LeafDeck({
     DELETE_RING_SEGMENTS,
     Math.floor(deleteProgressSnapshot * DELETE_RING_SEGMENTS),
   );
+  const addPreviewStartTarget = getAddPreviewStartTarget(animatedAddPreviewRelation);
+  const addPreviewEndTarget = getAddPreviewEndTarget(animatedAddPreviewRelation);
+  const addPreviewTranslateX = addPreviewProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [addPreviewStartTarget.x, addPreviewEndTarget.x],
+    extrapolate: 'clamp',
+  });
+  const addPreviewTranslateY = addPreviewProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [addPreviewStartTarget.y, addPreviewEndTarget.y],
+    extrapolate: 'clamp',
+  });
+  const addPreviewScale = addPreviewProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.88, 1],
+    extrapolate: 'clamp',
+  });
+  const addPreviewBaseOpacity = addPreviewProgress.interpolate({
+    inputRange: [0, 0.18, 1],
+    outputRange: [0, 0.56, 0.95],
+    extrapolate: 'clamp',
+  });
+  const addPreviewPulseOpacity = addPreviewPulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 0.34],
+    extrapolate: 'clamp',
+  });
+  const addPreviewOpacity = Animated.multiply(addPreviewBaseOpacity, addPreviewPulseOpacity);
+  const addPreviewRotate = addPreviewProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [
+      getAddPreviewStartRotation(animatedAddPreviewRelation),
+      getAddPreviewEndRotation(animatedAddPreviewRelation),
+    ],
+    extrapolate: 'clamp',
+  });
 
   return (
     <View
@@ -735,10 +895,44 @@ export function LeafDeck({
                   </View>
                 </View>
               ) : null}
-              {shouldRenderActiveTopSlot && isAddHoldActive ? (
-                <View pointerEvents="none" style={styles.leafAddIndicatorOverlay}>
-                  <LeafAddDirectionIndicator relation={addPreviewRelation} />
-                </View>
+              {shouldRenderActiveTopSlot && isAddHoldActive && animatedAddPreviewRelation ? (
+                <Animated.View
+                  pointerEvents="none"
+                  style={[
+                    styles.leafAddPreviewOverlay,
+                    {
+                      opacity: addPreviewOpacity,
+                      transform: [
+                        { translateX: addPreviewTranslateX },
+                        { translateY: addPreviewTranslateY },
+                        { scale: addPreviewScale },
+                        { rotate: addPreviewRotate },
+                      ],
+                    },
+                  ]}
+                >
+                  <View style={styles.leafAddPreviewCardFrame}>
+                    <StackCard
+                      card={visualCard}
+                      collapsedNodeIds={collapsedNodeIds}
+                      editingIndex={null}
+                      editingValue=""
+                      focusedCardIndex={focusedCardIndex}
+                      focusedCardId={effectiveFocusedCardId}
+                      hideControls
+                      isLeafTopCard={false}
+                      layout="leaf"
+                      visibleIndex={0}
+                      onPress={() => {}}
+                      onCreateEdit={onCreateEdit}
+                      onDeleteCard={onDeleteCard}
+                      onEditingValueChange={onEditingValueChange}
+                      onCompleteEdit={onCompleteEdit}
+                      onToggleCollapse={() => {}}
+                      leafContentMode="none"
+                    />
+                  </View>
+                </Animated.View>
               ) : null}
             </View>
           </Animated.View>
