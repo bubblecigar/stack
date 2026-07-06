@@ -13,7 +13,7 @@ const ADD_POINT_SWITCH_DISTANCE = 24;
 const ADD_POINT_AXIS_BIAS = 1.25;
 const ADD_CARD_BASE_ROTATION = 45;
 const ADD_CARD_MAX_TILT = 18;
-const ADD_CARD_MAX_VERTICAL_OFFSET = 34;
+const ADD_CARD_MAX_VERTICAL_OFFSET = 82;
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -31,7 +31,7 @@ function getAddCardRotation(dx, dy) {
 }
 
 function getAddCardVerticalOffset(dy) {
-  return clamp(dy / 2.5, -ADD_CARD_MAX_VERTICAL_OFFSET, ADD_CARD_MAX_VERTICAL_OFFSET);
+  return clamp(dy * 0.72, -ADD_CARD_MAX_VERTICAL_OFFSET, ADD_CARD_MAX_VERTICAL_OFFSET);
 }
 
 function getAddRelationFromPoint(dx, dy, fallbackRelation = null) {
