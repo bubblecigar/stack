@@ -638,6 +638,7 @@ export default function App() {
       <NodeStructureView
         addPreviewRelation={addPreviewRelation}
         cards={cards}
+        deleteTargetActive={isDeleteHoldActive}
         focusedCardIndex={focusedCardIndex}
       />
 

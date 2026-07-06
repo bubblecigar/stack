@@ -131,7 +131,12 @@ function buildPreviewCards(cards, focusedCardIndex, relation) {
   ];
 }
 
-export function NodeStructureView({ cards, focusedCardIndex, addPreviewRelation = null }) {
+export function NodeStructureView({
+  cards,
+  focusedCardIndex,
+  addPreviewRelation = null,
+  deleteTargetActive = false,
+}) {
   if (cards.length === 0) {
     return null;
   }
@@ -182,12 +187,14 @@ export function NodeStructureView({ cards, focusedCardIndex, addPreviewRelation 
           y: MAP_PADDING + (center.y - minCenterY) * safeScale,
           isFocused: entry.card.id === focusedCardId,
           isPreview: entry.card.id === PREVIEW_CARD_ID,
+          isDeleteTarget: deleteTargetActive && entry.card.id === focusedCardId,
         };
       }),
       scale: safeScale,
     };
   }, [
     focusedCardId,
+    deleteTargetActive,
     mapLayout.maxHeight,
     mapLayout.maxWidth,
     mapLayout.nodeHeight,
@@ -270,6 +277,7 @@ export function NodeStructureView({ cards, focusedCardIndex, addPreviewRelation 
               styles.nodeViewMapNode,
               entry.isFocused && styles.nodeViewMapNodeFocused,
               entry.isPreview && styles.nodeViewMapNodePreview,
+              entry.isDeleteTarget && styles.nodeViewMapNodeDeleteTarget,
               {
                 left: entry.x,
                 top: entry.y,
