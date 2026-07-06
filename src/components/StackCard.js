@@ -339,6 +339,13 @@ export function StackCard({
             >
               {text}
             </Text>
+            {done ? (
+              <Image
+                pointerEvents="none"
+                source={doneStampImage}
+                style={styles.treeDoneStampOverlay}
+              />
+            ) : null}
           </Animated.View>
         )
       )}

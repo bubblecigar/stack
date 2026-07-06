@@ -187,6 +187,7 @@ export function NodeStructureView({
           y: MAP_PADDING + (center.y - minCenterY) * safeScale,
           isFocused: entry.card.id === focusedCardId,
           isPreview: entry.card.id === PREVIEW_CARD_ID,
+          isDone: Boolean(entry.card.done),
           isDeleteTarget: deleteTargetActive && entry.card.id === focusedCardId,
         };
       }),
@@ -275,6 +276,7 @@ export function NodeStructureView({
             key={`map-node-${entry.card.id}`}
             style={[
               styles.nodeViewMapNode,
+              entry.isDone && styles.nodeViewMapNodeDone,
               entry.isFocused && styles.nodeViewMapNodeFocused,
               entry.isPreview && styles.nodeViewMapNodePreview,
               entry.isDeleteTarget && styles.nodeViewMapNodeDeleteTarget,
