@@ -11,7 +11,7 @@ import { useEffect, useRef } from 'react';
 import { DeleteHoldIndicator } from './DeleteHoldIndicator';
 import { styles } from '../styles/appStyles';
 
-const doneStampImage = require('../../assets/card/done_stamp_red.png');
+const doneStampImage = require('../../assets/card/done_stamp_gray.png');
 
 export function StackCard({
   card,
