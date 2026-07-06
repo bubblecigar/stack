@@ -23,6 +23,7 @@ const ADD_CARD_MAX_TILT = 18;
 const ADD_CARD_MAX_HORIZONTAL_OFFSET = 96;
 const ADD_CARD_MAX_VERTICAL_OFFSET = 82;
 const MODE_DOUBLE_TAP_DELAY_MS = 280;
+const CLOCK_DRAG_THRESHOLD = 8;
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -92,7 +93,7 @@ export function FloatingControls({
   onAddPreviewChange,
   onAddHoldChange,
   onDeleteHoldChange,
-  onStartFocusMode,
+  onClockDrop,
   canDeleteCurrentCard = false,
 }) {
   const shouldShowDelete = canDeleteCurrentCard;
@@ -101,6 +102,8 @@ export function FloatingControls({
   const [addCardRotation, setAddCardRotation] = useState(ADD_CARD_BASE_ROTATION);
   const [addCardOffsetX, setAddCardOffsetX] = useState(0);
   const [addCardOffsetY, setAddCardOffsetY] = useState(0);
+  const [clockOffsetX, setClockOffsetX] = useState(0);
+  const [clockOffsetY, setClockOffsetY] = useState(0);
   const flipProgress = useRef(new Animated.Value(layoutMode === 'tree' ? 1 : 0)).current;
   const addRelationRef = useRef(null);
   const lastModeTapRef = useRef(0);
@@ -119,6 +122,39 @@ export function FloatingControls({
   }, [
     flipProgress,
     layoutMode,
+  ]);
+
+  const clockPanResponder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderGrant: () => {
+      setClockOffsetX(0);
+      setClockOffsetY(0);
+    },
+    onPanResponderMove: (_, gestureState) => {
+      setClockOffsetX(gestureState.dx);
+      setClockOffsetY(gestureState.dy);
+    },
+    onPanResponderRelease: (event, gestureState) => {
+      const didDrag = Math.hypot(gestureState.dx, gestureState.dy) >= CLOCK_DRAG_THRESHOLD;
+      const { pageX, pageY } = event.nativeEvent;
+
+      setClockOffsetX(0);
+      setClockOffsetY(0);
+
+      if (didDrag && typeof pageX === 'number' && typeof pageY === 'number') {
+        onClockDrop?.({
+          pageX,
+          pageY,
+        });
+      }
+    },
+    onPanResponderTerminate: () => {
+      setClockOffsetX(0);
+      setClockOffsetY(0);
+    },
+  }), [
+    onClockDrop,
   ]);
 
   function getAddGestureDelta(event, gestureState) {
@@ -241,21 +277,26 @@ export function FloatingControls({
     <>
       {shouldShowFocus ? (
         <View style={styles.focusFloatingControl}>
-          <Pressable
-            accessibilityLabel="Clock"
+          <View
+            {...clockPanResponder.panHandlers}
+            accessibilityLabel="Drag clock stamp"
             accessibilityRole="button"
-            onPress={onStartFocusMode}
-            style={({ pressed }) => [
+            style={[
               styles.fab,
               styles.focusFab,
-              pressed && styles.focusFabPressed,
+              {
+                transform: [
+                  { translateX: clockOffsetX },
+                  { translateY: clockOffsetY },
+                ],
+              },
             ]}
           >
             <Image
               source={clockButtonImage}
               style={styles.focusFabImage}
             />
-          </Pressable>
+          </View>
         </View>
       ) : null}
 

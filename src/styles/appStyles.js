@@ -534,6 +534,16 @@ export const styles = StyleSheet.create({
   leafFocusedText: {
     color: '#0F172A',
   },
+  leafStamp: {
+    position: 'absolute',
+    width: 58,
+    height: 58,
+    marginLeft: -29,
+    marginTop: -29,
+    opacity: 0.9,
+    resizeMode: 'contain',
+    zIndex: 24,
+  },
   leafPlaceholderBar: {
     width: '88%',
     height: 12,
@@ -670,11 +680,6 @@ export const styles = StyleSheet.create({
     overflow: 'hidden',
     shadowOpacity: 0,
     elevation: 0,
-  },
-  focusFabPressed: {
-    backgroundColor: 'transparent',
-    opacity: 0.78,
-    transform: [{ scale: 0.96 }],
   },
   focusFabImage: {
     width: 64,

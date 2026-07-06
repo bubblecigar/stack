@@ -202,6 +202,7 @@ export function LeafDeck({
   isAddHoldActive = false,
   addPreviewRelation = null,
   onDeleteCurrentCard,
+  onTopCardFrameChange,
   swipeDisabled,
 }) {
   const dragX = useRef(new Animated.Value(0)).current;
@@ -220,9 +221,21 @@ export function LeafDeck({
   });
   const touchStartRef = useRef(null);
   const inputTouchRef = useRef(false);
+  const topCardFrameRef = useRef(null);
   const [insertingDirection, setInsertingDirection] = useState(null);
   const [displayCard, setDisplayCard] = useState(null);
   const [animatedAddPreviewRelation, setAnimatedAddPreviewRelation] = useState(null);
+
+  function reportTopCardFrame() {
+    topCardFrameRef.current?.measureInWindow?.((x, y, width, height) => {
+      onTopCardFrameChange?.({
+        height,
+        width,
+        x,
+        y,
+      });
+    });
+  }
 
   const normalizedTopIndex = normalizeTopIndex(cards, topIndex);
   const visualSlots = useMemo(
@@ -272,6 +285,7 @@ export function LeafDeck({
     }
 
     setDisplayCard(topCard);
+    requestAnimationFrame(reportTopCardFrame);
   }, [
     topCard,
   ]);
@@ -753,7 +767,11 @@ export function LeafDeck({
               },
             ]}
           >
-            <View style={styles.leafCardFrame}>
+            <View
+              ref={shouldRenderActiveTopSlot ? topCardFrameRef : null}
+              style={styles.leafCardFrame}
+              onLayout={shouldRenderActiveTopSlot ? reportTopCardFrame : undefined}
+            >
               <StackCard
                 card={shouldRenderActiveTopSlot ? activeCard : visualCard}
                 collapsedNodeIds={collapsedNodeIds}

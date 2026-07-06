@@ -28,6 +28,7 @@ export function push(value) {
       childIds: [],
       id: nextCardId,
       parentIds: [],
+      stamps: [],
       text: nextValue,
     },
   ];
@@ -42,6 +43,7 @@ function createCard(value) {
     childIds: [],
     id: nextCardId,
     parentIds: [],
+    stamps: [],
     text: value.trim(),
   };
   nextCardId += 1;
@@ -181,9 +183,27 @@ function normalizeIncomingCard(rawCard, nextGeneratedId) {
 
   const rawChildIds = Array.isArray(rawCard?.childIds) ? rawCard.childIds : [];
   const rawParentIds = Array.isArray(rawCard?.parentIds) ? rawCard.parentIds : [];
+  const rawStamps = Array.isArray(rawCard?.stamps) ? rawCard.stamps : [];
 
   const childIds = rawChildIds.map((id) => Number(id)).filter((id) => Number.isInteger(id));
   const parentIds = rawParentIds.map((id) => Number(id)).filter((id) => Number.isInteger(id));
+  const stamps = rawStamps
+    .map((stamp, stampIndex) => {
+      const x = Number(stamp?.x);
+      const y = Number(stamp?.y);
+
+      if (!Number.isFinite(x) || !Number.isFinite(y)) {
+        return null;
+      }
+
+      return {
+        id: String(stamp?.id ?? `stamp-${stampIndex}`),
+        type: String(stamp?.type ?? 'clock'),
+        x: Math.min(Math.max(x, 0), 1),
+        y: Math.min(Math.max(y, 0), 1),
+      };
+    })
+    .filter(Boolean);
 
   const rawId = Number(rawCard?.id);
   const id = Number.isInteger(rawId) && rawId > 0
@@ -194,6 +214,7 @@ function normalizeIncomingCard(rawCard, nextGeneratedId) {
     childIds,
     id,
     parentIds,
+    stamps,
     text: String(text),
   };
 }
@@ -244,6 +265,36 @@ export function updateAt(index, value) {
 
   stack = stack.map((card, itemIndex) => (
     itemIndex === index ? { ...card, text: nextValue } : card
+  ));
+  emitChange();
+}
+
+export function addStampAt(index, stamp) {
+  if (index < 0 || index >= stack.length || !stamp) {
+    return;
+  }
+
+  const x = Number(stamp.x);
+  const y = Number(stamp.y);
+
+  if (!Number.isFinite(x) || !Number.isFinite(y)) {
+    return;
+  }
+
+  const nextStamp = {
+    id: String(stamp.id ?? `stamp-${Date.now()}`),
+    type: String(stamp.type ?? 'clock'),
+    x: Math.min(Math.max(x, 0), 1),
+    y: Math.min(Math.max(y, 0), 1),
+  };
+
+  stack = stack.map((card, itemIndex) => (
+    itemIndex === index
+      ? {
+        ...card,
+        stamps: [...(Array.isArray(card.stamps) ? card.stamps : []), nextStamp],
+      }
+      : card
   ));
   emitChange();
 }
