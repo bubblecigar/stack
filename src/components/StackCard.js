@@ -70,7 +70,7 @@ export function StackCard({
     : -1;
 
   const zLayer = isTreeCard
-    ? (treeStackLayer + (isFocusedCard ? 5 : 0))
+    ? (isFocusedCard ? 12000 : treeStackLayer)
     : null;
 
   const dependencyText = '';
