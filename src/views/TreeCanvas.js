@@ -2,7 +2,7 @@ import {
   useEffect, useMemo, useRef, useState,
 } from 'react';
 import {
-  Image, PanResponder, ScrollView, Text, View,
+  PanResponder, ScrollView, View,
 } from 'react-native';
 import { styles } from '../styles/appStyles';
 import { buildTreeLayout, TREE_CANVAS_PADDING } from '../lib/treeLayout';
@@ -156,11 +156,6 @@ export function TreeCanvas({
     top: entry.top + TREE_CANVAS_PADDING,
     isCollapsedStacked: entry.isCollapsedStacked,
   }));
-  const treeCompletionCanvasEntries = Array.isArray(treeCompletionCanvas?.entries)
-    ? treeCompletionCanvas.entries
-    : [];
-  const treeCompletionCanvasWidth = Number(treeCompletionCanvas?.width) || 1;
-  const treeCompletionCanvasHeight = Number(treeCompletionCanvas?.height) || 1;
 
   return (
     <View
@@ -179,30 +174,6 @@ export function TreeCanvas({
         });
       }}
     >
-      <View pointerEvents="none" style={styles.treeCompletionCanvasWall}>
-        {treeCompletionCanvas?.imagePng ? (
-          <Image
-            pointerEvents="none"
-            source={{ uri: treeCompletionCanvas.imagePng }}
-            style={styles.treeCompletionCanvasImage}
-          />
-        ) : null}
-        {treeCompletionCanvasEntries.map((entry) => (
-          <Text
-            key={entry.id}
-            pointerEvents="none"
-            style={[
-              styles.treeCompletionCanvasText,
-              {
-                left: (Number(entry.x) / treeCompletionCanvasWidth) * treeViewport.width,
-                top: (Number(entry.y) / treeCompletionCanvasHeight) * treeViewport.height,
-              },
-            ]}
-          >
-            {entry.text}
-          </Text>
-        ))}
-      </View>
       <ScrollView
         ref={treeHorizontalScrollRef}
         style={styles.treeScroll}
