@@ -222,7 +222,6 @@ export default function App() {
   const [collapsedNodeIds, setCollapsedNodeIds] = useState(() => new Set());
   const [leafTopIndex, setLeafTopIndex] = useState(null);
   const [leafFocusedCardId, setLeafFocusedCardId] = useState(null);
-  const [leafPinnedDoneCardId, setLeafPinnedDoneCardId] = useState(null);
   const [isDeleteHoldActive, setIsDeleteHoldActive] = useState(false);
   const [addPreviewRelation, setAddPreviewRelation] = useState(null);
   const [isAddHoldActive, setIsAddHoldActive] = useState(false);
@@ -235,9 +234,7 @@ export default function App() {
     ? null
     : cards[focusedCardIndex]?.id ?? null;
 
-  const leafCards = useMemo(() => cards.filter((card) => (
-    !card.done || (leafPinnedDoneCardId !== null && card.id === leafPinnedDoneCardId)
-  )), [cards, leafPinnedDoneCardId]);
+  const leafCards = cards;
 
   const leafTopPosition = useMemo(() => {
     if (leafCards.length === 0) {
@@ -315,7 +312,6 @@ export default function App() {
     if (cards.length === 0) {
       setLeafFocusedCardId(null);
       setLeafTopIndex(null);
-      setLeafPinnedDoneCardId(null);
       return;
     }
 
@@ -364,7 +360,6 @@ export default function App() {
     setFocusedCardIndex(null);
     setLeafTopIndex(null);
     setLeafFocusedCardId(null);
-    setLeafPinnedDoneCardId(null);
     setIsDeleteHoldActive(false);
     setCollapsedNodeIds(new Set());
     setTreeCompletionCanvas(EMPTY_TREE_COMPLETION_CANVAS);
@@ -513,7 +508,6 @@ export default function App() {
 
   function handleCreateCard(relation = 'child') {
     setAddPreviewRelation(null);
-    setLeafPinnedDoneCardId(null);
     const currentIndex = shouldRenderLeaf
       ? visibleTopCardIndex
       : focusedCardIndex;
@@ -528,7 +522,6 @@ export default function App() {
   }
 
   function handleEditCard(index, text) {
-    setLeafPinnedDoneCardId(null);
     setEditingIndex(index);
     setEditingValue(text);
     setFocusedCardIndex(index);
@@ -736,10 +729,6 @@ export default function App() {
     }
 
     setIsDeleteHoldActive(false);
-    if (removedCardIds.has(leafPinnedDoneCardId)) {
-      setLeafPinnedDoneCardId(null);
-    }
-
     const nextEditingIndex = adjustIndexAfterRemoval(editingIndex);
     if (nextEditingIndex === null) {
       setEditingIndex(null);
@@ -847,15 +836,9 @@ export default function App() {
     }
 
     const currentCardId = visibleCards[0]?.id ?? leafFocusedCardId ?? cards[0]?.id;
-    const rootScopedCards = getLeafRootScopedCards(cards, currentCardId);
-    const traversalCards = rootScopedCards.filter((card) => !card.done);
+    const traversalCards = getLeafRootScopedCards(cards, currentCardId);
 
     if (traversalCards.length === 0) {
-      if (!visibleCards[0]?.done) {
-        return false;
-      }
-
-      setLeafPinnedDoneCardId(null);
       setLeafFocusedCardId(null);
       setLeafTopIndex(null);
       return true;
@@ -874,7 +857,6 @@ export default function App() {
       return false;
     }
 
-    setLeafPinnedDoneCardId(null);
     setLeafFocusedCardId(nextCard.id);
     setLeafTopIndex(nextCard.index);
     return true;
@@ -914,13 +896,11 @@ export default function App() {
 
     if (currentCard.done) {
       setDoneAt(visibleTopCardIndex, false);
-      setLeafPinnedDoneCardId(null);
       setLeafFocusedCardId(currentCard.id);
       setLeafTopIndex(visibleTopCardIndex);
       return;
     }
 
-    setLeafPinnedDoneCardId(currentCard.id);
     setDoneAt(visibleTopCardIndex, true);
     setLeafFocusedCardId(currentCard.id);
     setLeafTopIndex(visibleTopCardIndex);
@@ -1005,16 +985,13 @@ export default function App() {
         });
       }
 
-      setLeafPinnedDoneCardId(null);
       setFocusedCardIndex(treeFocusedCardIndex);
       setLeafTopIndex(null);
     } else {
       if (focusedCardInRange) {
-        setLeafPinnedDoneCardId(cards[nextFocusedCardIndex]?.done ? cards[nextFocusedCardIndex]?.id ?? null : null);
         setFocusedCardIndex(nextFocusedCardIndex);
         setLeafTopIndex(nextFocusedCardIndex);
       } else {
-        setLeafPinnedDoneCardId(null);
         setLeafTopIndex(cards.length > 0 ? cards.length - 1 : null);
       }
     }
