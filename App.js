@@ -17,6 +17,7 @@ import {
   loadCards,
   push,
   removeAt,
+  removeDoneCascadeAt,
   setDoneAt,
   subscribe,
   updateAt,
@@ -680,9 +681,40 @@ export default function App() {
       return;
     }
 
-    const removedCards = [removedCard];
-    const removedCardIds = new Set([removedCard.id]);
-    const nextCardCount = Math.max(cards.length - 1, 0);
+    const candidateIds = new Set();
+    const visitedIds = new Set();
+
+    function collectCandidateIds(cardId) {
+      if (visitedIds.has(cardId)) {
+        return;
+      }
+
+      visitedIds.add(cardId);
+      candidateIds.add(cardId);
+
+      const candidateCard = cards.find((card) => card.id === cardId);
+      if (!candidateCard) {
+        return;
+      }
+
+      (candidateCard.childIds || []).forEach(collectCandidateIds);
+    }
+
+    if (removedCard.done) {
+      collectCandidateIds(removedCard.id);
+    } else {
+      candidateIds.add(removedCard.id);
+    }
+
+    const removedCards = removedCard.done
+      ? cards.filter((card) => candidateIds.has(card.id) && card.done)
+      : [removedCard];
+    const removedCardIds = new Set(removedCards.map((card) => card.id));
+    const removedIndexes = removedCards
+      .map((card) => card.index)
+      .filter((itemIndex) => Number.isInteger(itemIndex))
+      .sort((left, right) => left - right);
+    const nextCardCount = Math.max(cards.length - removedIndexes.length, 0);
 
     function adjustIndexAfterRemoval(currentIndex) {
       if (currentIndex === null || currentIndex === undefined) {
@@ -694,7 +726,9 @@ export default function App() {
         return null;
       }
 
-      const removedBeforeCount = index < currentIndex ? 1 : 0;
+      const removedBeforeCount = removedIndexes.filter((removedIndex) => (
+        removedIndex < currentIndex
+      )).length;
       const adjustedIndex = currentIndex - removedBeforeCount;
       return nextCardCount > 0
         ? Math.max(0, Math.min(adjustedIndex, nextCardCount - 1))
@@ -743,7 +777,7 @@ export default function App() {
     }
 
     if (removedCard.done) {
-      removeAt(index);
+      removeDoneCascadeAt(index);
       writeRemovedCardsToTreeCanvas(removedCards);
       return;
     }

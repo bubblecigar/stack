@@ -358,6 +358,56 @@ export function removeAt(index) {
   return removedCards;
 }
 
+export function removeDoneCascadeAt(index) {
+  if (index < 0 || index >= stack.length || !stack[index]?.done) {
+    return [];
+  }
+
+  const rootId = stack[index].id;
+  const candidateIds = new Set();
+  const visitedIds = new Set();
+
+  function collectCandidateIds(cardId) {
+    if (visitedIds.has(cardId)) {
+      return;
+    }
+
+    visitedIds.add(cardId);
+    candidateIds.add(cardId);
+
+    const card = stack.find((item) => item.id === cardId);
+    if (!card) {
+      return;
+    }
+
+    (card.childIds || []).forEach(collectCandidateIds);
+  }
+
+  collectCandidateIds(rootId);
+
+  const removedCards = [];
+
+  while (true) {
+    const nextDoneIndex = stack.findIndex((card) => (
+      candidateIds.has(card.id) && card.done
+    ));
+
+    if (nextDoneIndex === -1) {
+      break;
+    }
+
+    const [removedCard] = removeAt(nextDoneIndex);
+    if (!removedCard) {
+      break;
+    }
+
+    removedCards.push(removedCard);
+    candidateIds.delete(removedCard.id);
+  }
+
+  return removedCards;
+}
+
 export function addChildLink(parentIndex, childIndex) {
   if (
     parentIndex < 0 ||
