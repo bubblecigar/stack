@@ -1,5 +1,5 @@
-import { View } from 'react-native';
-import { useMemo, useState } from 'react';
+import { Animated, Easing, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { buildTreeLayout } from '../lib/treeLayout';
 import { styles } from '../styles/appStyles';
 
@@ -180,6 +180,9 @@ export function NodeStructureView({
     width: 180,
     height: 120,
   });
+  const cursorPosition = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+  const cursorHasPosition = useRef(false);
+  const [showFocusedCursor, setShowFocusedCursor] = useState(false);
 
   const focusedCardId = controlledFocusedCardId ?? (focusedCardIndex === null
     ? null
@@ -247,6 +250,43 @@ export function NodeStructureView({
     });
     return keyed;
   }, [nodeEntries.nodes]);
+  const focusedNode = useMemo(
+    () => nodeEntries.nodes.find((entry) => entry.isFocused) || null,
+    [nodeEntries.nodes],
+  );
+
+  useEffect(() => {
+    if (!focusedNode) {
+      cursorHasPosition.current = false;
+      setShowFocusedCursor(false);
+      return undefined;
+    }
+
+    const nextPosition = {
+      x: focusedNode.x,
+      y: focusedNode.y,
+    };
+
+    if (!cursorHasPosition.current) {
+      cursorPosition.setValue(nextPosition);
+      cursorHasPosition.current = true;
+      setShowFocusedCursor(true);
+      return undefined;
+    }
+
+    setShowFocusedCursor(true);
+    const animation = Animated.timing(cursorPosition, {
+      toValue: nextPosition,
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    });
+
+    animation.start();
+    return () => {
+      animation.stop();
+    };
+  }, [cursorPosition, focusedNode]);
 
   return (
     <View
@@ -303,7 +343,6 @@ export function NodeStructureView({
             style={[
               styles.nodeViewMapNode,
               entry.isDone && styles.nodeViewMapNodeDone,
-              entry.isFocused && styles.nodeViewMapNodeFocused,
               entry.isPreview && styles.nodeViewMapNodePreview,
               entry.isDeleteTarget && styles.nodeViewMapNodeDeleteTarget,
               {
@@ -313,6 +352,20 @@ export function NodeStructureView({
             ]}
           />
         ))}
+        {focusedNode && showFocusedCursor && (
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.nodeViewMapNode,
+              styles.nodeViewMapNodeFocused,
+              focusedNode.isDeleteTarget && styles.nodeViewMapNodeDeleteTarget,
+              {
+                left: cursorPosition.x,
+                top: cursorPosition.y,
+              },
+            ]}
+          />
+        )}
       </View>
     </View>
   );
