@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { styles } from '../styles/appStyles';
 import { buildTreeLayout, TREE_CANVAS_PADDING } from '../lib/treeLayout';
+import { buildPreviewCards, PREVIEW_CARD_ID } from '../lib/previewCards';
 import { StackCard } from '../components/StackCard';
 
 export function TreeCanvas({
@@ -26,6 +27,7 @@ export function TreeCanvas({
   onCanvasBlur,
   isDeleteHoldActive = false,
   treeCompletionCanvas = null,
+  addPreviewRelation = null,
 }) {
   const treeHorizontalScrollRef = useRef(null);
   const treeVerticalScrollRef = useRef(null);
@@ -61,13 +63,18 @@ export function TreeCanvas({
     onCanvasBlur?.();
   }
 
+  const previewCards = useMemo(
+    () => buildPreviewCards(cards, focusedCardIndex, addPreviewRelation),
+    [addPreviewRelation, cards, focusedCardIndex],
+  );
+
   const {
     maxHeight,
     maxWidth,
     nodeWidth,
     nodeHeight,
     positionedCards,
-  } = buildTreeLayout(cards, collapsedNodeIds);
+  } = buildTreeLayout(previewCards, collapsedNodeIds);
 
   const contentWidth = maxWidth + (TREE_CANVAS_PADDING * 2);
   const contentHeight = maxHeight + (TREE_CANVAS_PADDING * 2);
@@ -200,6 +207,7 @@ export function TreeCanvas({
           >
             {paddedPositionedCards.map((entry) => {
               const { card, left, top, depth, placementOrder, isCollapsedStacked } = entry;
+              const isPreviewCard = card.id === PREVIEW_CARD_ID;
 
               return (
                 <StackCard
@@ -214,6 +222,8 @@ export function TreeCanvas({
                   visibleIndex={0}
                   onPressIn={handleCardPressIn}
                   onFocusCard={onCardFocus}
+                  hideControls={isPreviewCard}
+                  isPreviewCard={isPreviewCard}
                   treePosition={{
                     left,
                     top,
@@ -222,7 +232,11 @@ export function TreeCanvas({
                   }}
                   isCollapsedStacked={isCollapsedStacked}
                   isDeleteHoldActive={isDeleteHoldActive}
-                  onPress={() => onCardPress(card.index)}
+                  onPress={() => {
+                    if (!isPreviewCard) {
+                      onCardPress(card.index);
+                    }
+                  }}
                   onCreateEdit={onCreateEdit}
                   onToggleCollapse={onToggleCollapse}
                   onDeleteCard={onDeleteCard}

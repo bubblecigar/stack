@@ -1059,6 +1059,7 @@ export default function App() {
           />
         ) : (
           <TreeCanvas
+            addPreviewRelation={addPreviewRelation}
             cards={cards}
             collapsedNodeIds={collapsedNodeIds}
             focusedCardIndex={focusedCardIndex}

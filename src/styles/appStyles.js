@@ -469,6 +469,13 @@ export const styles = StyleSheet.create({
   treeCollapsedCard: {
     opacity: 0.98,
   },
+  treePreviewCard: {
+    borderColor: '#F97316',
+    borderStyle: 'dashed',
+    borderWidth: 2,
+    backgroundColor: 'rgba(255, 247, 237, 0.84)',
+    opacity: 0.92,
+  },
   treeCardControls: {
     right: 8,
     bottom: 10,
@@ -482,6 +489,9 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 22,
     textAlign: 'left',
+  },
+  treePreviewCardText: {
+    color: '#F97316',
   },
   treeCardInput: {
     minHeight: 66,

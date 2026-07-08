@@ -36,6 +36,7 @@ export function StackCard({
   onCompleteEdit,
   onFocusCard,
   isDeleteHoldActive = false,
+  isPreviewCard = false,
   leafContentMode = 'text',
 }) {
   const {
@@ -157,13 +158,14 @@ export function StackCard({
 
   return (
     <Pressable
-      disabled={isLeafCard}
+      disabled={isLeafCard || isPreviewCard}
       onPressIn={onPressIn}
       onPress={onPress}
       style={[
         styles.card,
         isLeafCard && styles.leafCard,
         isTreeCard && styles.treeCard,
+        isTreeCard && isPreviewCard && styles.treePreviewCard,
         isTreeCard && isCollapsedStacked && styles.treeCollapsedCard,
         isEditing && isLeafCard && styles.leafEditingCard,
         isTreeCard && treePosition && {
@@ -335,6 +337,7 @@ export function StackCard({
             <Text style={[
               styles.cardText,
               isTreeCard && styles.treeCardText,
+              isTreeCard && isPreviewCard && styles.treePreviewCardText,
               done && styles.doneCardText,
               !text && styles.emptyCardText,
             ]}
