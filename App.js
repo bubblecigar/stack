@@ -17,7 +17,6 @@ import {
   loadCards,
   push,
   removeAt,
-  removeSubtreeAt,
   setDoneAt,
   subscribe,
   updateAt,
@@ -681,35 +680,9 @@ export default function App() {
       return;
     }
 
-    const cardById = new Map(cards.map((card) => [card.id, card]));
-    const removedCards = [];
-    const removedCardIds = new Set();
-
-    function collectRemovedCards(card) {
-      if (!card || removedCardIds.has(card.id)) {
-        return;
-      }
-
-      removedCardIds.add(card.id);
-      removedCards.push(card);
-
-      if (!removedCard.done) {
-        return;
-      }
-
-      (card.childIds || [])
-        .map((childId) => cardById.get(childId))
-        .filter(Boolean)
-        .forEach(collectRemovedCards);
-    }
-
-    collectRemovedCards(removedCard);
-
-    const removedIndexes = removedCards
-      .map((card) => card.index)
-      .filter((itemIndex) => Number.isInteger(itemIndex))
-      .sort((left, right) => left - right);
-    const nextCardCount = Math.max(cards.length - removedIndexes.length, 0);
+    const removedCards = [removedCard];
+    const removedCardIds = new Set([removedCard.id]);
+    const nextCardCount = Math.max(cards.length - 1, 0);
 
     function adjustIndexAfterRemoval(currentIndex) {
       if (currentIndex === null || currentIndex === undefined) {
@@ -721,9 +694,7 @@ export default function App() {
         return null;
       }
 
-      const removedBeforeCount = removedIndexes.filter((removedIndex) => (
-        removedIndex < currentIndex
-      )).length;
+      const removedBeforeCount = index < currentIndex ? 1 : 0;
       const adjustedIndex = currentIndex - removedBeforeCount;
       return nextCardCount > 0
         ? Math.max(0, Math.min(adjustedIndex, nextCardCount - 1))
@@ -772,7 +743,7 @@ export default function App() {
     }
 
     if (removedCard.done) {
-      removeSubtreeAt(index);
+      removeAt(index);
       writeRemovedCardsToTreeCanvas(removedCards);
       return;
     }

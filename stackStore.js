@@ -318,49 +318,41 @@ export function removeAt(index) {
     return [];
   }
 
-  const removedCardId = stack[index].id;
-  const removedCards = [stack[index]];
+  const removedCard = stack[index];
+  const removedCardId = removedCard.id;
+  const removedChildIds = Array.isArray(removedCard.childIds) ? removedCard.childIds : [];
+  const removedParentIds = Array.isArray(removedCard.parentIds) ? removedCard.parentIds : [];
+  const removedCards = [removedCard];
+
+  function uniqueLinkedIds(ids, ownerId) {
+    const seen = new Set();
+
+    return ids.filter((id) => {
+      if (id === ownerId || seen.has(id)) {
+        return false;
+      }
+
+      seen.add(id);
+      return true;
+    });
+  }
 
   stack = stack
     .filter((_, itemIndex) => itemIndex !== index)
     .map((card) => ({
       ...card,
-      childIds: card.childIds.filter((id) => id !== removedCardId),
-      parentIds: card.parentIds.filter((id) => id !== removedCardId),
-    }));
-  emitChange();
-  return removedCards;
-}
-
-export function removeSubtreeAt(index) {
-  if (index < 0 || index >= stack.length) {
-    return [];
-  }
-
-  const cardById = new Map(stack.map((card) => [card.id, card]));
-  const removedIds = new Set();
-
-  function collectDescendants(card) {
-    if (!card || removedIds.has(card.id)) {
-      return;
-    }
-
-    removedIds.add(card.id);
-    (card.childIds || [])
-      .map((childId) => cardById.get(childId))
-      .filter(Boolean)
-      .forEach(collectDescendants);
-  }
-
-  collectDescendants(stack[index]);
-
-  const removedCards = stack.filter((card) => removedIds.has(card.id));
-  stack = stack
-    .filter((card) => !removedIds.has(card.id))
-    .map((card) => ({
-      ...card,
-      childIds: card.childIds.filter((id) => !removedIds.has(id)),
-      parentIds: card.parentIds.filter((id) => !removedIds.has(id)),
+      childIds: uniqueLinkedIds(
+        card.childIds.flatMap((id) => (
+          id === removedCardId ? removedChildIds : [id]
+        )),
+        card.id,
+      ),
+      parentIds: uniqueLinkedIds(
+        card.parentIds.flatMap((id) => (
+          id === removedCardId ? removedParentIds : [id]
+        )),
+        card.id,
+      ),
     }));
   emitChange();
   return removedCards;
