@@ -381,23 +381,11 @@ export const styles = StyleSheet.create({
     pointerEvents: 'box-none',
     alignItems: 'flex-start',
   },
-  treeCompletionCanvasWall: {
+  treeCompletionComputedWall: {
     position: 'absolute',
     left: 0,
-    right: 0,
     top: 0,
-    bottom: 0,
     overflow: 'hidden',
-    zIndex: 0,
-  },
-  treeCompletionCanvasImage: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    opacity: 0.9,
-    resizeMode: 'stretch',
     zIndex: 0,
   },
   treeCompletionCanvasText: {

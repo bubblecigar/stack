@@ -37,6 +37,12 @@ import {
 } from './src/lib/apiClient';
 import { clearStoredAuthToken, getStoredAuthToken, setStoredAuthToken } from './src/lib/authTokenStore';
 import { moveInTraversal } from './src/lib/cardTraversal';
+import {
+  playDoneStampSound,
+  playLeafSwipeSound,
+  playModeFlipSound,
+  playTrashSound,
+} from './src/lib/soundEffects';
 import { styles } from './src/styles/appStyles';
 
 const LEAF_VISIBLE_COUNT = 5;
@@ -47,8 +53,8 @@ const TREE_COMPLETION_CANVAS_PADDING = 48;
 const TREE_COMPLETION_CANVAS_LINE_HEIGHT = 30;
 const TREE_COMPLETION_TEXT_START_X = 32;
 const TREE_COMPLETION_TEXT_START_Y = 48;
+const TREE_COMPLETION_AVERAGE_CHAR_WIDTH = 15;
 const EMPTY_TREE_COMPLETION_CANVAS = {
-  imagePng: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADElEQVR42mP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC',
   width: TREE_COMPLETION_CANVAS_WIDTH,
   height: TREE_COMPLETION_CANVAS_HEIGHT,
   entries: [],
@@ -181,14 +187,15 @@ function getOppositeSwipeDirection(direction) {
   return direction === 'down' ? 'up' : 'down';
 }
 
-function wrapCanvasText(context, text, maxWidth) {
+function wrapCompletionText(text, maxWidth) {
   const words = String(text || '').trim().split(/\s+/).filter(Boolean);
   const lines = [];
   let currentLine = '';
+  const maxChars = Math.max(Math.floor(maxWidth / TREE_COMPLETION_AVERAGE_CHAR_WIDTH), 1);
 
   words.forEach((word) => {
     const nextLine = currentLine ? `${currentLine} ${word}` : word;
-    if (context.measureText(nextLine).width <= maxWidth || !currentLine) {
+    if (nextLine.length <= maxChars || !currentLine) {
       currentLine = nextLine;
       return;
     }
@@ -202,20 +209,6 @@ function wrapCanvasText(context, text, maxWidth) {
   }
 
   return lines.length > 0 ? lines : [''];
-}
-
-function loadCanvasImage(source) {
-  return new Promise((resolve) => {
-    if (!source || typeof window === 'undefined' || !window.Image) {
-      resolve(null);
-      return;
-    }
-
-    const image = new window.Image();
-    image.onload = () => resolve(image);
-    image.onerror = () => resolve(null);
-    image.src = source;
-  });
 }
 
 export default function App() {
@@ -577,6 +570,7 @@ export default function App() {
     }
 
     const currentCanvas = treeCompletionCanvas || EMPTY_TREE_COMPLETION_CANVAS;
+    const { imagePng: _unusedImagePng, ...currentComputedCanvas } = currentCanvas;
     const baseWidth = Math.max(
       Number(currentCanvas.width) || TREE_COMPLETION_CANVAS_WIDTH,
       TREE_COMPLETION_CANVAS_WIDTH,
@@ -590,70 +584,18 @@ export default function App() {
       TREE_COMPLETION_TEXT_START_Y,
     );
 
-    if (Platform.OS !== 'web' || typeof document === 'undefined') {
-      const nextEntries = [
-        ...(Array.isArray(currentCanvas.entries) ? currentCanvas.entries : []),
-        ...removedTexts.map((text, textIndex) => ({
-          id: `removed-${Date.now()}-${textIndex}`,
-          text,
-          x: TREE_COMPLETION_TEXT_START_X,
-          y: startY + (textIndex * TREE_COMPLETION_CANVAS_LINE_HEIGHT),
-        })),
-      ];
-      const nextCanvas = {
-        ...currentCanvas,
-        entries: nextEntries,
-        height: baseHeight,
-        nextY: startY + (removedTexts.length * TREE_COMPLETION_CANVAS_LINE_HEIGHT),
-        updatedAt: Date.now(),
-        width: baseWidth,
-      };
-
-      setTreeCompletionCanvas(nextCanvas);
-      if (authToken) {
-        saveRemoteUserData(
-          authToken,
-          TREE_COMPLETION_CANVAS_KEY,
-          nextCanvas,
-        ).catch(() => {});
-      }
-      return;
-    }
-
-    const measureCanvas = document.createElement('canvas');
-    const measureContext = measureCanvas.getContext('2d');
-    measureContext.font = '28px Kalam, Kalam_400Regular, cursive';
     const maxTextWidth = baseWidth - TREE_COMPLETION_TEXT_START_X - TREE_COMPLETION_CANVAS_PADDING;
     const wrappedLines = removedTexts.flatMap((text) => (
-      wrapCanvasText(measureContext, text, maxTextWidth)
+      wrapCompletionText(text, maxTextWidth)
     ));
     const requiredHeight = startY
       + (wrappedLines.length * TREE_COMPLETION_CANVAS_LINE_HEIGHT)
       + TREE_COMPLETION_CANVAS_PADDING;
     const nextHeight = Math.max(baseHeight, requiredHeight);
-    const existingImage = await loadCanvasImage(currentCanvas.imagePng);
-
-    const canvas = document.createElement('canvas');
-    canvas.width = baseWidth;
-    canvas.height = nextHeight;
-    const context = canvas.getContext('2d');
-    context.clearRect(0, 0, canvas.width, canvas.height);
-
-    if (existingImage) {
-      context.drawImage(existingImage, 0, 0, baseWidth, baseHeight);
-    }
-
-    context.font = '28px Kalam, Kalam_400Regular, cursive';
-    context.fillStyle = '#475569';
-    context.globalAlpha = 0.72;
-    let y = startY;
-    wrappedLines.forEach((line) => {
-      context.fillText(line, TREE_COMPLETION_TEXT_START_X, y);
-      y += TREE_COMPLETION_CANVAS_LINE_HEIGHT;
-    });
-    context.globalAlpha = 1;
+    const nextY = startY + (wrappedLines.length * TREE_COMPLETION_CANVAS_LINE_HEIGHT);
 
     const nextCanvas = {
+      ...currentComputedCanvas,
       entries: [
         ...(Array.isArray(currentCanvas.entries) ? currentCanvas.entries : []),
         ...wrappedLines.map((text, lineIndex) => ({
@@ -663,10 +605,9 @@ export default function App() {
           y: startY + (lineIndex * TREE_COMPLETION_CANVAS_LINE_HEIGHT),
         })),
       ],
-      imagePng: canvas.toDataURL('image/png'),
       width: baseWidth,
       height: nextHeight,
-      nextY: y + TREE_COMPLETION_CANVAS_LINE_HEIGHT,
+      nextY: nextY + TREE_COMPLETION_CANVAS_LINE_HEIGHT,
       updatedAt: Date.now(),
     };
 
@@ -685,6 +626,8 @@ export default function App() {
     if (!removedCard) {
       return;
     }
+
+    playTrashSound();
 
     const candidateIds = new Set();
     const visitedIds = new Set();
@@ -872,6 +815,7 @@ export default function App() {
 
     setLeafFocusedCardId(nextCard.id);
     setLeafTopIndex(nextCard.index);
+    playLeafSwipeSound();
     return true;
   }
 
@@ -917,6 +861,7 @@ export default function App() {
     setDoneAt(visibleTopCardIndex, true);
     setLeafFocusedCardId(currentCard.id);
     setLeafTopIndex(visibleTopCardIndex);
+    playDoneStampSound();
   }
 
   useEffect(() => {
@@ -973,6 +918,7 @@ export default function App() {
     }
 
     setLayoutMode((currentMode) => (currentMode === 'leaf' ? 'tree' : 'leaf'));
+    playModeFlipSound();
 
     if (isLeafToTree) {
       const treeFocusedCardIndex = isFocusedCardVisible

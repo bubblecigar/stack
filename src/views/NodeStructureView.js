@@ -51,6 +51,23 @@ function getOrthogonalEdgeSegments(fromNode, toNode) {
   }).filter(Boolean);
 }
 
+function animateValueXY(valueXY, toValue) {
+  return Animated.parallel([
+    Animated.timing(valueXY.x, {
+      toValue: toValue.x,
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }),
+    Animated.timing(valueXY.y, {
+      toValue: toValue.y,
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }),
+  ]);
+}
+
 export function NodeStructureView({
   cards,
   focusedCardIndex,
@@ -191,12 +208,7 @@ export function NodeStructureView({
       }
 
       setShowFocusedCursor(true);
-      const cursorAnimation = Animated.timing(cursorPosition, {
-        toValue: nextPosition,
-        duration: 220,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: false,
-      });
+      const cursorAnimation = animateValueXY(cursorPosition, nextPosition);
 
       cursorAnimation.start();
       return () => {
@@ -222,12 +234,7 @@ export function NodeStructureView({
 
     focusedAnchorRef.current = nextAnchor;
     setShowFocusedCursor(true);
-    const animation = Animated.timing(mapOffset, {
-      toValue: nextOffset,
-      duration: 220,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: false,
-    });
+    const animation = animateValueXY(mapOffset, nextOffset);
 
     animation.start();
     return () => {
