@@ -280,6 +280,13 @@ export const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 0,
   },
+  nodeViewMapLayer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+  },
   nodeViewMapNode: {
     position: 'absolute',
     width: 8,

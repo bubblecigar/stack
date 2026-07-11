@@ -46,6 +46,7 @@ export function NodeStructureView({
   focusedCardIndex,
   focusedCardId: controlledFocusedCardId = null,
   addPreviewRelation = null,
+  anchorFocusedNode = false,
   deleteTargetActive = false,
 }) {
   if (cards.length === 0) {
@@ -56,8 +57,11 @@ export function NodeStructureView({
     width: 180,
     height: 120,
   });
+  const mapOffset = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
   const cursorPosition = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
   const cursorHasPosition = useRef(false);
+  const focusedAnchorRef = useRef(null);
+  const [focusedAnchor, setFocusedAnchor] = useState(null);
   const [showFocusedCursor, setShowFocusedCursor] = useState(false);
 
   const focusedCardId = controlledFocusedCardId ?? (focusedCardIndex === null
@@ -134,25 +138,64 @@ export function NodeStructureView({
   useEffect(() => {
     if (!focusedNode) {
       cursorHasPosition.current = false;
+      focusedAnchorRef.current = null;
+      setFocusedAnchor(null);
       setShowFocusedCursor(false);
       return undefined;
     }
 
-    const nextPosition = {
-      x: focusedNode.x,
-      y: focusedNode.y,
-    };
+    if (!anchorFocusedNode) {
+      const nextPosition = {
+        x: focusedNode.x,
+        y: focusedNode.y,
+      };
 
-    if (!cursorHasPosition.current) {
-      cursorPosition.setValue(nextPosition);
-      cursorHasPosition.current = true;
+      focusedAnchorRef.current = null;
+      setFocusedAnchor(null);
+      mapOffset.setValue({ x: 0, y: 0 });
+
+      if (!cursorHasPosition.current) {
+        cursorPosition.setValue(nextPosition);
+        cursorHasPosition.current = true;
+        setShowFocusedCursor(true);
+        return undefined;
+      }
+
+      setShowFocusedCursor(true);
+      const cursorAnimation = Animated.timing(cursorPosition, {
+        toValue: nextPosition,
+        duration: 220,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      });
+
+      cursorAnimation.start();
+      return () => {
+        cursorAnimation.stop();
+      };
+    }
+
+    cursorHasPosition.current = false;
+    if (!focusedAnchorRef.current) {
+      const nextAnchor = {
+        x: focusedNode.x,
+        y: focusedNode.y,
+      };
+      focusedAnchorRef.current = nextAnchor;
+      setFocusedAnchor(nextAnchor);
+      mapOffset.setValue({ x: 0, y: 0 });
       setShowFocusedCursor(true);
       return undefined;
     }
 
+    const nextOffset = {
+      x: focusedAnchorRef.current.x - focusedNode.x,
+      y: focusedAnchorRef.current.y - focusedNode.y,
+    };
+
     setShowFocusedCursor(true);
-    const animation = Animated.timing(cursorPosition, {
-      toValue: nextPosition,
+    const animation = Animated.timing(mapOffset, {
+      toValue: nextOffset,
       duration: 220,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false,
@@ -162,7 +205,14 @@ export function NodeStructureView({
     return () => {
       animation.stop();
     };
-  }, [cursorPosition, focusedNode]);
+  }, [anchorFocusedNode, cursorPosition, mapOffset, focusedNode]);
+
+  const focusedCursorPosition = anchorFocusedNode && focusedAnchor
+    ? focusedAnchor
+    : {
+      x: cursorPosition.x,
+      y: cursorPosition.y,
+    };
 
   return (
     <View
@@ -178,57 +228,69 @@ export function NodeStructureView({
       }}
     >
       <View style={styles.nodeViewCanvas}>
-        {mapLayout.positionedCards.map((entry) => {
-          if (!entry.card || !Array.isArray(entry.card.childIds)) {
-            return null;
-          }
-
-          const fromNode = nodeById.get(entry.card.id);
-          if (!fromNode) {
-            return null;
-          }
-
-          return entry.card.childIds.map((childId) => {
-            const toNode = nodeById.get(childId);
-            if (!toNode) {
+        <Animated.View
+          style={[
+            styles.nodeViewMapLayer,
+            {
+              transform: [
+                { translateX: anchorFocusedNode ? mapOffset.x : 0 },
+                { translateY: anchorFocusedNode ? mapOffset.y : 0 },
+              ],
+            },
+          ]}
+        >
+          {mapLayout.positionedCards.map((entry) => {
+            if (!entry.card || !Array.isArray(entry.card.childIds)) {
               return null;
             }
 
-            const edgeSegments = getOrthogonalEdgeSegments(fromNode, toNode);
-
-            if (edgeSegments.length === 0) {
+            const fromNode = nodeById.get(entry.card.id);
+            if (!fromNode) {
               return null;
             }
 
-            return edgeSegments.map((segment, segmentIndex) => (
-              <View
-                key={`edge-${entry.card.id}-${childId}-${segmentIndex}`}
-                style={[
-                  styles.nodeViewMapLine,
-                  (entry.card.id === PREVIEW_CARD_ID || childId === PREVIEW_CARD_ID)
-                    && styles.nodeViewMapLinePreview,
-                  segment,
-                ]}
-              />
-            ));
-          });
-        })}
-        {nodeEntries.nodes.map((entry) => (
-          <View
-            key={`map-node-${entry.card.id}`}
-            style={[
-              styles.nodeViewMapNode,
-              entry.isDone && styles.nodeViewMapNodeDone,
-              entry.isPreview && styles.nodeViewMapNodePreview,
-              entry.isDeleteTarget && styles.nodeViewMapNodeDeleteTarget,
-              {
-                left: entry.x,
-                top: entry.y,
-              },
-            ]}
-          />
-        ))}
-        {focusedNode && showFocusedCursor && (
+            return entry.card.childIds.map((childId) => {
+              const toNode = nodeById.get(childId);
+              if (!toNode) {
+                return null;
+              }
+
+              const edgeSegments = getOrthogonalEdgeSegments(fromNode, toNode);
+
+              if (edgeSegments.length === 0) {
+                return null;
+              }
+
+              return edgeSegments.map((segment, segmentIndex) => (
+                <View
+                  key={`edge-${entry.card.id}-${childId}-${segmentIndex}`}
+                  style={[
+                    styles.nodeViewMapLine,
+                    (entry.card.id === PREVIEW_CARD_ID || childId === PREVIEW_CARD_ID)
+                      && styles.nodeViewMapLinePreview,
+                    segment,
+                  ]}
+                />
+              ));
+            });
+          })}
+          {nodeEntries.nodes.map((entry) => (
+            <View
+              key={`map-node-${entry.card.id}`}
+              style={[
+                styles.nodeViewMapNode,
+                entry.isDone && styles.nodeViewMapNodeDone,
+                entry.isPreview && styles.nodeViewMapNodePreview,
+                entry.isDeleteTarget && styles.nodeViewMapNodeDeleteTarget,
+                {
+                  left: entry.x,
+                  top: entry.y,
+                },
+              ]}
+            />
+          ))}
+        </Animated.View>
+        {focusedNode && showFocusedCursor && (!anchorFocusedNode || focusedAnchor) && (
           <Animated.View
             pointerEvents="none"
             style={[
@@ -236,8 +298,8 @@ export function NodeStructureView({
               styles.nodeViewMapNodeFocused,
               focusedNode.isDeleteTarget && styles.nodeViewMapNodeDeleteTarget,
               {
-                left: cursorPosition.x,
-                top: cursorPosition.y,
+                left: focusedCursorPosition.x,
+                top: focusedCursorPosition.y,
               },
             ]}
           />

@@ -1083,6 +1083,7 @@ export default function App() {
 
       <NodeStructureView
         addPreviewRelation={addPreviewRelation}
+        anchorFocusedNode={shouldRenderLeaf}
         cards={nodeMapCards}
         deleteTargetActive={isDeleteHoldActive}
         focusedCardId={nodeMapFocusedCardId}
