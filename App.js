@@ -169,6 +169,18 @@ function getRootTreeCardIds(cards, currentCardId) {
   return rootTreeCardIds;
 }
 
+function getOppositeSwipeDirection(direction) {
+  if (direction === 'left') {
+    return 'right';
+  }
+
+  if (direction === 'right') {
+    return 'left';
+  }
+
+  return direction === 'down' ? 'up' : 'down';
+}
+
 function wrapCanvasText(context, text, maxWidth) {
   const words = String(text || '').trim().split(/\s+/).filter(Boolean);
   const lines = [];
@@ -844,10 +856,11 @@ export default function App() {
       return true;
     }
 
+    const traversalDirection = getOppositeSwipeDirection(direction);
     const traversalMode = direction === 'left' || direction === 'right' ? 'dfs' : 'bfs';
     const nextCard = traversalCards.length === 1
       ? traversalCards[0]
-      : moveInTraversal(traversalCards, currentCardId, direction, traversalMode);
+      : moveInTraversal(traversalCards, currentCardId, traversalDirection, traversalMode);
 
     if (!nextCard || nextCard.index === undefined) {
       return false;
