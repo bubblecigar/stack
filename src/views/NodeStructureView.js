@@ -1,4 +1,9 @@
-import { Animated, Easing, View } from 'react-native';
+import {
+  Animated,
+  Easing,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { buildTreeLayout } from '../lib/treeLayout';
 import { buildPreviewCards, PREVIEW_CARD_ID } from '../lib/previewCards';
@@ -10,6 +15,11 @@ const MAP_EDGE_THICKNESS = 1;
 const MAP_TREE_LAYOUT_OVERRIDES = {
   childOverlapX: 96,
 };
+const LEAF_MAP_WIDTH_FACTOR = 0.58;
+const LEAF_MAP_HEIGHT = 220;
+const LEAF_STACK_TOP = 84;
+const LEAF_STACK_HEIGHT = 360;
+const LEAF_ADD_CARD_VISIBLE_TOP_OFFSET = 90;
 
 function getOrthogonalEdgeSegments(fromNode, toNode) {
   const elbowX = fromNode.x + ((toNode.x - fromNode.x) / 2);
@@ -57,6 +67,7 @@ export function NodeStructureView({
     width: 180,
     height: 120,
   });
+  const windowSize = useWindowDimensions();
   const mapOffset = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
   const cursorPosition = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
   const cursorHasPosition = useRef(false);
@@ -75,13 +86,31 @@ export function NodeStructureView({
     () => buildTreeLayout(previewCards, new Set(), MAP_TREE_LAYOUT_OVERRIDES),
     [previewCards],
   );
+  const effectiveMapSize = anchorFocusedNode
+    ? {
+      width: Math.max(windowSize.width * LEAF_MAP_WIDTH_FACTOR, 1),
+      height: LEAF_MAP_HEIGHT,
+    }
+    : mapSize;
+  const leafFocusedAnchor = useMemo(() => {
+    const stackBottom = LEAF_STACK_TOP + LEAF_STACK_HEIGHT;
+    const addButtonTop = windowSize.height - LEAF_ADD_CARD_VISIBLE_TOP_OFFSET;
+
+    return {
+      x: windowSize.width * 0.2,
+      y: stackBottom + ((addButtonTop - stackBottom) / 2),
+    };
+  }, [
+    windowSize.height,
+    windowSize.width,
+  ]);
 
   const nodeEntries = useMemo(() => {
     const positionedCards = mapLayout.positionedCards || [];
     const maxW = Math.max(mapLayout.maxWidth || 1, 1);
     const maxH = Math.max(mapLayout.maxHeight || 1, 1);
-    const availableWidth = Math.max(mapSize.width - (MAP_PADDING * 2), 1);
-    const availableHeight = Math.max(mapSize.height - (MAP_PADDING * 2), 1);
+    const availableWidth = Math.max(effectiveMapSize.width - (MAP_PADDING * 2), 1);
+    const availableHeight = Math.max(effectiveMapSize.height - (MAP_PADDING * 2), 1);
     const scale = Math.min(
       availableWidth / maxW,
       availableHeight / maxH,
@@ -119,8 +148,8 @@ export function NodeStructureView({
     mapLayout.nodeHeight,
     mapLayout.nodeWidth,
     mapLayout.positionedCards,
-    mapSize.height,
-    mapSize.width,
+    effectiveMapSize.height,
+    effectiveMapSize.width,
   ]);
 
   const nodeById = useMemo(() => {
@@ -175,24 +204,23 @@ export function NodeStructureView({
       };
     }
 
+    const nextAnchor = leafFocusedAnchor;
+    const nextOffset = {
+      x: nextAnchor.x - focusedNode.x,
+      y: nextAnchor.y - focusedNode.y,
+    };
+
     cursorHasPosition.current = false;
+    setFocusedAnchor(nextAnchor);
+
     if (!focusedAnchorRef.current) {
-      const nextAnchor = {
-        x: focusedNode.x,
-        y: focusedNode.y,
-      };
       focusedAnchorRef.current = nextAnchor;
-      setFocusedAnchor(nextAnchor);
-      mapOffset.setValue({ x: 0, y: 0 });
+      mapOffset.setValue(nextOffset);
       setShowFocusedCursor(true);
       return undefined;
     }
 
-    const nextOffset = {
-      x: focusedAnchorRef.current.x - focusedNode.x,
-      y: focusedAnchorRef.current.y - focusedNode.y,
-    };
-
+    focusedAnchorRef.current = nextAnchor;
     setShowFocusedCursor(true);
     const animation = Animated.timing(mapOffset, {
       toValue: nextOffset,
@@ -205,7 +233,7 @@ export function NodeStructureView({
     return () => {
       animation.stop();
     };
-  }, [anchorFocusedNode, cursorPosition, mapOffset, focusedNode]);
+  }, [anchorFocusedNode, cursorPosition, leafFocusedAnchor, mapOffset, focusedNode]);
 
   const focusedCursorPosition = anchorFocusedNode && focusedAnchor
     ? focusedAnchor
@@ -217,7 +245,10 @@ export function NodeStructureView({
   return (
     <View
       pointerEvents="none"
-      style={styles.nodeView}
+      style={[
+        styles.nodeView,
+        anchorFocusedNode && styles.nodeViewLeafAnchored,
+      ]}
       onLayout={(event) => {
         const { width, height } = event.nativeEvent.layout;
         setMapSize((current) => (

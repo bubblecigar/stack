@@ -271,6 +271,16 @@ export const styles = StyleSheet.create({
     shadowOpacity: 0,
     elevation: 0,
   },
+  nodeViewLeafAnchored: {
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+    padding: 0,
+    borderRadius: 0,
+  },
   nodeViewCanvas: {
     position: 'relative',
     flex: 1,
