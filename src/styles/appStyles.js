@@ -394,7 +394,8 @@ export const styles = StyleSheet.create({
   completionProgressNodeField: {
     position: 'absolute',
     top: 8,
-    left: 14,
+    left: 0,
+    right: 0,
   },
   completionProgressEdge: {
     position: 'absolute',

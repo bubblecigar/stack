@@ -6,7 +6,7 @@ const COMPLETION_NODE_SIZE = 14;
 const COMPLETION_OVERLAY_PADDING = 18;
 const COMPLETION_NODE_STEP_X = 28;
 const COMPLETION_NODE_STEP_Y = 24;
-const COMPLETION_OVERLAY_AVAILABLE_HEIGHT = 82;
+const COMPLETION_ROW_STEP_Y = 42;
 const COMPLETION_EDGE_THICKNESS = 1;
 
 function isTodayTimestamp(timestamp) {
@@ -21,7 +21,7 @@ function isTodayTimestamp(timestamp) {
     && date.getDate() === today.getDate();
 }
 
-function buildHorizontalCompletionLayout(cards = []) {
+function buildWrappedCompletionLayout(cards = [], availableWidth = 0) {
   const cardById = new Map(cards.map((card) => [card.id, card]));
   const rootCards = cards.filter((card) => (
     !Array.isArray(card.parentIds) || card.parentIds.length === 0
@@ -31,7 +31,12 @@ function buildHorizontalCompletionLayout(cards = []) {
   const visiting = new Set();
   const edges = [];
   let order = 0;
-  let maxDepth = 0;
+  let maxY = 0;
+  const usableWidth = Math.max(availableWidth - (COMPLETION_OVERLAY_PADDING * 2), COMPLETION_NODE_SIZE);
+  const maxColumns = Math.max(
+    Math.floor((usableWidth - COMPLETION_NODE_SIZE) / COMPLETION_NODE_STEP_X) + 1,
+    1,
+  );
 
   function placeCard(card, depth) {
     if (!card || seen.has(card.id) || visiting.has(card.id)) {
@@ -39,13 +44,17 @@ function buildHorizontalCompletionLayout(cards = []) {
     }
 
     visiting.add(card.id);
+    const row = Math.floor(order / maxColumns);
+    const column = order % maxColumns;
+    const y = (row * COMPLETION_ROW_STEP_Y) + (depth * COMPLETION_NODE_STEP_Y);
+
     positionedCards.push({
       card,
-      x: order * COMPLETION_NODE_STEP_X,
-      y: depth * COMPLETION_NODE_STEP_Y,
+      x: column * COMPLETION_NODE_STEP_X,
+      y,
     });
     order += 1;
-    maxDepth = Math.max(maxDepth, depth);
+    maxY = Math.max(maxY, y);
     seen.add(card.id);
 
     (card.childIds || []).forEach((childId) => {
@@ -68,22 +77,21 @@ function buildHorizontalCompletionLayout(cards = []) {
   cards.forEach((card) => placeCard(card, 0));
 
   return {
-    maxHeight: (maxDepth * COMPLETION_NODE_STEP_Y) + COMPLETION_NODE_SIZE,
-    maxWidth: Math.max(
-      ((Math.max(order, 1) - 1) * COMPLETION_NODE_STEP_X) + COMPLETION_NODE_SIZE,
-      COMPLETION_NODE_SIZE,
+    maxHeight: maxY + COMPLETION_NODE_SIZE,
+    maxWidth: Math.min(
+      ((Math.min(Math.max(order, 1), maxColumns) - 1) * COMPLETION_NODE_STEP_X) + COMPLETION_NODE_SIZE,
+      usableWidth,
     ),
     edges,
     positionedCards,
   };
 }
 
-function getCompletionEdgeSegments(fromNode, toNode, scale) {
-  const nodeSize = COMPLETION_NODE_SIZE * scale;
-  const fromX = COMPLETION_OVERLAY_PADDING + (fromNode.x * scale) + nodeSize;
-  const fromY = COMPLETION_OVERLAY_PADDING + (fromNode.y * scale) + (nodeSize / 2);
-  const toX = COMPLETION_OVERLAY_PADDING + (toNode.x * scale);
-  const toY = COMPLETION_OVERLAY_PADDING + (toNode.y * scale) + (nodeSize / 2);
+function getCompletionEdgeSegments(fromNode, toNode) {
+  const fromX = COMPLETION_OVERLAY_PADDING + fromNode.x + COMPLETION_NODE_SIZE;
+  const fromY = COMPLETION_OVERLAY_PADDING + fromNode.y + (COMPLETION_NODE_SIZE / 2);
+  const toX = COMPLETION_OVERLAY_PADDING + toNode.x;
+  const toY = COMPLETION_OVERLAY_PADDING + toNode.y + (COMPLETION_NODE_SIZE / 2);
   const elbowX = fromX + ((toX - fromX) / 2);
   const points = [
     { x: fromX, y: fromY },
@@ -119,18 +127,8 @@ export function CompletionProgressTree({ treeCompletionCanvas = null }) {
     ? treeCompletionCanvas.nodes.filter((node) => isTodayTimestamp(node?.completedAt))
     : [];
   const completionLayout = useMemo(
-    () => buildHorizontalCompletionLayout(completionNodes),
-    [completionNodes],
-  );
-  const completionScale = Math.min(
-    1,
-    Math.max(
-      Math.min(
-        (windowSize.width - (COMPLETION_OVERLAY_PADDING * 2)) / Math.max(completionLayout.maxWidth, 1),
-        COMPLETION_OVERLAY_AVAILABLE_HEIGHT / Math.max(completionLayout.maxHeight, 1),
-      ),
-      0.2,
-    ),
+    () => buildWrappedCompletionLayout(completionNodes, windowSize.width),
+    [completionNodes, windowSize.width],
   );
 
   if (completionLayout.positionedCards.length === 0) {
@@ -152,7 +150,7 @@ export function CompletionProgressTree({ treeCompletionCanvas = null }) {
             return [];
           }
 
-          return getCompletionEdgeSegments(fromNode, toNode, completionScale).map((segment, segmentIndex) => (
+          return getCompletionEdgeSegments(fromNode, toNode).map((segment, segmentIndex) => (
             <View
               key={`completion-edge-${edgeIndex}-${segmentIndex}`}
               style={[
@@ -168,9 +166,8 @@ export function CompletionProgressTree({ treeCompletionCanvas = null }) {
             style={[
               styles.completionProgressNode,
               {
-                left: COMPLETION_OVERLAY_PADDING + (entry.x * completionScale),
-                top: COMPLETION_OVERLAY_PADDING + (entry.y * completionScale),
-                transform: [{ scale: completionScale }],
+                left: COMPLETION_OVERLAY_PADDING + entry.x,
+                top: COMPLETION_OVERLAY_PADDING + entry.y,
               },
             ]}
           />
