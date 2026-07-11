@@ -154,23 +154,31 @@ export function CompletionProgressTree({ treeCompletionCanvas = null }) {
             <View
               key={`completion-edge-${edgeIndex}-${segmentIndex}`}
               style={[
-                styles.completionProgressEdge,
+                styles.completionProgressEdgeSlot,
                 segment,
               ]}
-            />
+            >
+              <View style={styles.completionProgressEdgeShadow} />
+              <View style={styles.completionProgressEdgeHighlight} />
+              <View style={styles.completionProgressEdge} />
+            </View>
           ));
         })}
         {completionLayout.positionedCards.map((entry, entryIndex) => (
           <View
             key={entry.card.id || `completion-node-${entryIndex}`}
             style={[
-              styles.completionProgressNode,
+              styles.completionProgressNodeSlot,
               {
                 left: COMPLETION_OVERLAY_PADDING + entry.x,
                 top: COMPLETION_OVERLAY_PADDING + entry.y,
               },
             ]}
-          />
+          >
+            <View style={styles.completionProgressNodeUpperShadow} />
+            <View style={styles.completionProgressNodeLowerHighlight} />
+            <View style={styles.completionProgressNode} />
+          </View>
         ))}
       </View>
     </View>
