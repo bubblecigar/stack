@@ -23,6 +23,7 @@ import {
   updateAt,
 } from './stackStore';
 import defaultStackData from './defaultStack.json';
+import { CompletionProgressTree } from './src/components/CompletionProgressTree';
 import { FloatingControls } from './src/components/FloatingControls';
 import { AuthScreen } from './src/views/AuthScreen';
 import { LeafDeck } from './src/views/LeafDeck';
@@ -47,18 +48,9 @@ import { styles } from './src/styles/appStyles';
 
 const LEAF_VISIBLE_COUNT = 5;
 const TREE_COMPLETION_CANVAS_KEY = 'treeCompletionCanvas';
-const TREE_COMPLETION_CANVAS_WIDTH = 1600;
-const TREE_COMPLETION_CANVAS_HEIGHT = 1200;
-const TREE_COMPLETION_CANVAS_PADDING = 48;
-const TREE_COMPLETION_CANVAS_LINE_HEIGHT = 30;
-const TREE_COMPLETION_TEXT_START_X = 32;
-const TREE_COMPLETION_TEXT_START_Y = 48;
-const TREE_COMPLETION_AVERAGE_CHAR_WIDTH = 15;
 const EMPTY_TREE_COMPLETION_CANVAS = {
-  width: TREE_COMPLETION_CANVAS_WIDTH,
-  height: TREE_COMPLETION_CANVAS_HEIGHT,
   entries: [],
-  nextY: TREE_COMPLETION_TEXT_START_Y,
+  nodes: [],
   updatedAt: null,
 };
 
@@ -185,30 +177,6 @@ function getOppositeSwipeDirection(direction) {
   }
 
   return direction === 'down' ? 'up' : 'down';
-}
-
-function wrapCompletionText(text, maxWidth) {
-  const words = String(text || '').trim().split(/\s+/).filter(Boolean);
-  const lines = [];
-  let currentLine = '';
-  const maxChars = Math.max(Math.floor(maxWidth / TREE_COMPLETION_AVERAGE_CHAR_WIDTH), 1);
-
-  words.forEach((word) => {
-    const nextLine = currentLine ? `${currentLine} ${word}` : word;
-    if (nextLine.length <= maxChars || !currentLine) {
-      currentLine = nextLine;
-      return;
-    }
-
-    lines.push(currentLine);
-    currentLine = word;
-  });
-
-  if (currentLine) {
-    lines.push(currentLine);
-  }
-
-  return lines.length > 0 ? lines : [''];
 }
 
 export default function App() {
@@ -561,54 +529,50 @@ export default function App() {
   }
 
   async function writeRemovedCardsToTreeCanvas(removedCards) {
-    const removedTexts = removedCards
-      .map((card) => String(card?.text || '').trim())
-      .filter(Boolean);
+    const removedCardIds = new Set(removedCards
+      .map((card) => Number(card?.id))
+      .filter((cardId) => Number.isInteger(cardId)));
 
-    if (removedTexts.length === 0) {
+    if (removedCardIds.size === 0) {
       return;
     }
 
     const currentCanvas = treeCompletionCanvas || EMPTY_TREE_COMPLETION_CANVAS;
     const { imagePng: _unusedImagePng, ...currentComputedCanvas } = currentCanvas;
-    const baseWidth = Math.max(
-      Number(currentCanvas.width) || TREE_COMPLETION_CANVAS_WIDTH,
-      TREE_COMPLETION_CANVAS_WIDTH,
-    );
-    const baseHeight = Math.max(
-      Number(currentCanvas.height) || TREE_COMPLETION_CANVAS_HEIGHT,
-      TREE_COMPLETION_CANVAS_HEIGHT,
-    );
-    const startY = Math.max(
-      Number(currentCanvas.nextY) || TREE_COMPLETION_TEXT_START_Y,
-      TREE_COMPLETION_TEXT_START_Y,
-    );
-
-    const maxTextWidth = baseWidth - TREE_COMPLETION_TEXT_START_X - TREE_COMPLETION_CANVAS_PADDING;
-    const wrappedLines = removedTexts.flatMap((text) => (
-      wrapCompletionText(text, maxTextWidth)
-    ));
-    const requiredHeight = startY
-      + (wrappedLines.length * TREE_COMPLETION_CANVAS_LINE_HEIGHT)
-      + TREE_COMPLETION_CANVAS_PADDING;
-    const nextHeight = Math.max(baseHeight, requiredHeight);
-    const nextY = startY + (wrappedLines.length * TREE_COMPLETION_CANVAS_LINE_HEIGHT);
+    const completedAt = Date.now();
+    const completionGroupId = `completion-${completedAt}`;
+    const nodeIdByCardId = new Map([...removedCardIds].map((cardId) => [
+      cardId,
+      `removed-${completedAt}-${cardId}`,
+    ]));
+    const nextNodes = removedCards
+      .filter((card) => removedCardIds.has(card.id))
+      .map((card) => ({
+        childIds: Array.isArray(card.childIds)
+          ? card.childIds
+            .filter((childId) => removedCardIds.has(childId))
+            .map((childId) => nodeIdByCardId.get(childId))
+          : [],
+        completedAt,
+        groupId: completionGroupId,
+        id: nodeIdByCardId.get(card.id),
+        originalId: card.id,
+        parentIds: Array.isArray(card.parentIds)
+          ? card.parentIds
+            .filter((parentId) => removedCardIds.has(parentId))
+            .map((parentId) => nodeIdByCardId.get(parentId))
+          : [],
+        text: String(card.text || '').trim(),
+      }));
 
     const nextCanvas = {
       ...currentComputedCanvas,
-      entries: [
-        ...(Array.isArray(currentCanvas.entries) ? currentCanvas.entries : []),
-        ...wrappedLines.map((text, lineIndex) => ({
-          id: `removed-${Date.now()}-${lineIndex}`,
-          text,
-          x: TREE_COMPLETION_TEXT_START_X,
-          y: startY + (lineIndex * TREE_COMPLETION_CANVAS_LINE_HEIGHT),
-        })),
+      entries: Array.isArray(currentCanvas.entries) ? currentCanvas.entries : [],
+      nodes: [
+        ...(Array.isArray(currentCanvas.nodes) ? currentCanvas.nodes : []),
+        ...nextNodes,
       ],
-      width: baseWidth,
-      height: nextHeight,
-      nextY: nextY + TREE_COMPLETION_CANVAS_LINE_HEIGHT,
-      updatedAt: Date.now(),
+      updatedAt: completedAt,
     };
 
     setTreeCompletionCanvas(nextCanvas);
@@ -994,6 +958,7 @@ export default function App() {
             <Text style={styles.syncBannerText}>{syncError}</Text>
           </View>
         ) : null}
+        <CompletionProgressTree treeCompletionCanvas={treeCompletionCanvas} />
         {shouldRenderLeaf ? (
           <LeafDeck
             cards={leafCards}
@@ -1023,7 +988,6 @@ export default function App() {
             collapsedNodeIds={collapsedNodeIds}
             focusedCardIndex={focusedCardIndex}
             focusedCardId={focusedCardId}
-            treeCompletionCanvas={treeCompletionCanvas}
             editingIndex={editingIndex}
             editingValue={editingValue}
             onCardPress={handleTreeCardPress}

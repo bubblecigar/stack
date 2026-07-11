@@ -2,7 +2,7 @@ import {
   useEffect, useMemo, useRef, useState,
 } from 'react';
 import {
-  PanResponder, ScrollView, Text, View,
+  PanResponder, ScrollView, View,
 } from 'react-native';
 import { styles } from '../styles/appStyles';
 import { buildTreeLayout, TREE_CANVAS_PADDING } from '../lib/treeLayout';
@@ -26,7 +26,6 @@ export function TreeCanvas({
   onCompleteEdit,
   onCanvasBlur,
   isDeleteHoldActive = false,
-  treeCompletionCanvas = null,
   addPreviewRelation = null,
 }) {
   const treeHorizontalScrollRef = useRef(null);
@@ -163,17 +162,6 @@ export function TreeCanvas({
     top: entry.top + TREE_CANVAS_PADDING,
     isCollapsedStacked: entry.isCollapsedStacked,
   }));
-  const completionEntries = Array.isArray(treeCompletionCanvas?.entries)
-    ? treeCompletionCanvas.entries
-    : [];
-  const completionWidth = Math.max(
-    Number(treeCompletionCanvas?.width) || 0,
-    contentWidth,
-  );
-  const completionHeight = Math.max(
-    Number(treeCompletionCanvas?.height) || 0,
-    contentHeight,
-  );
 
   return (
     <View
@@ -216,33 +204,6 @@ export function TreeCanvas({
               },
             ]}
           >
-            {completionEntries.length > 0 ? (
-              <View
-                pointerEvents="none"
-                style={[
-                  styles.treeCompletionComputedWall,
-                  {
-                    height: completionHeight,
-                    width: completionWidth,
-                  },
-                ]}
-              >
-                {completionEntries.map((entry, entryIndex) => (
-                  <Text
-                    key={entry.id || `completion-${entryIndex}`}
-                    style={[
-                      styles.treeCompletionCanvasText,
-                      {
-                        left: Number(entry.x) || 0,
-                        top: Number(entry.y) || 0,
-                      },
-                    ]}
-                  >
-                    {entry.text}
-                  </Text>
-                ))}
-              </View>
-            ) : null}
             {paddedPositionedCards.map((entry) => {
               const { card, left, top, depth, placementOrder, isCollapsedStacked } = entry;
               const isPreviewCard = card.id === PREVIEW_CARD_ID;
