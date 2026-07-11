@@ -551,10 +551,11 @@ export const styles = StyleSheet.create({
   leafPlaceholder: {
     width: '100%',
     alignSelf: 'center',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 12,
+    justifyContent: 'flex-start',
+    alignItems: 'stretch',
+    gap: 16,
     opacity: 0.95,
+    paddingBottom: 16,
   },
   leafContentScroll: {
     flex: 1,
@@ -625,10 +626,9 @@ export const styles = StyleSheet.create({
   },
   leafPlaceholderBar: {
     width: '88%',
-    height: 12,
-    borderRadius: 6,
+    height: 14,
+    borderRadius: 7,
     backgroundColor: '#CBD5E1',
-    marginBottom: 2,
   },
   focusedCard: {
     borderColor: '#475569',
