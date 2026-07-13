@@ -509,7 +509,7 @@ export const styles = StyleSheet.create({
   treeCardInput: {
     minHeight: 66,
     fontSize: 17,
-    lineHeight: 21,
+    lineHeight: 22,
     fontWeight: '700',
     textAlign: 'left',
     textAlignVertical: 'top',
@@ -708,7 +708,7 @@ export const styles = StyleSheet.create({
     fontFamily: 'Kalam_400Regular',
     fontSize: 28,
     fontWeight: '400',
-    lineHeight: 34,
+    lineHeight: 38,
     padding: 0,
     paddingHorizontal: 0,
     paddingVertical: 0,
