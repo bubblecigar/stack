@@ -7,18 +7,30 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_AUTH_SERVER_URL": "https://bubblestack.duckdns.org",
+        "EXPO_PUBLIC_API_SERVER_URL": "https://bubblestack.duckdns.org"
+      },
       "ios": {
         "simulator": false
       }
     },
     "internal": {
       "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_AUTH_SERVER_URL": "https://bubblestack.duckdns.org",
+        "EXPO_PUBLIC_API_SERVER_URL": "https://bubblestack.duckdns.org"
+      },
       "ios": {
         "simulator": false
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_AUTH_SERVER_URL": "https://bubblestack.duckdns.org",
+        "EXPO_PUBLIC_API_SERVER_URL": "https://bubblestack.duckdns.org"
+      }
     }
   }
 }

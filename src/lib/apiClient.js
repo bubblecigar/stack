@@ -12,9 +12,14 @@ function getExpoHost() {
   return hostUri.split(':')[0] || null;
 }
 
-const fallbackHost = getExpoHost() || '192.168.1.101';
-const DEFAULT_AUTH_BASE_URL = `http://${fallbackHost}:4100`;
-const DEFAULT_API_BASE_URL = `http://${fallbackHost}:4101`;
+const DEFAULT_REMOTE_BASE_URL = 'https://bubblestack.duckdns.org';
+const fallbackHost = getExpoHost();
+const DEFAULT_AUTH_BASE_URL = __DEV__ && fallbackHost
+  ? `http://${fallbackHost}:4100`
+  : DEFAULT_REMOTE_BASE_URL;
+const DEFAULT_API_BASE_URL = __DEV__ && fallbackHost
+  ? `http://${fallbackHost}:4101`
+  : DEFAULT_REMOTE_BASE_URL;
 
 export const AUTH_BASE_URL = process.env.EXPO_PUBLIC_AUTH_SERVER_URL
   || DEFAULT_AUTH_BASE_URL;
