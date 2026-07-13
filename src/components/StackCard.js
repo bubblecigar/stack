@@ -7,6 +7,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useEffect, useRef } from 'react';
 import { DeleteHoldIndicator } from './DeleteHoldIndicator';
 import { styles } from '../styles/appStyles';
@@ -198,9 +199,11 @@ export function StackCard({
               isTreeCard && pressed && styles.treeEditButtonPressed,
             ]}
           >
-            <Text style={styles.iconButtonText}>
-              {isEditing ? '✓' : '✎'}
-            </Text>
+            {isEditing ? (
+              <Text style={styles.iconButtonText}>✓</Text>
+            ) : (
+              <MaterialCommunityIcons color="#FFFFFF" name="pencil" size={18} />
+            )}
           </Pressable>
         )}
 
