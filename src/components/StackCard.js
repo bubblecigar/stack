@@ -57,6 +57,14 @@ export function StackCard({
   );
   const shouldShowControls = !hideControls && isFocusedCard;
   const shouldShowEdit = isFocusedCard;
+  const isTreeDeleteHoldActive = isTreeCard && isDeleteHoldActive;
+  const isDeleteProgressVisible = isTreeDeleteHoldActive && isFocusedCard;
+  const editButtonColor = isTreeDeleteHoldActive
+    ? '#DC2626'
+    : (isTreeCard ? '#0EA5E9' : '#0F172A');
+  const editButtonPressedColor = isTreeDeleteHoldActive
+    ? '#B91C1C'
+    : (isTreeCard ? '#0284C7' : '#2563EB');
 
   const treeStackLayer = treePosition
     ? (
@@ -170,7 +178,7 @@ export function StackCard({
           position: 'absolute',
         },
         isFocusedCard && !isLeafCard && styles.focusedCard,
-        isFocusedCard && isTreeCard && isDeleteHoldActive && styles.deleteFocusedCard,
+        isDeleteProgressVisible && styles.deleteFocusedCard,
         zLayer != null ? { zIndex: zLayer } : null,
       ]}
     >
@@ -194,9 +202,9 @@ export function StackCard({
             })}
             style={({ pressed }) => [
               styles.iconButton,
-              isTreeCard && styles.treeEditButton,
-              pressed && styles.iconButtonPressed,
-              isTreeCard && pressed && styles.treeEditButtonPressed,
+              {
+                backgroundColor: pressed ? editButtonPressedColor : editButtonColor,
+              },
             ]}
           >
             {isEditing ? (

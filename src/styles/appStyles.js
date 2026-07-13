@@ -656,15 +656,6 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconButtonPressed: {
-    backgroundColor: '#2563EB',
-  },
-  treeEditButton: {
-    backgroundColor: '#0EA5E9',
-  },
-  treeEditButtonPressed: {
-    backgroundColor: '#0284C7',
-  },
   linkButtonActive: {
     backgroundColor: '#7C3AED',
   },
