@@ -23,13 +23,11 @@ export function StackCard({
   focusedCardId = null,
   isLeafTopCard = false,
   hideControls = false,
-  collapsedNodeIds,
   treePosition,
   isCollapsedStacked = false,
   onPress,
   onPressIn,
   onCreateEdit,
-  onToggleCollapse,
   onDeleteCard,
   onDeleteHoldComplete,
   onEditingValueChange,
@@ -42,7 +40,6 @@ export function StackCard({
   const {
     id,
     index,
-    childIds,
     done = false,
     text,
   } = card;
@@ -57,8 +54,6 @@ export function StackCard({
         ? focusedCardId === id
         : focusedCardIndex === index)
   );
-  const hasChildren = Array.isArray(childIds) && childIds.length > 0;
-  const isCollapsed = collapsedNodeIds.has(id);
   const shouldShowControls = !hideControls && isFocusedCard;
   const shouldShowEdit = isFocusedCard;
 
@@ -183,24 +178,6 @@ export function StackCard({
         isTreeCard && styles.treeCardControls,
       ]}
       >
-        {isTreeCard && shouldShowControls && hasChildren && (
-          <Pressable
-            accessibilityLabel={isCollapsed ? 'Expand card' : 'Collapse card'}
-            accessibilityRole="button"
-            onPressIn={handleControlPressIn}
-            onPress={(event) => handleControlPress(event, () => {
-              onToggleCollapse?.(index);
-            })}
-            style={({ pressed }) => [
-              styles.iconButton,
-              isCollapsed && styles.linkButtonActive,
-              pressed && styles.iconButtonPressed,
-            ]}
-          >
-            <Text style={styles.iconButtonText}>{isCollapsed ? '+' : '-'}</Text>
-          </Pressable>
-        )}
-
         {shouldShowControls && shouldShowEdit && (
           <Pressable
             accessibilityLabel={isEditing ? 'Confirm card' : 'Edit card'}
