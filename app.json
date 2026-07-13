@@ -7,6 +7,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
+      "bundleIdentifier": "com.roywang.stack",
       "supportsTablet": true,
       "infoPlist": {
         "NSAppTransportSecurity": {
@@ -28,7 +29,13 @@
     },
     "plugins": [
       "expo-secure-store",
-      "expo-font"
-    ]
+      "expo-font",
+      "expo-asset"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "77872afa-e77f-4381-a382-830a1f01c708"
+      }
+    }
   }
 }
