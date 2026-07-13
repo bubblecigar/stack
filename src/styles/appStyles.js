@@ -684,8 +684,8 @@ export const styles = StyleSheet.create({
     backgroundColor: '#CBD5E1',
   },
   focusedCard: {
-    borderColor: '#475569',
-    borderWidth: 1,
+    borderColor: '#0EA5E9',
+    borderWidth: 2,
     borderStyle: 'solid',
   },
   deleteFocusedCard: {

@@ -160,7 +160,9 @@ function playNoise({
   duration = 0.12,
   gain = 0.08,
   filterFrequency = 1200,
+  endFilterFrequency = null,
   filterType = 'highpass',
+  filterQ = 0.7,
 }) {
   const context = getAudioContext();
   if (!context) {
@@ -175,6 +177,13 @@ function playNoise({
   source.buffer = getNoiseBuffer(context);
   filter.type = filterType;
   filter.frequency.setValueAtTime(filterFrequency, startTime);
+  filter.Q.setValueAtTime(filterQ, startTime);
+  if (endFilterFrequency !== null) {
+    filter.frequency.exponentialRampToValueAtTime(
+      Math.max(endFilterFrequency, 1),
+      startTime + duration,
+    );
+  }
   scheduleGain(gainNode, startTime, [
     [0, 0.0001],
     [0.012, gain],
@@ -188,23 +197,37 @@ function playNoise({
   source.stop(startTime + duration + 0.03);
 }
 
+function playPaperSwipeSound({
+  startOffset = 0,
+  duration = 0.18,
+  gain = 0.058,
+} = {}) {
+  playNoise({
+    startOffset,
+    duration,
+    gain,
+    filterFrequency: 3200,
+    endFilterFrequency: 700,
+    filterType: 'bandpass',
+    filterQ: 0.9,
+  });
+  playNoise({
+    startOffset: startOffset + 0.018,
+    duration: duration * 0.72,
+    gain: gain * 0.42,
+    filterFrequency: 5200,
+    endFilterFrequency: 1300,
+    filterType: 'highpass',
+    filterQ: 0.55,
+  });
+}
+
 export function playLeafSwipeSound() {
   if (playNativeSound('leafSwipe')) {
     return;
   }
 
-  playNoise({
-    duration: 0.16,
-    gain: 0.045,
-    filterFrequency: 900,
-  });
-  playTone({
-    frequency: 520,
-    endFrequency: 260,
-    type: 'triangle',
-    duration: 0.14,
-    gain: 0.035,
-  });
+  playPaperSwipeSound();
 }
 
 export function playModeFlipSound() {
@@ -212,20 +235,9 @@ export function playModeFlipSound() {
     return;
   }
 
-  playTone({
-    frequency: 340,
-    endFrequency: 620,
-    type: 'triangle',
-    duration: 0.08,
-    gain: 0.055,
-  });
-  playTone({
-    frequency: 620,
-    endFrequency: 360,
-    type: 'triangle',
-    startOffset: 0.08,
-    duration: 0.1,
-    gain: 0.05,
+  playPaperSwipeSound({
+    duration: 0.16,
+    gain: 0.052,
   });
 }
 
