@@ -44,6 +44,7 @@ import {
   playModeFlipSound,
   playTrashSound,
 } from './src/lib/soundEffects';
+import { getStoredUiState, setStoredUiState } from './src/lib/uiStateStore';
 import { styles } from './src/styles/appStyles';
 
 const LEAF_VISIBLE_COUNT = 5;
@@ -243,6 +244,7 @@ export default function App() {
   const hasLoadedRemoteCards = useRef(false);
   const isApplyingRemoteCards = useRef(false);
   const authUserRef = useRef(null);
+  const restoredUiStateUserIdRef = useRef(null);
   const treeCardPressState = useRef({
     index: null,
     timestamp: 0,
@@ -338,6 +340,7 @@ export default function App() {
     setTreeCompletionCanvas(EMPTY_TREE_COMPLETION_CANVAS);
     hasLoadedDefaultStack.current = false;
     hasLoadedRemoteCards.current = false;
+    restoredUiStateUserIdRef.current = null;
     isApplyingRemoteCards.current = true;
     loadCards([]);
     isApplyingRemoteCards.current = false;
@@ -354,6 +357,7 @@ export default function App() {
     setSyncError('');
     hasLoadedDefaultStack.current = false;
     hasLoadedRemoteCards.current = false;
+    restoredUiStateUserIdRef.current = null;
   }
 
   useEffect(() => {
@@ -795,6 +799,84 @@ export default function App() {
   const nodeMapFocusedCardIndex = nodeMapFocusedCardId === null
     ? null
     : nodeMapCards.findIndex((card) => card.id === nodeMapFocusedCardId);
+
+  useEffect(() => {
+    const userId = authUser?.id ?? null;
+    if (
+      userId === null
+      || restoredUiStateUserIdRef.current === userId
+      || !hasLoadedRemoteCards.current
+      || isLoadingUserData
+    ) {
+      return undefined;
+    }
+
+    let isMounted = true;
+
+    async function restoreUiState() {
+      const storedUiState = await getStoredUiState(userId);
+      if (!isMounted) {
+        return;
+      }
+
+      restoredUiStateUserIdRef.current = userId;
+
+      if (!storedUiState) {
+        return;
+      }
+
+      setLayoutMode(storedUiState.layoutMode);
+
+      const nextFocusedIndex = storedUiState.focusedCardId === null
+        ? null
+        : cards.findIndex((card) => card.id === storedUiState.focusedCardId);
+      setFocusedCardIndex(nextFocusedIndex >= 0 ? nextFocusedIndex : null);
+
+      const nextLeafFocusedIndex = storedUiState.leafFocusedCardId === null
+        ? -1
+        : cards.findIndex((card) => card.id === storedUiState.leafFocusedCardId);
+      if (nextLeafFocusedIndex >= 0) {
+        setLeafFocusedCardId(storedUiState.leafFocusedCardId);
+        setLeafTopIndex(nextLeafFocusedIndex);
+      }
+    }
+
+    restoreUiState();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    authUser?.id,
+    cards,
+    isLoadingUserData,
+  ]);
+
+  useEffect(() => {
+    const userId = authUser?.id ?? null;
+    if (
+      userId === null
+      || restoredUiStateUserIdRef.current !== userId
+      || !hasLoadedRemoteCards.current
+    ) {
+      return undefined;
+    }
+
+    const timeoutId = setTimeout(() => {
+      setStoredUiState(userId, {
+        focusedCardId,
+        layoutMode,
+        leafFocusedCardId,
+      }).catch(() => {});
+    }, 250);
+
+    return () => clearTimeout(timeoutId);
+  }, [
+    authUser?.id,
+    focusedCardId,
+    layoutMode,
+    leafFocusedCardId,
+  ]);
 
   function handleDeleteCurrentLeafCard() {
     if (!shouldRenderLeaf || visibleTopCardIndex === null) {
