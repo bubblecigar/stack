@@ -12,7 +12,7 @@ import {
 import { styles } from '../styles/appStyles';
 
 const treeViewCardImage = require('../../assets/tree_view.png');
-const trashButtonImage = require('../../assets/card/white_trash_icon.png');
+const voidStampImage = require('../../assets/card/void_stamp_gray.png');
 
 const DELETE_HOLD_MS = 500;
 const ADD_POINT_DEAD_ZONE = 28;
@@ -281,8 +281,9 @@ export function FloatingControls({
             ]}
           >
             <Image
-              source={trashButtonImage}
-              style={styles.deleteCardIcon}
+              pointerEvents="none"
+              source={voidStampImage}
+              style={styles.deleteStampIcon}
             />
           </Pressable>
         </Animated.View>
