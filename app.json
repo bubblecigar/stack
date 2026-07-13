@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "stack",
+    "name": "Papers",
     "slug": "stack",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/paper_workicon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "bundleIdentifier": "com.roywang.stack",
