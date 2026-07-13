@@ -161,47 +161,30 @@ export const styles = StyleSheet.create({
     zIndex: 2500,
     elevation: 30,
   },
-  leafDeleteProgressRing: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: '#DC2626',
+  leafDeleteProgressCircleLoader: {
+    width: 118,
+    height: 118,
+    borderRadius: 59,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#991B1B',
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    shadowOpacity: 0.24,
-    shadowRadius: 4,
-    elevation: 4,
   },
-  leafDeleteProgressTickSlot: {
+  leafDeleteProgressLoaderSlot: {
     position: 'absolute',
     top: 0,
     left: 0,
-    width: 42,
-    height: 42,
+    width: 118,
+    height: 118,
     alignItems: 'center',
   },
-  leafDeleteProgressTick: {
-    width: 2,
-    height: 4,
-    borderRadius: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.24)',
-    marginTop: 1,
+  leafDeleteProgressLoaderTick: {
+    width: 3,
+    height: 9,
+    borderRadius: 2,
+    backgroundColor: 'rgba(220, 38, 38, 0.2)',
+    marginTop: 0,
   },
-  leafDeleteProgressTickActive: {
-    backgroundColor: '#FFFFFF',
-  },
-  leafDeleteProgressCenter: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+  leafDeleteProgressLoaderTickActive: {
     backgroundColor: '#DC2626',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   leafAddPreviewOverlay: {
     position: 'absolute',
@@ -216,46 +199,6 @@ export const styles = StyleSheet.create({
     position: 'relative',
     width: '100%',
     minHeight: 360,
-  },
-  leafTrashIcon: {
-    width: 13,
-    height: 14,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-  },
-  leafTrashIconLid: {
-    width: 12,
-    height: 2,
-    borderRadius: 1,
-    backgroundColor: '#FFFFFF',
-    marginBottom: 1,
-  },
-  leafTrashIconHandle: {
-    position: 'absolute',
-    top: 1,
-    width: 5,
-    height: 2,
-    borderRadius: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  leafTrashIconBody: {
-    width: 10,
-    height: 10,
-    borderWidth: 1,
-    borderTopWidth: 0,
-    borderColor: '#FFFFFF',
-    borderBottomLeftRadius: 2,
-    borderBottomRightRadius: 2,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 2,
-    paddingTop: 2,
-  },
-  leafTrashIconLine: {
-    width: 1,
-    height: 5,
-    borderRadius: 1,
-    backgroundColor: '#FFFFFF',
   },
   nodeView: {
     position: 'absolute',
@@ -715,6 +658,12 @@ export const styles = StyleSheet.create({
   },
   iconButtonPressed: {
     backgroundColor: '#2563EB',
+  },
+  treeEditButton: {
+    backgroundColor: '#0EA5E9',
+  },
+  treeEditButtonPressed: {
+    backgroundColor: '#0284C7',
   },
   linkButtonActive: {
     backgroundColor: '#7C3AED',

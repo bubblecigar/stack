@@ -193,7 +193,9 @@ export function StackCard({
             })}
             style={({ pressed }) => [
               styles.iconButton,
+              isTreeCard && styles.treeEditButton,
               pressed && styles.iconButtonPressed,
+              isTreeCard && pressed && styles.treeEditButtonPressed,
             ]}
           >
             <Text style={styles.iconButtonText}>

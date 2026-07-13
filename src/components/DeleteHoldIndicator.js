@@ -3,20 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { styles } from '../styles/appStyles';
 
 const DELETE_HOLD_MS = 500;
-const DELETE_RING_SEGMENTS = 48;
-
-function TrashCanIcon() {
-  return (
-    <View style={styles.leafTrashIcon}>
-      <View style={styles.leafTrashIconLid} />
-      <View style={styles.leafTrashIconHandle} />
-      <View style={styles.leafTrashIconBody}>
-        <View style={styles.leafTrashIconLine} />
-        <View style={styles.leafTrashIconLine} />
-      </View>
-    </View>
-  );
-}
+const DELETE_LOADER_SEGMENTS = 48;
 
 export function DeleteHoldIndicator({ active, onComplete }) {
   const progress = useRef(new Animated.Value(0)).current;
@@ -89,34 +76,31 @@ export function DeleteHoldIndicator({ active, onComplete }) {
   }
 
   const completedSegments = Math.min(
-    DELETE_RING_SEGMENTS,
-    Math.floor(progressSnapshot * DELETE_RING_SEGMENTS),
+    DELETE_LOADER_SEGMENTS,
+    Math.floor(progressSnapshot * DELETE_LOADER_SEGMENTS),
   );
 
   return (
     <View pointerEvents="none" style={styles.leafDeleteProgressOverlay}>
-      <View style={styles.leafDeleteProgressRing}>
-        {Array.from({ length: DELETE_RING_SEGMENTS }, (_, segmentIndex) => (
+      <View style={styles.leafDeleteProgressCircleLoader}>
+        {Array.from({ length: DELETE_LOADER_SEGMENTS }, (_, segmentIndex) => (
           <View
-            key={`delete-progress-segment-${segmentIndex}`}
+            key={`delete-progress-loader-${segmentIndex}`}
             style={[
-              styles.leafDeleteProgressTickSlot,
+              styles.leafDeleteProgressLoaderSlot,
               {
-                transform: [{ rotate: `${(360 / DELETE_RING_SEGMENTS) * segmentIndex}deg` }],
+                transform: [{ rotate: `${(360 / DELETE_LOADER_SEGMENTS) * segmentIndex}deg` }],
               },
             ]}
           >
             <View
               style={[
-                styles.leafDeleteProgressTick,
-                segmentIndex < completedSegments && styles.leafDeleteProgressTickActive,
+                styles.leafDeleteProgressLoaderTick,
+                segmentIndex < completedSegments && styles.leafDeleteProgressLoaderTickActive,
               ]}
             />
           </View>
         ))}
-        <View style={styles.leafDeleteProgressCenter}>
-          <TrashCanIcon />
-        </View>
       </View>
     </View>
   );
