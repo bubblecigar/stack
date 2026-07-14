@@ -50,6 +50,7 @@ import { styles } from './src/styles/appStyles';
 
 const LEAF_VISIBLE_COUNT = 5;
 const TREE_COMPLETION_CANVAS_KEY = 'treeCompletionCanvas';
+const TREASURE_CARD_ID = 'treasure-card';
 const EMPTY_TREE_COMPLETION_CANVAS = {
   entries: [],
   nodes: [],
@@ -169,6 +170,71 @@ function getRootTreeCardIds(cards, currentCardId) {
   return rootTreeCardIds;
 }
 
+function getRootIdsForCard(cards, currentCardId) {
+  if (currentCardId === null || currentCardId === undefined) {
+    return new Set();
+  }
+
+  const cardById = new Map(cards.map((card) => [card.id, card]));
+  const currentCard = cardById.get(currentCardId);
+  if (!currentCard) {
+    return new Set();
+  }
+
+  const rootIds = new Set();
+  const visitedAncestors = new Set();
+
+  function collectRootIds(card) {
+    if (!card || visitedAncestors.has(card.id)) {
+      return;
+    }
+
+    visitedAncestors.add(card.id);
+    const parentCards = (Array.isArray(card.parentIds) ? card.parentIds : [])
+      .map((parentId) => cardById.get(parentId))
+      .filter(Boolean);
+
+    if (parentCards.length === 0) {
+      rootIds.add(card.id);
+      return;
+    }
+
+    parentCards.forEach(collectRootIds);
+  }
+
+  collectRootIds(currentCard);
+  return rootIds;
+}
+
+function getTreasureTreeCards(cards, archivedRootIds) {
+  const archivedRootIdList = [...archivedRootIds].filter((rootId) => (
+    cards.some((card) => card.id === rootId)
+  ));
+  const archivedRootIdSet = new Set(archivedRootIdList);
+
+  return [
+    ...cards.map((card) => {
+      if (!archivedRootIdSet.has(card.id)) {
+        return card;
+      }
+
+      return {
+        ...card,
+        isArchivedRoot: true,
+        parentIds: [TREASURE_CARD_ID],
+      };
+    }),
+    {
+      childIds: archivedRootIdList,
+      id: TREASURE_CARD_ID,
+      index: -1,
+      isTreasureCard: true,
+      parentIds: [],
+      text: 'Treasure',
+    },
+  ];
+}
+
 function getOppositeSwipeDirection(direction) {
   if (direction === 'left') {
     return 'right';
@@ -194,6 +260,7 @@ export default function App() {
   const [editingValue, setEditingValue] = useState('');
   const [focusedCardIndex, setFocusedCardIndex] = useState(null);
   const [layoutMode, setLayoutMode] = useState('leaf');
+  const [archivedRootIds, setArchivedRootIds] = useState(() => new Set());
   const [collapsedNodeIds, setCollapsedNodeIds] = useState(() => new Set());
   const [leafTopIndex, setLeafTopIndex] = useState(null);
   const [leafFocusedCardId, setLeafFocusedCardId] = useState(null);
@@ -209,6 +276,10 @@ export default function App() {
   const focusedCardId = focusedCardIndex === null
     ? null
     : cards[focusedCardIndex]?.id ?? null;
+  const treasureTreeCards = useMemo(
+    () => getTreasureTreeCards(cards, archivedRootIds),
+    [archivedRootIds, cards],
+  );
 
   const leafCards = cards;
 
@@ -342,6 +413,7 @@ export default function App() {
     setLeafTopIndex(null);
     setLeafFocusedCardId(null);
     setIsDeleteHoldActive(false);
+    setArchivedRootIds(new Set());
     setCollapsedNodeIds(new Set());
     setTreeCompletionCanvas(EMPTY_TREE_COMPLETION_CANVAS);
     hasLoadedDefaultStack.current = false;
@@ -681,6 +753,18 @@ export default function App() {
     });
 
     if (removedCardIds.size > 0) {
+      setArchivedRootIds((currentArchivedRootIds) => {
+        if (![...removedCardIds].some((cardId) => currentArchivedRootIds.has(cardId))) {
+          return currentArchivedRootIds;
+        }
+
+        const nextArchivedRootIds = new Set(currentArchivedRootIds);
+        removedCardIds.forEach((cardId) => {
+          nextArchivedRootIds.delete(cardId);
+        });
+        return nextArchivedRootIds;
+      });
+
       setCollapsedNodeIds((currentCollapsed) => {
         if (![...removedCardIds].some((cardId) => currentCollapsed.has(cardId))) {
           return currentCollapsed;
@@ -759,6 +843,50 @@ export default function App() {
     }
   }
 
+  function handleArchiveRootTree(rootId) {
+    const rootCard = cards.find((card) => card.id === rootId);
+    if (!rootCard || (Array.isArray(rootCard.parentIds) && rootCard.parentIds.length > 0)) {
+      return;
+    }
+
+    setArchivedRootIds((currentArchivedRootIds) => {
+      if (currentArchivedRootIds.has(rootId)) {
+        return currentArchivedRootIds;
+      }
+
+      const nextArchivedRootIds = new Set(currentArchivedRootIds);
+      nextArchivedRootIds.add(rootId);
+      return nextArchivedRootIds;
+    });
+    setFocusedCardIndex(rootCard.index);
+    setEditingIndex(null);
+    setEditingValue('');
+    setIsDeleteHoldActive(false);
+    setAddPreviewRelation(null);
+  }
+
+  function handleRestoreRootTree(rootId) {
+    const rootCard = cards.find((card) => card.id === rootId);
+    if (!rootCard) {
+      return;
+    }
+
+    setArchivedRootIds((currentArchivedRootIds) => {
+      if (!currentArchivedRootIds.has(rootId)) {
+        return currentArchivedRootIds;
+      }
+
+      const nextArchivedRootIds = new Set(currentArchivedRootIds);
+      nextArchivedRootIds.delete(rootId);
+      return nextArchivedRootIds;
+    });
+    setFocusedCardIndex(rootCard.index);
+    setEditingIndex(null);
+    setEditingValue('');
+    setIsDeleteHoldActive(false);
+    setAddPreviewRelation(null);
+  }
+
   function handleLeafSwipe(direction) {
     if (editingIndex !== null || leafCards.length === 0) {
       return false;
@@ -801,7 +929,7 @@ export default function App() {
   const nodeMapFocusedCardId = shouldRenderLeaf ? leafFocusedCardId : focusedCardId;
   const nodeMapCards = shouldRenderLeaf
     ? getLeafRootScopedCards(cards, nodeMapFocusedCardId)
-    : cards;
+    : treasureTreeCards;
   const nodeMapFocusedCardIndex = nodeMapFocusedCardId === null
     ? null
     : nodeMapCards.findIndex((card) => card.id === nodeMapFocusedCardId);
@@ -832,6 +960,7 @@ export default function App() {
       }
 
       setLayoutMode(storedUiState.layoutMode);
+      setArchivedRootIds(new Set(storedUiState.archivedRootIds));
 
       const nextFocusedIndex = storedUiState.focusedCardId === null
         ? null
@@ -870,6 +999,7 @@ export default function App() {
 
     const timeoutId = setTimeout(() => {
       setStoredUiState(userId, {
+        archivedRootIds: [...archivedRootIds],
         focusedCardId,
         layoutMode,
         leafFocusedCardId,
@@ -880,6 +1010,7 @@ export default function App() {
   }, [
     authUser?.id,
     focusedCardId,
+    archivedRootIds,
     layoutMode,
     leafFocusedCardId,
   ]);
@@ -1072,7 +1203,7 @@ export default function App() {
         ) : (
           <TreeCanvas
             addPreviewRelation={addPreviewRelation}
-            cards={cards}
+            cards={treasureTreeCards}
             collapsedNodeIds={collapsedNodeIds}
             focusedCardIndex={focusedCardIndex}
             focusedCardId={focusedCardId}
@@ -1084,6 +1215,8 @@ export default function App() {
             onToggleCollapse={handleToggleCollapse}
             onDeleteCard={handleDeleteCard}
             onDeleteHoldComplete={handleDeleteCard}
+            onArchiveRootTree={handleArchiveRootTree}
+            onRestoreRootTree={handleRestoreRootTree}
             onEditingValueChange={setEditingValue}
             onCompleteEdit={handleCompleteEdit}
             isDeleteHoldActive={isDeleteHoldActive}

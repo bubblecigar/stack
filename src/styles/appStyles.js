@@ -501,6 +501,12 @@ export const styles = StyleSheet.create({
   treeCollapsedCard: {
     opacity: 0.98,
   },
+  treasureCard: {
+    borderColor: '#CBD5E1',
+    borderStyle: 'dashed',
+    borderWidth: 2,
+    backgroundColor: 'rgba(248, 250, 252, 0.72)',
+  },
   treePreviewCard: {
     borderColor: '#F97316',
     borderStyle: 'dashed',
@@ -677,6 +683,12 @@ export const styles = StyleSheet.create({
   },
   linkButtonActive: {
     backgroundColor: '#7C3AED',
+  },
+  archiveButton: {
+    backgroundColor: '#64748B',
+  },
+  archiveButtonPressed: {
+    backgroundColor: '#475569',
   },
   dangerButton: {
     backgroundColor: '#DC2626',

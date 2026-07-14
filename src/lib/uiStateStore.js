@@ -14,8 +14,14 @@ function normalizeUiState(rawState) {
   const layoutMode = rawState.layoutMode === 'tree' ? 'tree' : 'leaf';
   const focusedCardId = Number(rawState.focusedCardId);
   const leafFocusedCardId = Number(rawState.leafFocusedCardId);
+  const archivedRootIds = Array.isArray(rawState.archivedRootIds)
+    ? rawState.archivedRootIds
+      .map((cardId) => Number(cardId))
+      .filter((cardId) => Number.isInteger(cardId))
+    : [];
 
   return {
+    archivedRootIds,
     focusedCardId: Number.isInteger(focusedCardId) ? focusedCardId : null,
     layoutMode,
     leafFocusedCardId: Number.isInteger(leafFocusedCardId) ? leafFocusedCardId : null,

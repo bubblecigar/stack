@@ -22,6 +22,8 @@ export function TreeCanvas({
   onToggleCollapse,
   onDeleteCard,
   onDeleteHoldComplete,
+  onArchiveRootTree,
+  onRestoreRootTree,
   onEditingValueChange,
   onCompleteEdit,
   onCanvasBlur,
@@ -63,7 +65,14 @@ export function TreeCanvas({
   }
 
   const previewCards = useMemo(
-    () => buildPreviewCards(cards, focusedCardIndex, addPreviewRelation),
+    () => {
+      const localFocusedPosition = cards.findIndex((card) => card.index === focusedCardIndex);
+      return buildPreviewCards(
+        cards,
+        localFocusedPosition >= 0 ? localFocusedPosition : null,
+        addPreviewRelation,
+      );
+    },
     [addPreviewRelation, cards, focusedCardIndex],
   );
 
@@ -207,6 +216,7 @@ export function TreeCanvas({
             {paddedPositionedCards.map((entry) => {
               const { card, left, top, depth, placementOrder, isCollapsedStacked } = entry;
               const isPreviewCard = card.id === PREVIEW_CARD_ID;
+              const isRootCard = !Array.isArray(card.parentIds) || card.parentIds.length === 0;
 
               return (
                 <StackCard
@@ -221,8 +231,11 @@ export function TreeCanvas({
                   visibleIndex={0}
                   onPressIn={handleCardPressIn}
                   onFocusCard={onCardFocus}
-                  hideControls={isPreviewCard}
+                  hideControls={isPreviewCard || card.isTreasureCard}
+                  isArchivedRoot={Boolean(card.isArchivedRoot)}
                   isPreviewCard={isPreviewCard}
+                  isRootCard={isRootCard}
+                  isTreasureCard={Boolean(card.isTreasureCard)}
                   treePosition={{
                     left,
                     top,
@@ -232,7 +245,7 @@ export function TreeCanvas({
                   isCollapsedStacked={isCollapsedStacked}
                   isDeleteHoldActive={isDeleteHoldActive}
                   onPress={() => {
-                    if (!isPreviewCard) {
+                    if (!isPreviewCard && !card.isTreasureCard) {
                       onCardPress(card.index);
                     }
                   }}
@@ -240,6 +253,8 @@ export function TreeCanvas({
                   onToggleCollapse={onToggleCollapse}
                   onDeleteCard={onDeleteCard}
                   onDeleteHoldComplete={onDeleteHoldComplete}
+                  onArchiveRootTree={onArchiveRootTree}
+                  onRestoreRootTree={onRestoreRootTree}
                   onEditingValueChange={onEditingValueChange}
                   onCompleteEdit={onCompleteEdit}
                 />

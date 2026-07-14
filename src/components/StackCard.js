@@ -26,9 +26,14 @@ export function StackCard({
   hideControls = false,
   treePosition,
   isCollapsedStacked = false,
+  isArchivedRoot = false,
+  isRootCard = false,
+  isTreasureCard = false,
   onPress,
   onPressIn,
   onCreateEdit,
+  onArchiveRootTree,
+  onRestoreRootTree,
   onDeleteCard,
   onDeleteHoldComplete,
   onEditingValueChange,
@@ -57,6 +62,13 @@ export function StackCard({
   );
   const shouldShowControls = !hideControls && isFocusedCard;
   const shouldShowEdit = isFocusedCard;
+  const shouldShowArchive = (
+    shouldShowControls
+    && isTreeCard
+    && (isRootCard || isArchivedRoot)
+    && !isTreasureCard
+    && !isEditing
+  );
   const isTreeDeleteHoldActive = isTreeCard && isDeleteHoldActive;
   const isDeleteProgressVisible = isTreeDeleteHoldActive && isFocusedCard;
   const editButtonColor = isTreeDeleteHoldActive
@@ -169,6 +181,7 @@ export function StackCard({
         styles.card,
         isLeafCard && styles.leafCard,
         isTreeCard && styles.treeCard,
+        isTreeCard && isTreasureCard && styles.treasureCard,
         isTreeCard && isPreviewCard && styles.treePreviewCard,
         isTreeCard && isCollapsedStacked && styles.treeCollapsedCard,
         isEditing && isLeafCard && styles.leafEditingCard,
@@ -212,6 +225,33 @@ export function StackCard({
             ) : (
               <MaterialCommunityIcons color="#FFFFFF" name="pencil" size={18} />
             )}
+          </Pressable>
+        )}
+
+        {shouldShowArchive && (
+          <Pressable
+            accessibilityLabel={isArchivedRoot ? 'Restore tree' : 'Archive tree'}
+            accessibilityRole="button"
+            onPressIn={handleControlPressIn}
+            onPress={(event) => handleControlPress(event, () => {
+              if (isArchivedRoot) {
+                onRestoreRootTree?.(id);
+                return;
+              }
+
+              onArchiveRootTree?.(id);
+            })}
+            style={({ pressed }) => [
+              styles.iconButton,
+              styles.archiveButton,
+              pressed && styles.archiveButtonPressed,
+            ]}
+          >
+            <MaterialCommunityIcons
+              color="#FFFFFF"
+              name={isArchivedRoot ? 'archive-arrow-up-outline' : 'archive-arrow-down-outline'}
+              size={18}
+            />
           </Pressable>
         )}
 
