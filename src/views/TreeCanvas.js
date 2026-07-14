@@ -245,7 +245,7 @@ export function TreeCanvas({
                   isCollapsedStacked={isCollapsedStacked}
                   isDeleteHoldActive={isDeleteHoldActive}
                   onPress={() => {
-                    if (!isPreviewCard && !card.isTreasureCard) {
+                    if (!isPreviewCard) {
                       onCardPress(card.index);
                     }
                   }}

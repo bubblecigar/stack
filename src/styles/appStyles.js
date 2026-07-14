@@ -275,6 +275,13 @@ export const styles = StyleSheet.create({
     borderColor: '#F8FAFC',
     opacity: 0.78,
   },
+  nodeViewMapNodeTreasure: {
+    backgroundColor: '#F59E0B',
+    borderColor: '#FEF3C7',
+    shadowColor: '#F59E0B',
+    shadowOpacity: 0.32,
+    shadowRadius: 4,
+  },
   nodeViewMapNodeFocused: {
     width: 12,
     height: 12,

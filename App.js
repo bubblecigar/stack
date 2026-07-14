@@ -566,7 +566,7 @@ export default function App() {
     const currentIndex = shouldRenderLeaf
       ? visibleTopCardIndex
       : focusedCardIndex;
-    const nextIndex = currentIndex === null
+    const nextIndex = currentIndex === null || currentIndex < 0
       ? push('')
       : insertRelativeTo(currentIndex, relation, '');
 
@@ -788,7 +788,9 @@ export default function App() {
   }
 
   function handleToggleCollapse(index) {
-    const card = cards[index];
+    const card = index < 0
+      ? treasureTreeCards.find((candidateCard) => candidateCard.id === TREASURE_CARD_ID)
+      : cards[index];
 
     if (!card || !Array.isArray(card.childIds) || card.childIds.length === 0) {
       return;
@@ -925,7 +927,7 @@ export default function App() {
   const effectiveLeafFocusedIndex = visibleTopCardIndex ?? focusedCardIndex;
   const canDeleteCurrentCard = shouldRenderLeaf
     ? visibleTopCardIndex !== null
-    : focusedCardIndex !== null;
+    : focusedCardIndex !== null && focusedCardIndex >= 0;
   const nodeMapFocusedCardId = shouldRenderLeaf ? leafFocusedCardId : focusedCardId;
   const nodeMapCards = shouldRenderLeaf
     ? getLeafRootScopedCards(cards, nodeMapFocusedCardId)

@@ -68,6 +68,36 @@ function animateValueXY(valueXY, toValue) {
   ]);
 }
 
+function getMapCards(cards) {
+  const treasureCard = cards.find((card) => card?.isTreasureCard);
+  if (!treasureCard) {
+    return cards;
+  }
+
+  const cardById = new Map(cards.map((card) => [card.id, card]));
+  const hiddenTreasureDescendantIds = new Set();
+
+  function collectDescendants(card) {
+    (card?.childIds || []).forEach((childId) => {
+      if (hiddenTreasureDescendantIds.has(childId)) {
+        return;
+      }
+
+      hiddenTreasureDescendantIds.add(childId);
+      collectDescendants(cardById.get(childId));
+    });
+  }
+
+  collectDescendants(treasureCard);
+  return cards
+    .filter((card) => !hiddenTreasureDescendantIds.has(card.id))
+    .map((card) => (
+      card.id === treasureCard.id
+        ? { ...card, childIds: [] }
+        : card
+    ));
+}
+
 export function NodeStructureView({
   cards,
   focusedCardIndex,
@@ -91,9 +121,20 @@ export function NodeStructureView({
   const focusedCardId = controlledFocusedCardId ?? (focusedCardIndex === null
     ? null
     : cards[focusedCardIndex]?.id ?? null);
+  const mapCards = useMemo(
+    () => getMapCards(cards),
+    [cards],
+  );
+  const mapFocusedCardIndex = focusedCardId === null
+    ? null
+    : mapCards.findIndex((card) => card.id === focusedCardId);
   const previewCards = useMemo(
-    () => buildPreviewCards(cards, focusedCardIndex, addPreviewRelation),
-    [addPreviewRelation, cards, focusedCardIndex],
+    () => buildPreviewCards(
+      mapCards,
+      mapFocusedCardIndex >= 0 ? mapFocusedCardIndex : null,
+      addPreviewRelation,
+    ),
+    [addPreviewRelation, mapCards, mapFocusedCardIndex],
   );
   const mapLayout = useMemo(
     () => buildTreeLayout(previewCards, new Set(), MAP_TREE_LAYOUT_OVERRIDES),
@@ -148,6 +189,7 @@ export function NodeStructureView({
           isFocused: entry.card.id === focusedCardId,
           isPreview: entry.card.id === PREVIEW_CARD_ID,
           isDone: Boolean(entry.card.done),
+          isTreasure: Boolean(entry.card.isTreasureCard),
           isDeleteTarget: deleteTargetActive && entry.card.id === focusedCardId,
         };
       }),
@@ -245,7 +287,7 @@ export function NodeStructureView({
       y: cursorPosition.y,
     };
 
-  if (cards.length === 0) {
+  if (mapCards.length === 0) {
     return null;
   }
 
@@ -317,6 +359,7 @@ export function NodeStructureView({
               key={`map-node-${entry.card.id}`}
               style={[
                 styles.nodeViewMapNode,
+                entry.isTreasure && styles.nodeViewMapNodeTreasure,
                 entry.isDone && styles.nodeViewMapNodeDone,
                 entry.isPreview && styles.nodeViewMapNodePreview,
                 entry.isDeleteTarget && styles.nodeViewMapNodeDeleteTarget,
