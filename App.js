@@ -45,11 +45,12 @@ import {
   playTrashSound,
   setSoundEffectsEnabled,
 } from './src/lib/soundEffects';
-import { getStoredUiState, setStoredUiState } from './src/lib/uiStateStore';
+import { getStoredUiState, normalizeUiState, setStoredUiState } from './src/lib/uiStateStore';
 import { styles } from './src/styles/appStyles';
 
 const LEAF_VISIBLE_COUNT = 5;
 const TREE_COMPLETION_CANVAS_KEY = 'treeCompletionCanvas';
+const UI_STATE_KEY = 'uiState';
 const TREASURE_CARD_ID = 'treasure-card';
 const EMPTY_TREE_COMPLETION_CANVAS = {
   entries: [],
@@ -449,7 +450,9 @@ export default function App() {
   }
 
   useEffect(() => {
-    if (!authToken) {
+    const userId = authUser?.id ?? null;
+
+    if (!authToken || userId === null) {
       return undefined;
     }
 
@@ -502,19 +505,45 @@ export default function App() {
 
     async function loadCardsForUser() {
       try {
-        const [cardsResult, canvasResult] = await Promise.all([
+        const [cardsResult, canvasResult, uiStateResult, localUiState] = await Promise.all([
           loadRemoteCards(authToken),
           loadRemoteUserData(authToken, TREE_COMPLETION_CANVAS_KEY),
+          loadRemoteUserData(authToken, UI_STATE_KEY),
+          getStoredUiState(userId),
         ]);
 
         if (!isMounted) {
           return;
         }
 
+        const nextCards = Array.isArray(cardsResult.cards) ? cardsResult.cards : [];
+        const remoteUiState = normalizeUiState(uiStateResult.value);
+        const restoredUiState = remoteUiState || localUiState;
+
         isApplyingRemoteCards.current = true;
-        loadCards(Array.isArray(cardsResult.cards) ? cardsResult.cards : []);
+        loadCards(nextCards);
         isApplyingRemoteCards.current = false;
         setTreeCompletionCanvas(canvasResult.value || EMPTY_TREE_COMPLETION_CANVAS);
+        restoredUiStateUserIdRef.current = userId;
+
+        if (restoredUiState) {
+          setLayoutMode(restoredUiState.layoutMode);
+          setArchivedRootIds(new Set(restoredUiState.archivedRootIds));
+
+          const nextFocusedIndex = restoredUiState.focusedCardId === null
+            ? null
+            : nextCards.findIndex((card) => card.id === restoredUiState.focusedCardId);
+          setFocusedCardIndex(nextFocusedIndex >= 0 ? nextFocusedIndex : null);
+
+          const nextLeafFocusedIndex = restoredUiState.leafFocusedCardId === null
+            ? -1
+            : nextCards.findIndex((card) => card.id === restoredUiState.leafFocusedCardId);
+          if (nextLeafFocusedIndex >= 0) {
+            setLeafFocusedCardId(restoredUiState.leafFocusedCardId);
+            setLeafTopIndex(nextLeafFocusedIndex);
+          }
+        }
+
         hasLoadedRemoteCards.current = true;
 
         if (!canvasResult.value) {
@@ -522,6 +551,14 @@ export default function App() {
             authToken,
             TREE_COMPLETION_CANVAS_KEY,
             EMPTY_TREE_COMPLETION_CANVAS,
+          ).catch(() => {});
+        }
+
+        if (!remoteUiState && restoredUiState) {
+          saveRemoteUserData(
+            authToken,
+            UI_STATE_KEY,
+            restoredUiState,
           ).catch(() => {});
         }
       } catch (error) {
@@ -547,7 +584,7 @@ export default function App() {
     return () => {
       isMounted = false;
     };
-  }, [authToken]);
+  }, [authToken, authUser?.id]);
 
   useEffect(() => {
     if (!authToken || !hasLoadedRemoteCards.current || isApplyingRemoteCards.current) {
@@ -1013,17 +1050,35 @@ export default function App() {
       return undefined;
     }
 
-    const timeoutId = setTimeout(() => {
-      setStoredUiState(userId, {
+    const timeoutId = setTimeout(async () => {
+      const nextUiState = {
         archivedRootIds: [...archivedRootIds],
         focusedCardId,
         layoutMode,
         leafFocusedCardId,
-      }).catch(() => {});
+      };
+
+      setStoredUiState(userId, nextUiState).catch(() => {});
+
+      if (!authToken) {
+        return;
+      }
+
+      try {
+        await saveRemoteUserData(authToken, UI_STATE_KEY, nextUiState);
+      } catch (error) {
+        if (error.status === 401) {
+          handleAuthExpired();
+          return;
+        }
+
+        setSyncError(error.message || 'Could not save user data.');
+      }
     }, 250);
 
     return () => clearTimeout(timeoutId);
   }, [
+    authToken,
     authUser?.id,
     focusedCardId,
     archivedRootIds,

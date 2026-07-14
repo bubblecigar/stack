@@ -6,14 +6,21 @@ function getUiStateKey(userId) {
   return `${UI_STATE_KEY_PREFIX}.${userId}`;
 }
 
-function normalizeUiState(rawState) {
+function normalizeOptionalCardId(cardId) {
+  if (cardId === null || cardId === undefined || cardId === '') {
+    return null;
+  }
+
+  const normalizedCardId = Number(cardId);
+  return Number.isInteger(normalizedCardId) ? normalizedCardId : null;
+}
+
+export function normalizeUiState(rawState) {
   if (!rawState || typeof rawState !== 'object') {
     return null;
   }
 
   const layoutMode = rawState.layoutMode === 'tree' ? 'tree' : 'leaf';
-  const focusedCardId = Number(rawState.focusedCardId);
-  const leafFocusedCardId = Number(rawState.leafFocusedCardId);
   const archivedRootIds = Array.isArray(rawState.archivedRootIds)
     ? rawState.archivedRootIds
       .map((cardId) => Number(cardId))
@@ -22,9 +29,9 @@ function normalizeUiState(rawState) {
 
   return {
     archivedRootIds,
-    focusedCardId: Number.isInteger(focusedCardId) ? focusedCardId : null,
+    focusedCardId: normalizeOptionalCardId(rawState.focusedCardId),
     layoutMode,
-    leafFocusedCardId: Number.isInteger(leafFocusedCardId) ? leafFocusedCardId : null,
+    leafFocusedCardId: normalizeOptionalCardId(rawState.leafFocusedCardId),
   };
 }
 
