@@ -13,6 +13,7 @@ import { DeleteHoldIndicator } from './DeleteHoldIndicator';
 import { styles } from '../styles/appStyles';
 
 const doneStampImage = require('../../assets/card/done_stamp_gray.png');
+const treasureCardBackImage = require('../../assets/treasure_cardback.png');
 
 export function StackCard({
   card,
@@ -363,18 +364,29 @@ export function StackCard({
           </View>
         ) : (
           <Animated.View
-            style={{ opacity: 1 }}
-          >
-            <Text style={[
-              styles.cardText,
-              isTreeCard && styles.treeCardText,
-              isTreeCard && isPreviewCard && styles.treePreviewCardText,
-              done && styles.doneCardText,
-              !text && styles.emptyCardText,
+            style={[
+              { opacity: 1 },
+              isTreasureCard && styles.treasureCardBackWrap,
             ]}
-            >
-              {text}
-            </Text>
+          >
+            {isTreasureCard ? (
+              <Image
+                pointerEvents="none"
+                source={treasureCardBackImage}
+                style={styles.treasureCardBackImage}
+              />
+            ) : (
+              <Text style={[
+                styles.cardText,
+                isTreeCard && styles.treeCardText,
+                isTreeCard && isPreviewCard && styles.treePreviewCardText,
+                done && styles.doneCardText,
+                !text && styles.emptyCardText,
+              ]}
+              >
+                {text}
+              </Text>
+            )}
             {done ? (
               <Image
                 pointerEvents="none"
@@ -389,6 +401,7 @@ export function StackCard({
       <View style={[
         styles.dependencyBar,
         isTreeCard && styles.treeDependencyBar,
+        isTreasureCard && styles.hiddenDependencyBar,
       ]}
       >
         <Text style={[

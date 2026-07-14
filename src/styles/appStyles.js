@@ -509,10 +509,32 @@ export const styles = StyleSheet.create({
     opacity: 0.98,
   },
   treasureCard: {
+    height: 112,
+    minHeight: 112,
+    maxHeight: 112,
     borderColor: '#CBD5E1',
     borderStyle: 'dashed',
     borderWidth: 2,
-    backgroundColor: 'rgba(248, 250, 252, 0.72)',
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
+    padding: 0,
+  },
+  treasureCardBackWrap: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  treasureCardBackImage: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
   treePreviewCard: {
     borderColor: '#F97316',
@@ -764,6 +786,9 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 10,
+  },
+  hiddenDependencyBar: {
+    opacity: 0,
   },
   dependencyText: {
     color: '#64748B',
