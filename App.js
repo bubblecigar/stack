@@ -43,6 +43,7 @@ import {
   playLeafSwipeSound,
   playModeFlipSound,
   playTrashSound,
+  setSoundEffectsEnabled,
 } from './src/lib/soundEffects';
 import { getStoredUiState, setStoredUiState } from './src/lib/uiStateStore';
 import { styles } from './src/styles/appStyles';
@@ -199,6 +200,7 @@ export default function App() {
   const [isDeleteHoldActive, setIsDeleteHoldActive] = useState(false);
   const [addPreviewRelation, setAddPreviewRelation] = useState(null);
   const [isAddHoldActive, setIsAddHoldActive] = useState(false);
+  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [treeCompletionCanvas, setTreeCompletionCanvas] = useState(EMPTY_TREE_COMPLETION_CANVAS);
 
   const stack = useSyncExternalStore(subscribe, getSnapshot);
@@ -259,6 +261,10 @@ export default function App() {
   useEffect(() => {
     authUserRef.current = authUser;
   }, [authUser]);
+
+  useEffect(() => {
+    setSoundEffectsEnabled(isAudioEnabled);
+  }, [isAudioEnabled]);
 
   useEffect(() => {
     let isMounted = true;
@@ -1097,10 +1103,14 @@ export default function App() {
 
       <FloatingControls
         canDeleteCurrentCard={!shouldRenderLeaf && canDeleteCurrentCard}
+        audioEnabled={isAudioEnabled}
+        user={authUser}
         layoutMode={layoutMode}
+        onAudioEnabledChange={setIsAudioEnabled}
         onDeleteHoldChange={setIsDeleteHoldActive}
         onAddHoldChange={setIsAddHoldActive}
         onAddPreviewChange={setAddPreviewRelation}
+        onLogout={resetSession}
         onToggleMode={handleToggleLayout}
         onCreateCard={handleCreateCard}
       />

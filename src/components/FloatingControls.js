@@ -1,9 +1,12 @@
 import {
   Animated,
+  Dimensions,
   Easing,
   Image,
   PanResponder,
   Pressable,
+  Switch,
+  Text,
   View,
 } from 'react-native';
 import {
@@ -14,6 +17,7 @@ import { styles } from '../styles/appStyles';
 const treeViewCardImage = require('../../assets/tree_view.png');
 const voidStampImage = require('../../assets/card/void_stamp_gray.png');
 
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 const DELETE_HOLD_MS = 500;
 const ADD_POINT_DEAD_ZONE = 28;
 const ADD_POINT_SWITCH_DISTANCE = 36;
@@ -24,6 +28,11 @@ const ADD_CARD_MAX_HORIZONTAL_OFFSET = 96;
 const ADD_CARD_MAX_VERTICAL_OFFSET = 82;
 const MODE_DOUBLE_TAP_DELAY_MS = 280;
 const DELETE_CARD_TOGGLE_DURATION_MS = 220;
+const SETTINGS_PANEL_TRIGGER_Y = SCREEN_HEIGHT * 0.34;
+const SETTINGS_PANEL_TRIGGER_DRAG_Y = -160;
+const SETTINGS_PANEL_CENTER_OFFSET_X = 0;
+const SETTINGS_PANEL_CENTER_OFFSET_Y = -(SCREEN_HEIGHT / 2 + 70);
+const SETTINGS_PANEL_TOGGLE_DURATION_MS = 260;
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -75,11 +84,15 @@ function getAddRelationFromPoint(dx, dy, fallbackRelation = null) {
 
 export function FloatingControls({
   layoutMode,
+  user = null,
+  audioEnabled = true,
   onToggleMode,
   onCreateCard,
+  onAudioEnabledChange,
   onAddPreviewChange,
   onAddHoldChange,
   onDeleteHoldChange,
+  onLogout,
   canDeleteCurrentCard = false,
 }) {
   const shouldShowDelete = canDeleteCurrentCard;
@@ -88,8 +101,12 @@ export function FloatingControls({
   const [addCardOffsetX, setAddCardOffsetX] = useState(0);
   const [addCardOffsetY, setAddCardOffsetY] = useState(0);
   const [shouldRenderDelete, setShouldRenderDelete] = useState(shouldShowDelete);
+  const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(false);
+  const [settingsPanelOffsetX, setSettingsPanelOffsetX] = useState(0);
+  const [settingsPanelOffsetY, setSettingsPanelOffsetY] = useState(0);
   const flipProgress = useRef(new Animated.Value(layoutMode === 'tree' ? 1 : 0)).current;
   const deleteSlideProgress = useRef(new Animated.Value(shouldShowDelete ? 1 : 0)).current;
+  const settingsPanelProgress = useRef(new Animated.Value(0)).current;
   const addRelationRef = useRef(null);
   const lastModeTapRef = useRef(0);
   const addStartRef = useRef({
@@ -130,6 +147,18 @@ export function FloatingControls({
     deleteSlideProgress,
     onDeleteHoldChange,
     shouldShowDelete,
+  ]);
+
+  useEffect(() => {
+    Animated.timing(settingsPanelProgress, {
+      toValue: isSettingsPanelOpen ? 1 : 0,
+      duration: SETTINGS_PANEL_TOGGLE_DURATION_MS,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [
+    isSettingsPanelOpen,
+    settingsPanelProgress,
   ]);
 
   function getAddGestureDelta(event, gestureState) {
@@ -177,6 +206,13 @@ export function FloatingControls({
     onAddPreviewChange?.(null);
   }
 
+  function pinSettingsPanel() {
+    setSettingsPanelOffsetX(SETTINGS_PANEL_CENTER_OFFSET_X);
+    setSettingsPanelOffsetY(SETTINGS_PANEL_CENTER_OFFSET_Y);
+    setIsSettingsPanelOpen(true);
+    resetAddPointing();
+  }
+
   function handleModeTap(dx, dy) {
     if (Math.hypot(dx, dy) > ADD_POINT_DEAD_ZONE) {
       lastModeTapRef.current = 0;
@@ -193,11 +229,34 @@ export function FloatingControls({
     }
   }
 
+  function shouldOpenSettingsPanel(event, gestureState) {
+    const dropY = typeof gestureState.moveY === 'number'
+      ? gestureState.moveY
+      : event.nativeEvent.pageY;
+    const isInUpperPanel = typeof dropY === 'number' && dropY <= SETTINGS_PANEL_TRIGGER_Y;
+    const isStrongUpwardDrag = gestureState.dy <= SETTINGS_PANEL_TRIGGER_DRAG_Y;
+
+    return (
+      gestureState.dy < -ADD_POINT_DEAD_ZONE
+      && (isInUpperPanel || isStrongUpwardDrag)
+    );
+  }
+
+  function closeSettingsPanel() {
+    setIsSettingsPanelOpen(false);
+  }
+
+  const userLabel = user?.email || 'Unknown user';
+
   const addPanResponder = useMemo(() => PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: () => true,
+    onStartShouldSetPanResponder: () => !isSettingsPanelOpen,
+    onMoveShouldSetPanResponder: () => !isSettingsPanelOpen,
     onPanResponderTerminationRequest: () => false,
     onPanResponderGrant: (event) => {
+      if (isSettingsPanelOpen) {
+        return;
+      }
+
       const { pageX = 0, pageY = 0 } = event.nativeEvent;
       addStartRef.current = {
         pageX,
@@ -212,17 +271,36 @@ export function FloatingControls({
       onAddPreviewChange?.(null);
     },
     onPanResponderMove: (event, gestureState) => {
+      if (isSettingsPanelOpen) {
+        return;
+      }
+
       const { dx, dy } = getAddGestureDelta(event, gestureState);
+      if (shouldOpenSettingsPanel(event, gestureState)) {
+        pinSettingsPanel();
+        return;
+      }
+
       updateAddRelation(dx, dy);
     },
     onPanResponderRelease: (event, gestureState) => {
+      if (isSettingsPanelOpen) {
+        return;
+      }
+
       const { dx, dy } = getAddGestureDelta(event, gestureState);
+      if (shouldOpenSettingsPanel(event, gestureState)) {
+        pinSettingsPanel();
+        return;
+      }
+
       const relation = getAddRelationFromPoint(
         dx,
         dy,
         addRelationRef.current,
       );
       resetAddPointing();
+
       if (relation) {
         onCreateCard?.(relation);
         return;
@@ -234,6 +312,7 @@ export function FloatingControls({
       resetAddPointing();
     },
   }), [
+    isSettingsPanelOpen,
     onAddHoldChange,
     onAddPreviewChange,
     onCreateCard,
@@ -289,7 +368,37 @@ export function FloatingControls({
         </Animated.View>
       ) : null}
 
-      <View style={styles.addFloatingControl}>
+      {isSettingsPanelOpen ? (
+        <Pressable
+          accessibilityLabel="Close settings panel"
+          accessibilityRole="button"
+          onPress={closeSettingsPanel}
+          style={styles.settingsPanelBackdrop}
+        />
+      ) : null}
+
+      <Animated.View
+        style={[
+          styles.addFloatingControl,
+          isSettingsPanelOpen && styles.settingsPanelFloatingControl,
+          {
+            transform: [
+              {
+                translateX: settingsPanelProgress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [-180, -180 + settingsPanelOffsetX],
+                }),
+              },
+              {
+                translateY: settingsPanelProgress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, settingsPanelOffsetY],
+                }),
+              },
+            ],
+          },
+        ]}
+      >
         <View
           {...addPanResponder.panHandlers}
           accessibilityHint="Drag to insert a card. Double tap to toggle leaf or tree view."
@@ -329,9 +438,17 @@ export function FloatingControls({
                 },
               ]}
             >
-              <Image
+              <Animated.Image
                 source={treeViewCardImage}
-                style={styles.addCardButtonImage}
+                style={[
+                  styles.addCardButtonImage,
+                  {
+                    opacity: settingsPanelProgress.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.9, 0.2],
+                    }),
+                  },
+                ]}
               />
             </Animated.View>
             <Animated.View
@@ -351,17 +468,62 @@ export function FloatingControls({
                 },
               ]}
             >
-              <Image
+              <Animated.Image
                 source={treeViewCardImage}
                 style={[
                   styles.addCardButtonImage,
                   styles.addCardButtonBackImage,
+                  {
+                    opacity: settingsPanelProgress.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.9, 0.2],
+                    }),
+                  },
                 ]}
               />
             </Animated.View>
+            {isSettingsPanelOpen ? (
+              <View style={styles.settingsPanelContent}>
+                <View style={styles.settingsPanelSection}>
+                  <Text style={styles.settingsPanelLabel}>User</Text>
+                  <Text
+                    numberOfLines={1}
+                    style={styles.settingsPanelValue}
+                  >
+                    {userLabel}
+                  </Text>
+                </View>
+
+                <View style={styles.settingsPanelRow}>
+                  <View style={styles.settingsPanelRowText}>
+                    <Text style={styles.settingsPanelLabel}>Audio</Text>
+                    <Text style={styles.settingsPanelHint}>
+                      {audioEnabled ? 'On' : 'Off'}
+                    </Text>
+                  </View>
+                  <Switch
+                    accessibilityLabel="Audio setting"
+                    onValueChange={onAudioEnabledChange}
+                    value={audioEnabled}
+                  />
+                </View>
+
+                <Pressable
+                  accessibilityLabel="Log out"
+                  accessibilityRole="button"
+                  onPress={onLogout}
+                  style={({ pressed }) => [
+                    styles.settingsLogoutButton,
+                    pressed && styles.settingsLogoutButtonPressed,
+                  ]}
+                >
+                  <Text style={styles.settingsLogoutButtonText}>Logout</Text>
+                </Pressable>
+              </View>
+            ) : null}
           </Animated.View>
         </View>
-      </View>
+      </Animated.View>
     </>
   );
 }

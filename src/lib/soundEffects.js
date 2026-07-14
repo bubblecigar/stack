@@ -4,6 +4,11 @@ const pageFlipSoundSource = require('../../assets/audio/freesound_community-page
 
 let nativeAudioModePromise = null;
 let nativePlayer = null;
+let isAudioEnabled = true;
+
+export function setSoundEffectsEnabled(enabled) {
+  isAudioEnabled = Boolean(enabled);
+}
 
 function configureNativeAudio() {
   if (!nativeAudioModePromise) {
@@ -31,6 +36,10 @@ function getNativePlayer() {
 }
 
 function playPageFlipSound() {
+  if (!isAudioEnabled) {
+    return false;
+  }
+
   const player = getNativePlayer();
   if (!player) {
     return false;
