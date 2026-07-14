@@ -539,8 +539,8 @@ export const styles = StyleSheet.create({
     shadowRadius: 14,
   },
   treasureCardIconWrap: {
-    width: 32,
-    height: 32,
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
   },
