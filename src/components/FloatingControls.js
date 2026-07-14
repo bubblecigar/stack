@@ -498,7 +498,6 @@ export function FloatingControls({
                     onPress={() => onAudioEnabledChange?.(!audioEnabled)}
                     style={({ pressed }) => [
                       styles.settingsIconButton,
-                      audioEnabled && styles.settingsIconButtonActive,
                       pressed && styles.settingsIconButtonPressed,
                     ]}
                   >

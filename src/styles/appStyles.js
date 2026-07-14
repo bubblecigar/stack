@@ -852,10 +852,7 @@ export const styles = StyleSheet.create({
     borderRadius: 27,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(248, 250, 252, 0.72)',
-  },
-  settingsIconButtonActive: {
-    backgroundColor: 'rgba(226, 232, 240, 0.9)',
+    backgroundColor: 'transparent',
   },
   settingsIconButtonPressed: {
     opacity: 0.72,

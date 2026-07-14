@@ -2,6 +2,9 @@ import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 
 const pageFlipSoundSource = require('../../assets/audio/freesound_community-page-flip-47177.mp3');
 
+const DEFAULT_EFFECT_VOLUME = 0.01;
+const DONE_STAMP_EFFECT_VOLUME = 0.01;
+
 let nativeAudioModePromise = null;
 let nativePlayer = null;
 let isAudioEnabled = true;
@@ -35,7 +38,7 @@ function getNativePlayer() {
   return nativePlayer;
 }
 
-function playPageFlipSound() {
+function playPageFlipSound(volume = DEFAULT_EFFECT_VOLUME) {
   if (!isAudioEnabled) {
     return false;
   }
@@ -49,6 +52,7 @@ function playPageFlipSound() {
     .then(() => player.seekTo?.(0))
     .catch(() => {})
     .then(() => {
+      player.volume = volume;
       player.play();
     })
     .catch(() => {});
@@ -65,7 +69,7 @@ export function playModeFlipSound() {
 }
 
 export function playDoneStampSound() {
-  playPageFlipSound();
+  playPageFlipSound(DONE_STAMP_EFFECT_VOLUME);
 }
 
 export function playTrashSound() {
