@@ -276,6 +276,7 @@ export default function App() {
   const focusedCardId = focusedCardIndex === null
     ? null
     : (focusedCardIndex < 0 ? TREASURE_CARD_ID : cards[focusedCardIndex]?.id ?? null);
+  const isTreasureCardFocused = !shouldRenderLeaf && focusedCardId === TREASURE_CARD_ID;
   const treasureTreeCards = useMemo(
     () => getTreasureTreeCards(cards, archivedRootIds),
     [archivedRootIds, cards],
@@ -336,6 +337,15 @@ export default function App() {
   useEffect(() => {
     setSoundEffectsEnabled(isAudioEnabled);
   }, [isAudioEnabled]);
+
+  useEffect(() => {
+    if (!isTreasureCardFocused) {
+      return;
+    }
+
+    setAddPreviewRelation(null);
+    setIsAddHoldActive(false);
+  }, [isTreasureCardFocused]);
 
   useEffect(() => {
     let isMounted = true;
@@ -563,6 +573,10 @@ export default function App() {
 
   function handleCreateCard(relation = 'child') {
     setAddPreviewRelation(null);
+    if (isTreasureCardFocused) {
+      return;
+    }
+
     const currentIndex = shouldRenderLeaf
       ? visibleTopCardIndex
       : focusedCardIndex;
@@ -1248,6 +1262,7 @@ export default function App() {
         onLogout={resetSession}
         onToggleMode={handleToggleLayout}
         onCreateCard={handleCreateCard}
+        disableCardInsertion={isTreasureCardFocused}
       />
 
       <StatusBar style="light" />

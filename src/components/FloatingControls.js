@@ -94,6 +94,7 @@ export function FloatingControls({
   onDeleteHoldChange,
   onLogout,
   canDeleteCurrentCard = false,
+  disableCardInsertion = false,
 }) {
   const shouldShowDelete = canDeleteCurrentCard;
   const [isAddPressed, setIsAddPressed] = useState(false);
@@ -182,6 +183,14 @@ export function FloatingControls({
     setAddCardOffsetX(getAddCardHorizontalOffset(dx));
     setAddCardOffsetY(getAddCardVerticalOffset(dy));
 
+    if (disableCardInsertion) {
+      if (addRelationRef.current !== null) {
+        addRelationRef.current = null;
+        onAddPreviewChange?.(null);
+      }
+      return;
+    }
+
     const relation = getAddRelationFromPoint(
       dx,
       dy,
@@ -267,7 +276,7 @@ export function FloatingControls({
       setAddCardRotation(ADD_CARD_BASE_ROTATION);
       setAddCardOffsetX(0);
       setAddCardOffsetY(0);
-      onAddHoldChange?.(true);
+      onAddHoldChange?.(!disableCardInsertion);
       onAddPreviewChange?.(null);
     },
     onPanResponderMove: (event, gestureState) => {
@@ -301,7 +310,7 @@ export function FloatingControls({
       );
       resetAddPointing();
 
-      if (relation) {
+      if (!disableCardInsertion && relation) {
         onCreateCard?.(relation);
         return;
       }
@@ -312,6 +321,7 @@ export function FloatingControls({
       resetAddPointing();
     },
   }), [
+    disableCardInsertion,
     isSettingsPanelOpen,
     onAddHoldChange,
     onAddPreviewChange,
