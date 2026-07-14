@@ -1,6 +1,7 @@
 import {
   Animated,
   Easing,
+  Text,
   useWindowDimensions,
   View,
 } from 'react-native';
@@ -68,10 +69,13 @@ function animateValueXY(valueXY, toValue) {
   ]);
 }
 
-function getMapCards(cards) {
+function getMapState(cards, focusedCardId) {
   const treasureCard = cards.find((card) => card?.isTreasureCard);
   if (!treasureCard) {
-    return cards;
+    return {
+      mapCards: cards,
+      isTreasureFocusActive: false,
+    };
   }
 
   const cardById = new Map(cards.map((card) => [card.id, card]));
@@ -89,13 +93,19 @@ function getMapCards(cards) {
   }
 
   collectDescendants(treasureCard);
-  return cards
-    .filter((card) => !hiddenTreasureDescendantIds.has(card.id))
-    .map((card) => (
-      card.id === treasureCard.id
-        ? { ...card, childIds: [] }
-        : card
-    ));
+  return {
+    isTreasureFocusActive: (
+      focusedCardId === treasureCard.id
+      || hiddenTreasureDescendantIds.has(focusedCardId)
+    ),
+    mapCards: cards
+      .filter((card) => !hiddenTreasureDescendantIds.has(card.id))
+      .map((card) => (
+        card.id === treasureCard.id
+          ? { ...card, childIds: [] }
+          : card
+      )),
+  };
 }
 
 export function NodeStructureView({
@@ -121,10 +131,11 @@ export function NodeStructureView({
   const focusedCardId = controlledFocusedCardId ?? (focusedCardIndex === null
     ? null
     : cards[focusedCardIndex]?.id ?? null);
-  const mapCards = useMemo(
-    () => getMapCards(cards),
-    [cards],
+  const mapState = useMemo(
+    () => getMapState(cards, focusedCardId),
+    [cards, focusedCardId],
   );
+  const { mapCards, isTreasureFocusActive } = mapState;
   const mapFocusedCardIndex = focusedCardId === null
     ? null
     : mapCards.findIndex((card) => card.id === focusedCardId);
@@ -190,6 +201,7 @@ export function NodeStructureView({
           isPreview: entry.card.id === PREVIEW_CARD_ID,
           isDone: Boolean(entry.card.done),
           isTreasure: Boolean(entry.card.isTreasureCard),
+          isTreasureFocusActive: Boolean(entry.card.isTreasureCard) && isTreasureFocusActive,
           isDeleteTarget: deleteTargetActive && entry.card.id === focusedCardId,
         };
       }),
@@ -197,6 +209,7 @@ export function NodeStructureView({
     };
   }, [
     focusedCardId,
+    isTreasureFocusActive,
     deleteTargetActive,
     mapLayout.maxHeight,
     mapLayout.maxWidth,
@@ -355,23 +368,38 @@ export function NodeStructureView({
             });
           })}
           {nodeEntries.nodes.map((entry) => (
-            <View
-              key={`map-node-${entry.card.id}`}
-              style={[
-                styles.nodeViewMapNode,
-                entry.isTreasure && styles.nodeViewMapNodeTreasure,
-                entry.isDone && styles.nodeViewMapNodeDone,
-                entry.isPreview && styles.nodeViewMapNodePreview,
-                entry.isDeleteTarget && styles.nodeViewMapNodeDeleteTarget,
-                {
-                  left: entry.x,
-                  top: entry.y,
-                },
-              ]}
-            />
+            entry.isTreasure ? (
+              <Text
+                key={`map-node-${entry.card.id}`}
+                style={[
+                  styles.nodeViewMapTreasureStar,
+                  entry.isTreasureFocusActive && styles.nodeViewMapTreasureStarActive,
+                  {
+                    left: entry.x,
+                    top: entry.y,
+                  },
+                ]}
+              >
+                ★
+              </Text>
+            ) : (
+              <View
+                key={`map-node-${entry.card.id}`}
+                style={[
+                  styles.nodeViewMapNode,
+                  entry.isDone && styles.nodeViewMapNodeDone,
+                  entry.isPreview && styles.nodeViewMapNodePreview,
+                  entry.isDeleteTarget && styles.nodeViewMapNodeDeleteTarget,
+                  {
+                    left: entry.x,
+                    top: entry.y,
+                  },
+                ]}
+              />
+            )
           ))}
         </Animated.View>
-        {focusedNode && showFocusedCursor && (!anchorFocusedNode || focusedAnchor) && (
+        {focusedNode && !focusedNode.isTreasure && showFocusedCursor && (!anchorFocusedNode || focusedAnchor) && (
           <Animated.View
             pointerEvents="none"
             style={[

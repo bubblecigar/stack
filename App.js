@@ -275,7 +275,7 @@ export default function App() {
   const shouldRenderLeaf = layoutMode === 'leaf';
   const focusedCardId = focusedCardIndex === null
     ? null
-    : cards[focusedCardIndex]?.id ?? null;
+    : (focusedCardIndex < 0 ? TREASURE_CARD_ID : cards[focusedCardIndex]?.id ?? null);
   const treasureTreeCards = useMemo(
     () => getTreasureTreeCards(cards, archivedRootIds),
     [archivedRootIds, cards],
