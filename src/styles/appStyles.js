@@ -819,55 +819,43 @@ export const styles = StyleSheet.create({
     right: 24,
     top: 26,
     bottom: 26,
+    alignItems: 'center',
     justifyContent: 'center',
-    gap: 18,
+    gap: 24,
     zIndex: 2,
+    transform: [{ rotate: '-45deg' }],
   },
-  settingsPanelSection: {
-    gap: 6,
+  settingsPanelUserName: {
+    color: '#D1D5DB',
+    fontFamily: 'Kalam_400Regular',
+    fontSize: 28,
+    fontWeight: '400',
+    lineHeight: 38,
+    maxWidth: 230,
+    textAlign: 'center',
   },
-  settingsPanelRow: {
-    minHeight: 52,
+  settingsPanelAudioRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingVertical: 10,
+    justifyContent: 'center',
+    gap: 12,
   },
-  settingsPanelRowText: {
-    gap: 4,
-  },
-  settingsPanelLabel: {
-    color: '#64748B',
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  settingsPanelValue: {
-    color: '#0F172A',
-    fontSize: 17,
-    fontWeight: '800',
-  },
-  settingsPanelHint: {
-    color: '#334155',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  settingsLogoutButton: {
-    minHeight: 46,
-    borderRadius: 8,
-    backgroundColor: '#0F172A',
+  settingsIconButton: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'rgba(248, 250, 252, 0.72)',
   },
-  settingsLogoutButtonPressed: {
+  settingsIconButtonActive: {
+    backgroundColor: 'rgba(226, 232, 240, 0.9)',
+  },
+  settingsIconButtonPressed: {
     opacity: 0.72,
   },
-  settingsLogoutButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '800',
+  settingsLogoutIconButton: {
+    marginTop: 2,
   },
   deleteCardButton: {
     width: 88,

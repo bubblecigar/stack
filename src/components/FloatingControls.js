@@ -5,10 +5,10 @@ import {
   Image,
   PanResponder,
   Pressable,
-  Switch,
   Text,
   View,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   useEffect, useMemo, useRef, useState,
 } from 'react';
@@ -484,28 +484,30 @@ export function FloatingControls({
             </Animated.View>
             {isSettingsPanelOpen ? (
               <View style={styles.settingsPanelContent}>
-                <View style={styles.settingsPanelSection}>
-                  <Text style={styles.settingsPanelLabel}>User</Text>
-                  <Text
-                    numberOfLines={1}
-                    style={styles.settingsPanelValue}
-                  >
-                    {userLabel}
-                  </Text>
-                </View>
+                <Text
+                  numberOfLines={1}
+                  style={styles.settingsPanelUserName}
+                >
+                  {userLabel}
+                </Text>
 
-                <View style={styles.settingsPanelRow}>
-                  <View style={styles.settingsPanelRowText}>
-                    <Text style={styles.settingsPanelLabel}>Audio</Text>
-                    <Text style={styles.settingsPanelHint}>
-                      {audioEnabled ? 'On' : 'Off'}
-                    </Text>
-                  </View>
-                  <Switch
-                    accessibilityLabel="Audio setting"
-                    onValueChange={onAudioEnabledChange}
-                    value={audioEnabled}
-                  />
+                <View style={styles.settingsPanelAudioRow}>
+                  <Pressable
+                    accessibilityLabel={audioEnabled ? 'Turn audio off' : 'Turn audio on'}
+                    accessibilityRole="button"
+                    onPress={() => onAudioEnabledChange?.(!audioEnabled)}
+                    style={({ pressed }) => [
+                      styles.settingsIconButton,
+                      audioEnabled && styles.settingsIconButtonActive,
+                      pressed && styles.settingsIconButtonPressed,
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      color="#D1D5DB"
+                      name={audioEnabled ? 'volume-high' : 'volume-off'}
+                      size={34}
+                    />
+                  </Pressable>
                 </View>
 
                 <Pressable
@@ -513,11 +515,16 @@ export function FloatingControls({
                   accessibilityRole="button"
                   onPress={onLogout}
                   style={({ pressed }) => [
-                    styles.settingsLogoutButton,
-                    pressed && styles.settingsLogoutButtonPressed,
+                    styles.settingsIconButton,
+                    styles.settingsLogoutIconButton,
+                    pressed && styles.settingsIconButtonPressed,
                   ]}
                 >
-                  <Text style={styles.settingsLogoutButtonText}>Logout</Text>
+                  <MaterialCommunityIcons
+                    color="#D1D5DB"
+                    name="logout"
+                    size={34}
+                  />
                 </Pressable>
               </View>
             ) : null}
