@@ -366,7 +366,19 @@ export function StackCard({
             {isTreasureCard ? (
               <View style={styles.treasureCardIconWrap}>
                 <MaterialCommunityIcons
-                  color="black"
+                  color="#F8FAFC"
+                  name="treasure-chest-outline"
+                  size={24}
+                  style={styles.treasureCardIconHighlight}
+                />
+                <MaterialCommunityIcons
+                  color="#6B7280"
+                  name="treasure-chest-outline"
+                  size={24}
+                  style={styles.treasureCardIconShadow}
+                />
+                <MaterialCommunityIcons
+                  color="#9CA3AF"
                   name="treasure-chest-outline"
                   size={24}
                 />
