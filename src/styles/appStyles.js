@@ -663,6 +663,11 @@ export const styles = StyleSheet.create({
     borderWidth: 2,
     borderStyle: 'solid',
   },
+  focusedTreasureCard: {
+    borderColor: '#F59E0B',
+    shadowColor: '#F59E0B',
+    shadowOpacity: 0.32,
+  },
   deleteFocusedCard: {
     borderColor: '#DC2626',
     shadowColor: '#DC2626',
