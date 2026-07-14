@@ -76,10 +76,6 @@ export function NodeStructureView({
   anchorFocusedNode = false,
   deleteTargetActive = false,
 }) {
-  if (cards.length === 0) {
-    return null;
-  }
-
   const [mapSize, setMapSize] = useState({
     width: 180,
     height: 120,
@@ -248,6 +244,10 @@ export function NodeStructureView({
       x: cursorPosition.x,
       y: cursorPosition.y,
     };
+
+  if (cards.length === 0) {
+    return null;
+  }
 
   return (
     <View

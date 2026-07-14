@@ -56,6 +56,12 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 20,
   },
+  authStatus: {
+    color: '#166534',
+    fontSize: 14,
+    fontWeight: '700',
+    lineHeight: 20,
+  },
   authPrimaryButton: {
     minHeight: 54,
     borderRadius: 8,

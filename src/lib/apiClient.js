@@ -75,6 +75,20 @@ export function login(email, password) {
   });
 }
 
+export function requestPasswordReset(email) {
+  return requestJson(`${AUTH_BASE_URL}/auth/forgot-password`, {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
+export function resetPassword(token, password) {
+  return requestJson(`${AUTH_BASE_URL}/auth/reset-password`, {
+    method: 'POST',
+    body: JSON.stringify({ token, password }),
+  });
+}
+
 export function getMe(token) {
   return requestJson(`${AUTH_BASE_URL}/auth/me`, {
     headers: authHeaders(token),

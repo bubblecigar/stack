@@ -1,10 +1,12 @@
 import { createServer } from 'node:http';
 import {
+  createPasswordResetToken,
   createUser,
   deleteSession,
   getDatabasePath,
   getSessionUser,
   loginUser,
+  resetPasswordWithToken,
 } from './db.mjs';
 import {
   getBearerToken,
@@ -75,6 +77,41 @@ async function handleRequest(request, response) {
       }
 
       deleteSession(getBearerToken(request));
+      sendJson(response, 200, {
+        ok: true,
+      });
+      return;
+    }
+
+    if (url.pathname === '/auth/forgot-password') {
+      if (!requireMethod(request, response, ['POST'])) {
+        return;
+      }
+
+      const body = await readJson(request);
+      const reset = createPasswordResetToken(body.email);
+
+      if (reset) {
+        console.log(
+          `[authserver] password reset code for ${reset.email}: `
+          + `${reset.token} expires ${reset.expiresAt}`,
+        );
+      }
+
+      sendJson(response, 200, {
+        ok: true,
+        message: 'If an account exists for that email, a reset code has been sent.',
+      });
+      return;
+    }
+
+    if (url.pathname === '/auth/reset-password') {
+      if (!requireMethod(request, response, ['POST'])) {
+        return;
+      }
+
+      const body = await readJson(request);
+      resetPasswordWithToken(body.token, body.password);
       sendJson(response, 200, {
         ok: true,
       });
