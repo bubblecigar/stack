@@ -222,7 +222,7 @@ export function StackCard({
           >
             <MaterialCommunityIcons
               color="#FFFFFF"
-              name={isArchivedRoot ? 'archive-arrow-up-outline' : 'archive-arrow-down-outline'}
+              name={isArchivedRoot ? 'archive-arrow-up-outline' : 'treasure-chest-outline'}
               size={18}
             />
           </Pressable>
