@@ -526,26 +526,18 @@ export const styles = StyleSheet.create({
     borderColor: '#CBD5E1',
     borderStyle: 'dashed',
     borderWidth: 2,
-    backgroundColor: 'transparent',
+    backgroundColor: 'rgba(255, 255, 255, 0.58)',
     overflow: 'hidden',
     padding: 0,
-  },
-  treasureCardBackWrap: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  treasureCardBackImage: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
+  treasureCardIconWrap: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
+    minHeight: 72,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   treePreviewCard: {
     borderColor: '#F97316',
@@ -697,8 +689,8 @@ export const styles = StyleSheet.create({
     borderStyle: 'solid',
   },
   focusedTreasureCard: {
-    borderColor: '#F59E0B',
-    shadowColor: '#F59E0B',
+    borderColor: '#0EA5E9',
+    shadowColor: '#0EA5E9',
     shadowOpacity: 0.32,
   },
   deleteFocusedCard: {

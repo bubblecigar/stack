@@ -13,7 +13,6 @@ import { DeleteHoldIndicator } from './DeleteHoldIndicator';
 import { styles } from '../styles/appStyles';
 
 const doneStampImage = require('../../assets/card/done_stamp_gray.png');
-const treasureCardBackImage = require('../../assets/treasure_cardback.png');
 
 export function StackCard({
   card,
@@ -363,18 +362,15 @@ export function StackCard({
             ) : null}
           </View>
         ) : (
-          <Animated.View
-            style={[
-              { opacity: 1 },
-              isTreasureCard && styles.treasureCardBackWrap,
-            ]}
-          >
+          <Animated.View style={{ opacity: 1 }}>
             {isTreasureCard ? (
-              <Image
-                pointerEvents="none"
-                source={treasureCardBackImage}
-                style={styles.treasureCardBackImage}
-              />
+              <View style={styles.treasureCardIconWrap}>
+                <MaterialCommunityIcons
+                  color="black"
+                  name="treasure-chest-outline"
+                  size={24}
+                />
+              </View>
             ) : (
               <Text style={[
                 styles.cardText,
