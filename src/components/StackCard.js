@@ -201,6 +201,33 @@ export function StackCard({
         isTreeCard && styles.treeCardControls,
       ]}
       >
+        {shouldShowArchive && (
+          <Pressable
+            accessibilityLabel={isArchivedRoot ? 'Restore tree' : 'Archive tree'}
+            accessibilityRole="button"
+            onPressIn={handleControlPressIn}
+            onPress={(event) => handleControlPress(event, () => {
+              if (isArchivedRoot) {
+                onRestoreRootTree?.(id);
+                return;
+              }
+
+              onArchiveRootTree?.(id);
+            })}
+            style={({ pressed }) => [
+              styles.iconButton,
+              styles.archiveButton,
+              pressed && styles.archiveButtonPressed,
+            ]}
+          >
+            <MaterialCommunityIcons
+              color="#FFFFFF"
+              name={isArchivedRoot ? 'archive-arrow-up-outline' : 'archive-arrow-down-outline'}
+              size={18}
+            />
+          </Pressable>
+        )}
+
         {shouldShowControls && shouldShowEdit && (
           <Pressable
             accessibilityLabel={isEditing ? 'Confirm card' : 'Edit card'}
@@ -226,33 +253,6 @@ export function StackCard({
             ) : (
               <MaterialCommunityIcons color="#FFFFFF" name="pencil" size={18} />
             )}
-          </Pressable>
-        )}
-
-        {shouldShowArchive && (
-          <Pressable
-            accessibilityLabel={isArchivedRoot ? 'Restore tree' : 'Archive tree'}
-            accessibilityRole="button"
-            onPressIn={handleControlPressIn}
-            onPress={(event) => handleControlPress(event, () => {
-              if (isArchivedRoot) {
-                onRestoreRootTree?.(id);
-                return;
-              }
-
-              onArchiveRootTree?.(id);
-            })}
-            style={({ pressed }) => [
-              styles.iconButton,
-              styles.archiveButton,
-              pressed && styles.archiveButtonPressed,
-            ]}
-          >
-            <MaterialCommunityIcons
-              color="#FFFFFF"
-              name={isArchivedRoot ? 'archive-arrow-up-outline' : 'archive-arrow-down-outline'}
-              size={18}
-            />
           </Pressable>
         )}
 
