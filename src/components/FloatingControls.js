@@ -445,7 +445,7 @@ export function FloatingControls({
                   {
                     opacity: settingsPanelProgress.interpolate({
                       inputRange: [0, 1],
-                      outputRange: [0.9, 0.2],
+                      outputRange: [0.9, 0],
                     }),
                   },
                 ]}
@@ -476,7 +476,7 @@ export function FloatingControls({
                   {
                     opacity: settingsPanelProgress.interpolate({
                       inputRange: [0, 1],
-                      outputRange: [0.9, 0.2],
+                      outputRange: [0.9, 0],
                     }),
                   },
                 ]}
