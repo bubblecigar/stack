@@ -42,6 +42,7 @@ export function StackCard({
   isDeleteHoldActive = false,
   isPreviewCard = false,
   leafContentMode = 'text',
+  collapsedNodeIds = new Set(),
 }) {
   const {
     id,
@@ -80,6 +81,12 @@ export function StackCard({
     : (isTreeCard ? '#0284C7' : '#2563EB');
   const treasureIconSize = isLeafCard ? 40 : 30;
   const canShowDoneStamp = done && !isTreasure;
+  const shouldShowCollapsedCornerLine = (
+    isTreeCard
+    && !isCollapsedStacked
+    && !isPreviewCard
+    && collapsedNodeIds?.has?.(id)
+  );
 
   const treeStackLayer = treePosition
     ? (
@@ -200,6 +207,17 @@ export function StackCard({
         zLayer != null ? { zIndex: zLayer } : null,
       ]}
     >
+      {shouldShowCollapsedCornerLine ? (
+        <View
+          pointerEvents="none"
+          style={[
+            styles.treeCollapsedCornerLine,
+            isFocusedCard && styles.focusedTreeCollapsedCornerLine,
+            isDeleteProgressVisible && styles.deleteTreeCollapsedCornerLine,
+          ]}
+        />
+      ) : null}
+
       <View style={[
         styles.cardControls,
         isTreeCard && styles.treeCardControls,
