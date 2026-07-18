@@ -78,6 +78,8 @@ export function StackCard({
   const editButtonPressedColor = isTreeDeleteHoldActive
     ? '#B91C1C'
     : (isTreeCard ? '#0284C7' : '#2563EB');
+  const treasureIconSize = isLeafCard ? 40 : 30;
+  const canShowDoneStamp = done && !isTreasure;
 
   const treeStackLayer = treePosition
     ? (
@@ -308,25 +310,34 @@ export function StackCard({
                 styles.leafTreasureContent,
               ]}
               >
-                <View style={styles.treasureCardIconWrap}>
+                <View style={[
+                  styles.treasureCardIconWrap,
+                  styles.leafTreasureIconWrap,
+                ]}
+                >
                   <MaterialCommunityIcons
                     color="#F8FAFC"
                     name="treasure-chest-outline"
-                    size={30}
+                    size={treasureIconSize}
                     style={styles.treasureCardIconHighlight}
                   />
                   <MaterialCommunityIcons
                     color="#6B7280"
                     name="treasure-chest-outline"
-                    size={30}
+                    size={treasureIconSize}
                     style={styles.treasureCardIconShadow}
                   />
                   <MaterialCommunityIcons
                     color="#9CA3AF"
                     name="treasure-chest-outline"
-                    size={30}
+                    size={treasureIconSize}
                   />
                 </View>
+                <Text style={styles.leafTreasureText}>
+                  Every thought is a treasure{'\n'}
+                  keep and explore{'\n'}
+                  think thouroughly and drop
+                </Text>
               </View>
             ) : leafContentMode === 'placeholder' ? (
               <View
@@ -381,7 +392,7 @@ export function StackCard({
                 </ScrollView>
               </View>
             ) : null}
-            {done && !isTreasure ? (
+            {canShowDoneStamp ? (
               <Image
                 pointerEvents="none"
                 source={doneStampImage}

@@ -561,6 +561,10 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  leafTreasureIconWrap: {
+    width: 52,
+    height: 52,
+  },
   treasureCardIconHighlight: {
     position: 'absolute',
     transform: [{ translateX: -1 }, { translateY: -1 }],
@@ -643,6 +647,20 @@ export const styles = StyleSheet.create({
   leafTreasureContent: {
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 18,
+    paddingHorizontal: 22,
+  },
+  leafTreasureText: {
+    maxWidth: 260,
+    color: '#9AA3AF',
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '600',
+    textAlign: 'center',
+    textShadowColor: '#F8FAFC',
+    textShadowOffset: { width: -1, height: -1 },
+    textShadowRadius: 0,
+    opacity: 0.86,
   },
   leafContentScroll: {
     flex: 1,
