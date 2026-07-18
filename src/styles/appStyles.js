@@ -606,7 +606,7 @@ export const styles = StyleSheet.create({
   },
   treeCardControls: {
     right: 8,
-    bottom: 10,
+    bottom: 8,
     top: undefined,
     gap: 6,
     alignItems: 'flex-end',
