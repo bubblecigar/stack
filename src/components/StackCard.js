@@ -52,6 +52,7 @@ export function StackCard({
 
   const isLeafCard = layout === 'leaf';
   const isTreeCard = layout === 'tree';
+  const isTreasure = isTreasureCard || Boolean(card?.isTreasureCard);
   const isEditing = editingIndex === index;
   const isFocusedCard = (
     isLeafCard
@@ -61,12 +62,12 @@ export function StackCard({
         : focusedCardIndex === index)
   );
   const shouldShowControls = !hideControls && isFocusedCard;
-  const shouldShowEdit = isFocusedCard && !isTreasureCard;
+  const shouldShowEdit = isFocusedCard && !isTreasure;
   const shouldShowArchive = (
     shouldShowControls
     && isTreeCard
     && (isRootCard || isArchivedRoot)
-    && !isTreasureCard
+    && !isTreasure
     && !isEditing
   );
   const isTreeDeleteHoldActive = isTreeCard && isDeleteHoldActive;
@@ -181,8 +182,8 @@ export function StackCard({
         styles.card,
         isLeafCard && styles.leafCard,
         isTreeCard && styles.treeCard,
-        isTreeCard && isTreasureCard && styles.treasureCard,
-        isLeafCard && isTreasureCard && styles.leafTreasureCard,
+        isTreeCard && isTreasure && styles.treasureCard,
+        isLeafCard && isTreasure && styles.leafTreasureCard,
         isTreeCard && isPreviewCard && styles.treePreviewCard,
         isTreeCard && isCollapsedStacked && styles.treeCollapsedCard,
         isEditing && isLeafCard && styles.leafEditingCard,
@@ -192,7 +193,7 @@ export function StackCard({
           position: 'absolute',
         },
         isFocusedCard && !isLeafCard && styles.focusedCard,
-        isFocusedCard && isTreasureCard && styles.focusedTreasureCard,
+        isFocusedCard && isTreasure && styles.focusedTreasureCard,
         isDeleteProgressVisible && styles.deleteFocusedCard,
         zLayer != null ? { zIndex: zLayer } : null,
       ]}
@@ -301,7 +302,7 @@ export function StackCard({
       ) : (
         isLeafCard ? (
           <View style={styles.leafContentSurface}>
-            {isTreasureCard ? (
+            {isTreasure ? (
               <View style={[
                 styles.leafContentLayer,
                 styles.leafTreasureContent,
@@ -380,7 +381,7 @@ export function StackCard({
                 </ScrollView>
               </View>
             ) : null}
-            {done && !isTreasureCard ? (
+            {done && !isTreasure ? (
               <Image
                 pointerEvents="none"
                 source={doneStampImage}
@@ -390,7 +391,7 @@ export function StackCard({
           </View>
         ) : (
           <Animated.View style={{ opacity: 1 }}>
-            {isTreasureCard ? (
+            {isTreasure ? (
               <View style={styles.treasureCardIconWrap}>
                 <MaterialCommunityIcons
                   color="#F8FAFC"
@@ -436,7 +437,7 @@ export function StackCard({
       <View style={[
         styles.dependencyBar,
         isTreeCard && styles.treeDependencyBar,
-        isTreasureCard && styles.hiddenDependencyBar,
+        isTreasure && styles.hiddenDependencyBar,
       ]}
       >
         <Text style={[

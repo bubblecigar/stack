@@ -549,6 +549,8 @@ export const styles = StyleSheet.create({
     borderLeftColor: '#EEF2F7',
     borderRightColor: '#AAB4C2',
     borderBottomColor: '#94A3B8',
+    alignItems: 'center',
+    justifyContent: 'center',
     shadowColor: '#64748B',
     shadowOpacity: 0.2,
     shadowRadius: 14,
