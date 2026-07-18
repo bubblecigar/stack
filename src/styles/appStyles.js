@@ -31,6 +31,10 @@ export const styles = StyleSheet.create({
     alignSelf: 'center',
     gap: 14,
   },
+  loadingPanel: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   authTitle: {
     color: '#0F172A',
     fontSize: 34,

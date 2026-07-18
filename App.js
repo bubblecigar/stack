@@ -2,6 +2,7 @@ import { Kalam_400Regular } from '@expo-google-fonts/kalam';
 import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import {
+  ActivityIndicator,
   LayoutAnimation,
   Platform,
   Text,
@@ -1222,8 +1223,11 @@ export default function App() {
     return (
       <>
         <View style={styles.authContainer}>
-          <View style={styles.authPanel}>
-            <Text style={styles.authTitle}>Loading</Text>
+          <View style={styles.loadingPanel}>
+            <ActivityIndicator
+              size="large"
+              color="#2563EB"
+            />
           </View>
         </View>
         <StatusBar style="dark" />
