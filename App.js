@@ -357,6 +357,7 @@ export default function App() {
         if (isMounted && storedToken) {
           setAuthToken(storedToken);
         }
+      } catch {
       } finally {
         if (isMounted) {
           setIsRestoringSession(false);
@@ -450,9 +451,7 @@ export default function App() {
   }
 
   useEffect(() => {
-    const userId = authUser?.id ?? null;
-
-    if (!authToken || userId === null) {
+    if (!authToken) {
       return undefined;
     }
 
@@ -495,7 +494,13 @@ export default function App() {
   }, [authToken]);
 
   useEffect(() => {
+    const userId = authUser?.id ?? null;
+
     if (!authToken) {
+      return undefined;
+    }
+
+    if (userId === null) {
       return undefined;
     }
 
