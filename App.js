@@ -13,14 +13,18 @@ import {
   useEffect, useMemo, useRef, useState, useSyncExternalStore,
 } from 'react';
 import {
+  archiveRootTree,
+  ensureTreasureCard,
   getSnapshot,
   insertRelativeTo,
   loadCards,
   push,
   removeAt,
   removeDoneCascadeAt,
+  restoreRootTree,
   setDoneAt,
   subscribe,
+  TREASURE_CARD_ID,
   updateAt,
 } from './stackStore';
 import defaultStackData from './defaultStack.json';
@@ -52,23 +56,11 @@ import { styles } from './src/styles/appStyles';
 const LEAF_VISIBLE_COUNT = 5;
 const TREE_COMPLETION_CANVAS_KEY = 'treeCompletionCanvas';
 const UI_STATE_KEY = 'uiState';
-const TREASURE_CARD_ID = 'treasure-card';
 const EMPTY_TREE_COMPLETION_CANVAS = {
   entries: [],
   nodes: [],
   updatedAt: null,
 };
-
-function createTreasureCard(childIds = []) {
-  return {
-    childIds,
-    id: TREASURE_CARD_ID,
-    index: -1,
-    isTreasureCard: true,
-    parentIds: [],
-    text: 'Treasure',
-  };
-}
 
 function getLeafRootScopedCards(cards, currentCardId) {
   if (currentCardId === null || currentCardId === undefined) {
@@ -259,26 +251,15 @@ function getTreasureSubtreeCards(cards) {
   return cards.filter((card) => subtreeIds.has(card.id));
 }
 
-function getTreasureTreeCards(cards, archivedRootIds) {
-  const archivedRootIdList = [...archivedRootIds].filter((rootId) => (
-    cards.some((card) => card.id === rootId)
-  ));
-  const archivedRootIdSet = new Set(archivedRootIdList);
-
-  return [
-    ...cards.map((card) => {
-      if (!archivedRootIdSet.has(card.id)) {
-        return card;
-      }
-
-      return {
-        ...card,
-        isArchivedRoot: true,
-        parentIds: [TREASURE_CARD_ID],
-      };
-    }),
-    createTreasureCard(archivedRootIdList),
-  ];
+function getTreasureTreeCards(cards) {
+  return cards.map((card) => ({
+    ...card,
+    isArchivedRoot: (
+      card.id !== TREASURE_CARD_ID
+      && Array.isArray(card.parentIds)
+      && card.parentIds.includes(TREASURE_CARD_ID)
+    ),
+  }));
 }
 
 function getOppositeSwipeDirection(direction) {
@@ -307,7 +288,6 @@ export default function App() {
   const [editingValue, setEditingValue] = useState('');
   const [focusedCardIndex, setFocusedCardIndex] = useState(null);
   const [layoutMode, setLayoutMode] = useState('leaf');
-  const [archivedRootIds, setArchivedRootIds] = useState(() => new Set());
   const [collapsedNodeIds, setCollapsedNodeIds] = useState(() => new Set());
   const [leafTopIndex, setLeafTopIndex] = useState(null);
   const [leafFocusedCardId, setLeafFocusedCardId] = useState(null);
@@ -325,8 +305,8 @@ export default function App() {
     : (focusedCardIndex < 0 ? TREASURE_CARD_ID : cards[focusedCardIndex]?.id ?? null);
   const isTreasureCardFocused = !shouldRenderLeaf && focusedCardId === TREASURE_CARD_ID;
   const treasureTreeCards = useMemo(
-    () => getTreasureTreeCards(cards, archivedRootIds),
-    [archivedRootIds, cards],
+    () => getTreasureTreeCards(cards),
+    [cards],
   );
   const leafScopeFocusedCardId = shouldRenderLeaf
     ? leafFocusedCardId
@@ -344,7 +324,7 @@ export default function App() {
         return scopedCards;
       }
 
-      return cards.length > 0 ? cards : [createTreasureCard()];
+      return cards;
     },
     [cards, leafScopeFocusedCardId, treasureTreeCards],
   );
@@ -471,7 +451,8 @@ export default function App() {
       return;
     }
 
-    if (hasLoadedDefaultStack.current || stack.length > 0) {
+    const hasUserCards = stack.some((card) => !card?.isTreasureCard);
+    if (hasLoadedDefaultStack.current || hasUserCards) {
       return;
     }
 
@@ -500,7 +481,6 @@ export default function App() {
     setLeafTopIndex(null);
     setLeafFocusedCardId(null);
     setIsDeleteHoldActive(false);
-    setArchivedRootIds(new Set());
     setCollapsedNodeIds(new Set());
     setTreeCompletionCanvas(EMPTY_TREE_COMPLETION_CANVAS);
     hasLoadedDefaultStack.current = false;
@@ -604,22 +584,23 @@ export default function App() {
 
         isApplyingRemoteCards.current = true;
         loadCards(nextCards);
+        ensureTreasureCard(restoredUiState?.archivedRootIds || []);
         isApplyingRemoteCards.current = false;
+        const loadedCards = getSnapshot();
         setTreeCompletionCanvas(canvasResult.value || EMPTY_TREE_COMPLETION_CANVAS);
         restoredUiStateUserIdRef.current = userId;
 
         if (restoredUiState) {
           setLayoutMode(restoredUiState.layoutMode);
-          setArchivedRootIds(new Set(restoredUiState.archivedRootIds));
 
           const nextFocusedIndex = restoredUiState.focusedCardId === null
             ? null
-            : nextCards.findIndex((card) => card.id === restoredUiState.focusedCardId);
+            : loadedCards.findIndex((card) => card.id === restoredUiState.focusedCardId);
           setFocusedCardIndex(nextFocusedIndex >= 0 ? nextFocusedIndex : null);
 
           const nextLeafFocusedIndex = restoredUiState.leafFocusedCardId === null
             ? -1
-            : nextCards.findIndex((card) => card.id === restoredUiState.leafFocusedCardId);
+            : loadedCards.findIndex((card) => card.id === restoredUiState.leafFocusedCardId);
           if (nextLeafFocusedIndex >= 0) {
             setLeafFocusedCardId(restoredUiState.leafFocusedCardId);
             setLeafTopIndex(nextLeafFocusedIndex);
@@ -693,16 +674,24 @@ export default function App() {
 
   function handleCreateCard(relation = 'child') {
     setAddPreviewRelation(null);
-    if (isTreasureCardFocused) {
-      return;
-    }
 
     const currentIndex = shouldRenderLeaf
       ? visibleTopCardIndex
       : focusedCardIndex;
+    const currentCard = currentIndex === null || currentIndex < 0
+      ? null
+      : cards[currentIndex];
+    if (currentCard?.isTreasureCard && relation !== 'child') {
+      return;
+    }
+
     const nextIndex = currentIndex === null || currentIndex < 0
       ? push('')
       : insertRelativeTo(currentIndex, relation, '');
+
+    if (nextIndex === currentIndex && currentCard?.isTreasureCard) {
+      return;
+    }
 
     setEditingIndex(nextIndex);
     setEditingValue('');
@@ -711,6 +700,10 @@ export default function App() {
   }
 
   function handleEditCard(index, text) {
+    if (cards[index]?.isTreasureCard) {
+      return;
+    }
+
     setEditingIndex(index);
     setEditingValue(text);
     setFocusedCardIndex(index);
@@ -803,7 +796,7 @@ export default function App() {
 
   function handleDeleteCard(index) {
     const removedCard = cards[index];
-    if (!removedCard) {
+    if (!removedCard || removedCard.isTreasureCard) {
       return;
     }
 
@@ -887,18 +880,6 @@ export default function App() {
     });
 
     if (removedCardIds.size > 0) {
-      setArchivedRootIds((currentArchivedRootIds) => {
-        if (![...removedCardIds].some((cardId) => currentArchivedRootIds.has(cardId))) {
-          return currentArchivedRootIds;
-        }
-
-        const nextArchivedRootIds = new Set(currentArchivedRootIds);
-        removedCardIds.forEach((cardId) => {
-          nextArchivedRootIds.delete(cardId);
-        });
-        return nextArchivedRootIds;
-      });
-
       setCollapsedNodeIds((currentCollapsed) => {
         if (![...removedCardIds].some((cardId) => currentCollapsed.has(cardId))) {
           return currentCollapsed;
@@ -985,15 +966,7 @@ export default function App() {
       return;
     }
 
-    setArchivedRootIds((currentArchivedRootIds) => {
-      if (currentArchivedRootIds.has(rootId)) {
-        return currentArchivedRootIds;
-      }
-
-      const nextArchivedRootIds = new Set(currentArchivedRootIds);
-      nextArchivedRootIds.add(rootId);
-      return nextArchivedRootIds;
-    });
+    archiveRootTree(rootId);
     setFocusedCardIndex(null);
     setEditingIndex(null);
     setEditingValue('');
@@ -1007,15 +980,7 @@ export default function App() {
       return;
     }
 
-    setArchivedRootIds((currentArchivedRootIds) => {
-      if (!currentArchivedRootIds.has(rootId)) {
-        return currentArchivedRootIds;
-      }
-
-      const nextArchivedRootIds = new Set(currentArchivedRootIds);
-      nextArchivedRootIds.delete(rootId);
-      return nextArchivedRootIds;
-    });
+    restoreRootTree(rootId);
     setFocusedCardIndex(rootCard.index);
     setEditingIndex(null);
     setEditingValue('');
@@ -1065,8 +1030,16 @@ export default function App() {
     && isTreasureSubtreeFocused(treasureTreeCards, nodeMapFocusedCardId)
   );
   const canDeleteCurrentCard = shouldRenderLeaf
-    ? visibleTopCardIndex !== null && visibleTopCardIndex >= 0
-    : focusedCardIndex !== null && focusedCardIndex >= 0;
+    ? (
+      visibleTopCardIndex !== null
+      && visibleTopCardIndex >= 0
+      && !cards[visibleTopCardIndex]?.isTreasureCard
+    )
+    : (
+      focusedCardIndex !== null
+      && focusedCardIndex >= 0
+      && !cards[focusedCardIndex]?.isTreasureCard
+    );
   const nodeMapCards = shouldRenderLeaf
     ? (isLeafTreasureSubtreeFocused
       ? getTreasureSubtreeCards(treasureTreeCards)
@@ -1102,7 +1075,6 @@ export default function App() {
       }
 
       setLayoutMode(storedUiState.layoutMode);
-      setArchivedRootIds(new Set(storedUiState.archivedRootIds));
 
       const nextFocusedIndex = storedUiState.focusedCardId === null
         ? null
@@ -1141,7 +1113,7 @@ export default function App() {
 
     const timeoutId = setTimeout(async () => {
       const nextUiState = {
-        archivedRootIds: [...archivedRootIds],
+        archivedRootIds: [],
         focusedCardId,
         layoutMode,
         leafFocusedCardId,
@@ -1170,7 +1142,6 @@ export default function App() {
     authToken,
     authUser?.id,
     focusedCardId,
-    archivedRootIds,
     layoutMode,
     leafFocusedCardId,
   ]);
@@ -1190,7 +1161,7 @@ export default function App() {
     }
 
     const currentCard = cards[visibleTopCardIndex];
-    if (!currentCard) {
+    if (!currentCard || currentCard.isTreasureCard) {
       return;
     }
 
@@ -1426,7 +1397,6 @@ export default function App() {
         onLogout={resetSession}
         onToggleMode={handleToggleLayout}
         onCreateCard={handleCreateCard}
-        disableCardInsertion={isTreasureCardFocused}
       />
 
       <StatusBar style="light" />

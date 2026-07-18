@@ -1,6 +1,38 @@
 let nextCardId = 1;
 let stack = [];
 const listeners = new Set();
+export const TREASURE_CARD_ID = 'treasure-card';
+
+function isTreasureCard(card) {
+  return card?.id === TREASURE_CARD_ID || card?.systemType === 'treasure' || card?.isTreasureCard;
+}
+
+function createTreasureCard(childIds = []) {
+  return {
+    childIds,
+    done: false,
+    id: TREASURE_CARD_ID,
+    isTreasureCard: true,
+    locked: true,
+    parentIds: [],
+    stamps: [],
+    systemType: 'treasure',
+    text: 'Treasure',
+  };
+}
+
+function uniqueLinkedIds(ids, ownerId) {
+  const seen = new Set();
+
+  return ids.filter((id) => {
+    if (id === ownerId || seen.has(id)) {
+      return false;
+    }
+
+    seen.add(id);
+    return true;
+  });
+}
 
 function emitChange() {
   listeners.forEach((listener) => listener());
@@ -79,6 +111,10 @@ export function insertRelativeTo(targetIndex, relation, value = '') {
   }
 
   const targetCard = stack[targetIndex];
+  if (isTreasureCard(targetCard) && relation !== 'child') {
+    return targetIndex;
+  }
+
   const targetId = targetCard.id;
   const newCard = createCard(value);
   const newId = newCard.id;
@@ -187,8 +223,23 @@ function normalizeIncomingCard(rawCard, nextGeneratedId) {
   const rawParentIds = Array.isArray(rawCard?.parentIds) ? rawCard.parentIds : [];
   const rawStamps = Array.isArray(rawCard?.stamps) ? rawCard.stamps : [];
 
-  const childIds = rawChildIds.map((id) => Number(id)).filter((id) => Number.isInteger(id));
-  const parentIds = rawParentIds.map((id) => Number(id)).filter((id) => Number.isInteger(id));
+  function normalizeLinkedId(id) {
+    if (typeof id === 'string') {
+      const trimmedId = id.trim();
+      if (trimmedId === TREASURE_CARD_ID) {
+        return trimmedId;
+      }
+
+      const numericStringId = Number(trimmedId);
+      return Number.isInteger(numericStringId) ? numericStringId : null;
+    }
+
+    const numericId = Number(id);
+    return Number.isInteger(numericId) ? numericId : null;
+  }
+
+  const childIds = rawChildIds.map(normalizeLinkedId).filter((id) => id !== null);
+  const parentIds = rawParentIds.map(normalizeLinkedId).filter((id) => id !== null);
   const stamps = rawStamps
     .map((stamp, stampIndex) => {
       const x = Number(stamp?.x);
@@ -207,17 +258,25 @@ function normalizeIncomingCard(rawCard, nextGeneratedId) {
     })
     .filter(Boolean);
 
-  const rawId = Number(rawCard?.id);
-  const id = Number.isInteger(rawId) && rawId > 0
-    ? rawId
-    : nextGeneratedId;
+  const rawId = rawCard?.id;
+  const numericId = Number(rawId);
+  const id = rawId === TREASURE_CARD_ID
+    ? TREASURE_CARD_ID
+    : (Number.isInteger(numericId) && numericId > 0 ? numericId : nextGeneratedId);
+  const isTreasure = id === TREASURE_CARD_ID || rawCard?.systemType === 'treasure' || rawCard?.isTreasureCard;
 
   return {
     childIds,
-    done: Boolean(rawCard?.done),
+    done: isTreasure ? false : Boolean(rawCard?.done),
     id,
     parentIds,
     stamps,
+    ...(isTreasure ? {
+      isTreasureCard: true,
+      locked: true,
+      parentIds: [],
+      systemType: 'treasure',
+    } : {}),
     text: String(text),
   };
 }
@@ -230,7 +289,7 @@ export function loadCards(rawCards) {
   if (rawCards.length === 0) {
     stack = [];
     nextCardId = 1;
-    emitChange();
+    ensureTreasureCard();
     return;
   }
 
@@ -250,19 +309,79 @@ export function loadCards(rawCards) {
     }
 
     usedIds.add(rawCard.id);
-    nextGeneratedId = Math.max(nextGeneratedId, rawCard.id + 1);
+    if (typeof rawCard.id === 'number') {
+      nextGeneratedId = Math.max(nextGeneratedId, rawCard.id + 1);
+    }
     return rawCard;
   });
 
   stack = normalizedCards;
   nextCardId = Math.max(nextCardId, nextGeneratedId);
+  ensureTreasureCard();
   emitChange();
+}
+
+export function ensureTreasureCard(legacyArchivedRootIds = []) {
+  const existingTreasureCard = stack.find(isTreasureCard);
+  const cardIds = new Set(stack.map((card) => card.id));
+  const existingTreasureChildIds = Array.isArray(existingTreasureCard?.childIds)
+    ? existingTreasureCard.childIds
+    : [];
+  const migratedRootIds = legacyArchivedRootIds.filter((rootId) => (
+    cardIds.has(rootId) && rootId !== TREASURE_CARD_ID
+  ));
+  const treasureChildIds = uniqueLinkedIds(
+    [...existingTreasureChildIds, ...migratedRootIds],
+    TREASURE_CARD_ID,
+  ).filter((childId) => cardIds.has(childId));
+  let didChange = false;
+
+  const nextStack = stack.map((card) => {
+    if (isTreasureCard(card)) {
+      const nextTreasureCard = createTreasureCard(treasureChildIds);
+      didChange = didChange || JSON.stringify(card) !== JSON.stringify(nextTreasureCard);
+      return nextTreasureCard;
+    }
+
+    if (!treasureChildIds.includes(card.id)) {
+      return card;
+    }
+
+    const nextParentIds = uniqueLinkedIds([
+      ...(Array.isArray(card.parentIds) ? card.parentIds : []),
+      TREASURE_CARD_ID,
+    ], card.id);
+    if (
+      nextParentIds.length === card.parentIds.length
+      && nextParentIds.every((parentId, parentIndex) => parentId === card.parentIds[parentIndex])
+    ) {
+      return card;
+    }
+
+    didChange = true;
+    return {
+      ...card,
+      parentIds: nextParentIds,
+    };
+  });
+
+  stack = existingTreasureCard
+    ? nextStack
+    : [createTreasureCard(treasureChildIds), ...nextStack];
+
+  if (!existingTreasureCard) {
+    didChange = true;
+  }
+
+  if (didChange) {
+    emitChange();
+  }
 }
 
 export function updateAt(index, value) {
   const nextValue = value.trim();
 
-  if (index < 0 || index >= stack.length) {
+  if (index < 0 || index >= stack.length || isTreasureCard(stack[index])) {
     return;
   }
 
@@ -273,7 +392,7 @@ export function updateAt(index, value) {
 }
 
 export function setDoneAt(index, done = true) {
-  if (index < 0 || index >= stack.length) {
+  if (index < 0 || index >= stack.length || isTreasureCard(stack[index])) {
     return;
   }
 
@@ -284,7 +403,7 @@ export function setDoneAt(index, done = true) {
 }
 
 export function addStampAt(index, stamp) {
-  if (index < 0 || index >= stack.length || !stamp) {
+  if (index < 0 || index >= stack.length || !stamp || isTreasureCard(stack[index])) {
     return;
   }
 
@@ -324,17 +443,8 @@ export function removeAt(index) {
   const removedParentIds = Array.isArray(removedCard.parentIds) ? removedCard.parentIds : [];
   const removedCards = [removedCard];
 
-  function uniqueLinkedIds(ids, ownerId) {
-    const seen = new Set();
-
-    return ids.filter((id) => {
-      if (id === ownerId || seen.has(id)) {
-        return false;
-      }
-
-      seen.add(id);
-      return true;
-    });
+  if (isTreasureCard(removedCard)) {
+    return [];
   }
 
   stack = stack
@@ -356,6 +466,71 @@ export function removeAt(index) {
     }));
   emitChange();
   return removedCards;
+}
+
+export function archiveRootTree(rootId) {
+  const rootCard = stack.find((card) => card.id === rootId);
+  const treasureCard = stack.find(isTreasureCard);
+  if (
+    !rootCard
+    || !treasureCard
+    || isTreasureCard(rootCard)
+    || (Array.isArray(rootCard.parentIds) && rootCard.parentIds.length > 0)
+  ) {
+    return false;
+  }
+
+  stack = stack.map((card) => {
+    if (isTreasureCard(card)) {
+      return {
+        ...card,
+        childIds: uniqueLinkedIds([...(card.childIds || []), rootId], card.id),
+      };
+    }
+
+    if (card.id === rootId) {
+      return {
+        ...card,
+        parentIds: uniqueLinkedIds([...(card.parentIds || []), TREASURE_CARD_ID], card.id),
+      };
+    }
+
+    return card;
+  });
+  emitChange();
+  return true;
+}
+
+export function restoreRootTree(rootId) {
+  const rootCard = stack.find((card) => card.id === rootId);
+  if (!rootCard || isTreasureCard(rootCard)) {
+    return false;
+  }
+
+  const didHaveTreasureParent = (rootCard.parentIds || []).includes(TREASURE_CARD_ID);
+  if (!didHaveTreasureParent) {
+    return false;
+  }
+
+  stack = stack.map((card) => {
+    if (isTreasureCard(card)) {
+      return {
+        ...card,
+        childIds: (card.childIds || []).filter((childId) => childId !== rootId),
+      };
+    }
+
+    if (card.id === rootId) {
+      return {
+        ...card,
+        parentIds: (card.parentIds || []).filter((parentId) => parentId !== TREASURE_CARD_ID),
+      };
+    }
+
+    return card;
+  });
+  emitChange();
+  return true;
 }
 
 export function removeDoneCascadeAt(index) {
