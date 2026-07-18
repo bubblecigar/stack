@@ -917,7 +917,7 @@ export default function App() {
       nextArchivedRootIds.add(rootId);
       return nextArchivedRootIds;
     });
-    setFocusedCardIndex(rootCard.index);
+    setFocusedCardIndex(null);
     setEditingIndex(null);
     setEditingValue('');
     setIsDeleteHoldActive(false);
