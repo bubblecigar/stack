@@ -51,6 +51,7 @@ import {
   setSoundEffectsEnabled,
 } from './src/lib/soundEffects';
 import { getStoredUiState, normalizeUiState, setStoredUiState } from './src/lib/uiStateStore';
+import { ensureDailyReminderScheduled } from './src/lib/dailyReminder';
 import { styles } from './src/styles/appStyles';
 
 const LEAF_VISIBLE_COUNT = 5;
@@ -396,6 +397,14 @@ export default function App() {
   useEffect(() => {
     setSoundEffectsEnabled(isAudioEnabled);
   }, [isAudioEnabled]);
+
+  useEffect(() => {
+    if (!authUser || !hasLoadedUserData) {
+      return;
+    }
+
+    ensureDailyReminderScheduled().catch(() => {});
+  }, [authUser, hasLoadedUserData]);
 
   useEffect(() => {
     if (!isTreasureCardFocused) {

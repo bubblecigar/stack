@@ -30,7 +30,8 @@
     "plugins": [
       "expo-secure-store",
       "expo-font",
-      "expo-asset"
+      "expo-asset",
+      "expo-notifications"
     ],
     "extra": {
       "eas": {
