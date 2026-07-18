@@ -17,7 +17,16 @@ export function buildTreeLayout(cards = [], collapsedNodeIds = new Set(), overri
   const cardById = new Map(cards.map((card) => [card.id, card]));
   const rootCards = cards.filter((card) => (
     !Array.isArray(card.parentIds) || card.parentIds.length === 0
-  ));
+  )).sort((leftCard, rightCard) => {
+    const leftIsTreasure = Boolean(leftCard?.isTreasureCard);
+    const rightIsTreasure = Boolean(rightCard?.isTreasureCard);
+
+    if (leftIsTreasure === rightIsTreasure) {
+      return 0;
+    }
+
+    return leftIsTreasure ? 1 : -1;
+  });
 
   const seen = new Set();
   const visiting = new Set();
