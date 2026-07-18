@@ -5,6 +5,12 @@ const DAILY_REMINDER_IDENTIFIER = 'papers.daily-planning-reminder';
 const DAILY_REMINDER_HOUR = 8;
 const DAILY_REMINDER_MINUTE = 0;
 
+function getReminderBody(previousDayCompletedCount = 0) {
+  const safeCount = Math.max(0, Number(previousDayCompletedCount) || 0);
+  const taskLabel = safeCount === 1 ? 'task' : 'tasks';
+  return `Yesterday you completed ${safeCount} ${taskLabel}. Plan today's stack.`;
+}
+
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldPlaySound: true,
@@ -41,7 +47,7 @@ async function requestNotificationPermission() {
   return isPermissionGranted(requestedPermission);
 }
 
-export async function ensureDailyReminderScheduled() {
+export async function ensureDailyReminderScheduled({ previousDayCompletedCount = 0 } = {}) {
   if (Platform.OS === 'web') {
     return false;
   }
@@ -56,7 +62,7 @@ export async function ensureDailyReminderScheduled() {
     identifier: DAILY_REMINDER_IDENTIFIER,
     content: {
       title: 'Papers',
-      body: "Plan today's stack.",
+      body: getReminderBody(previousDayCompletedCount),
       sound: true,
     },
     trigger: {

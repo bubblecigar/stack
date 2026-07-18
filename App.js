@@ -57,11 +57,34 @@ import { styles } from './src/styles/appStyles';
 const LEAF_VISIBLE_COUNT = 5;
 const TREE_COMPLETION_CANVAS_KEY = 'treeCompletionCanvas';
 const UI_STATE_KEY = 'uiState';
+const DAY_START_OFFSET_MS = ((4 * 60) + 30) * 60 * 1000;
 const EMPTY_TREE_COMPLETION_CANVAS = {
   entries: [],
   nodes: [],
   updatedAt: null,
 };
+
+function isPreviousDayTimestamp(timestamp) {
+  const date = new Date(Number(timestamp) - DAY_START_OFFSET_MS);
+  if (Number.isNaN(date.getTime())) {
+    return false;
+  }
+
+  const yesterday = new Date(Date.now() - DAY_START_OFFSET_MS);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  return date.getFullYear() === yesterday.getFullYear()
+    && date.getMonth() === yesterday.getMonth()
+    && date.getDate() === yesterday.getDate();
+}
+
+function countPreviousDayCompletedTasks(treeCompletionCanvas) {
+  const completionNodes = Array.isArray(treeCompletionCanvas?.nodes)
+    ? treeCompletionCanvas.nodes
+    : [];
+
+  return completionNodes.filter((node) => isPreviousDayTimestamp(node?.completedAt)).length;
+}
 
 function getLeafRootScopedCards(cards, currentCardId) {
   if (currentCardId === null || currentCardId === undefined) {
@@ -305,6 +328,10 @@ export default function App() {
   const stack = useSyncExternalStore(subscribe, getSnapshot);
   const cards = useMemo(() => stack.map((card, index) => ({ ...card, index })), [stack]);
   const shouldRenderLeaf = layoutMode === 'leaf';
+  const previousDayCompletedTaskCount = useMemo(
+    () => countPreviousDayCompletedTasks(treeCompletionCanvas),
+    [treeCompletionCanvas],
+  );
   const focusedCardId = focusedCardIndex === null
     ? null
     : (focusedCardIndex < 0 ? TREASURE_CARD_ID : cards[focusedCardIndex]?.id ?? null);
@@ -403,8 +430,10 @@ export default function App() {
       return;
     }
 
-    ensureDailyReminderScheduled().catch(() => {});
-  }, [authUser, hasLoadedUserData]);
+    ensureDailyReminderScheduled({
+      previousDayCompletedCount: previousDayCompletedTaskCount,
+    }).catch(() => {});
+  }, [authUser, hasLoadedUserData, previousDayCompletedTaskCount]);
 
   useEffect(() => {
     if (!isTreasureCardFocused) {
