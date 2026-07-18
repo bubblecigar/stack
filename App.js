@@ -59,6 +59,17 @@ const EMPTY_TREE_COMPLETION_CANVAS = {
   updatedAt: null,
 };
 
+function createTreasureCard(childIds = []) {
+  return {
+    childIds,
+    id: TREASURE_CARD_ID,
+    index: -1,
+    isTreasureCard: true,
+    parentIds: [],
+    text: 'Treasure',
+  };
+}
+
 function getLeafRootScopedCards(cards, currentCardId) {
   if (currentCardId === null || currentCardId === undefined) {
     return cards;
@@ -208,6 +219,22 @@ function getRootIdsForCard(cards, currentCardId) {
   return rootIds;
 }
 
+function isTreasureSubtreeFocused(cards, currentCardId) {
+  if (currentCardId === TREASURE_CARD_ID) {
+    return true;
+  }
+
+  return getRootIdsForCard(cards, currentCardId).has(TREASURE_CARD_ID);
+}
+
+function getLeafTraversalCards(cards, treasureCards, currentCardId) {
+  if (isTreasureSubtreeFocused(treasureCards, currentCardId)) {
+    return getLeafRootScopedCards(treasureCards, currentCardId);
+  }
+
+  return getLeafRootScopedCards(cards, currentCardId);
+}
+
 function getTreasureTreeCards(cards, archivedRootIds) {
   const archivedRootIdList = [...archivedRootIds].filter((rootId) => (
     cards.some((card) => card.id === rootId)
@@ -226,14 +253,7 @@ function getTreasureTreeCards(cards, archivedRootIds) {
         parentIds: [TREASURE_CARD_ID],
       };
     }),
-    {
-      childIds: archivedRootIdList,
-      id: TREASURE_CARD_ID,
-      index: -1,
-      isTreasureCard: true,
-      parentIds: [],
-      text: 'Treasure',
-    },
+    createTreasureCard(archivedRootIdList),
   ];
 }
 
@@ -284,20 +304,48 @@ export default function App() {
     () => getTreasureTreeCards(cards, archivedRootIds),
     [archivedRootIds, cards],
   );
+  const leafScopeFocusedCardId = shouldRenderLeaf
+    ? leafFocusedCardId
+    : focusedCardId;
 
-  const leafCards = cards;
+  const leafCards = useMemo(
+    () => {
+      const scopedCards = getLeafTraversalCards(
+        cards,
+        treasureTreeCards,
+        leafScopeFocusedCardId,
+      );
+
+      if (scopedCards.length > 0) {
+        return scopedCards;
+      }
+
+      return cards.length > 0 ? cards : [createTreasureCard()];
+    },
+    [cards, leafScopeFocusedCardId, treasureTreeCards],
+  );
 
   const leafTopPosition = useMemo(() => {
     if (leafCards.length === 0) {
       return null;
     }
 
+    const defaultLeafPosition = Math.max(
+      -1,
+      ...leafCards.map((card, position) => (card.isTreasureCard ? -1 : position)),
+    );
+    const fallbackPosition = defaultLeafPosition >= 0
+      ? defaultLeafPosition
+      : leafCards.length - 1;
+
     if (leafTopIndex === null) {
-      return leafCards.length - 1;
+      return fallbackPosition;
     }
 
     const matchingPosition = leafCards.findIndex((card) => card.index === leafTopIndex);
-    return matchingPosition >= 0 ? matchingPosition : leafCards.length - 1;
+    return matchingPosition >= 0
+      ? matchingPosition
+      : fallbackPosition;
   }, [leafCards, leafTopIndex]);
 
   const visibleCards = useMemo(() => {
@@ -957,7 +1005,7 @@ export default function App() {
     }
 
     const currentCardId = visibleCards[0]?.id ?? leafFocusedCardId ?? cards[0]?.id;
-    const traversalCards = getLeafRootScopedCards(cards, currentCardId);
+    const traversalCards = getLeafTraversalCards(cards, treasureTreeCards, currentCardId);
 
     if (traversalCards.length === 0) {
       setLeafFocusedCardId(null);
@@ -987,12 +1035,18 @@ export default function App() {
 
   const visibleTopCardIndex = visibleCards[0]?.index ?? null;
   const effectiveLeafFocusedIndex = visibleTopCardIndex ?? focusedCardIndex;
-  const canDeleteCurrentCard = shouldRenderLeaf
-    ? visibleTopCardIndex !== null
-    : focusedCardIndex !== null && focusedCardIndex >= 0;
   const nodeMapFocusedCardId = shouldRenderLeaf ? leafFocusedCardId : focusedCardId;
+  const isLeafTreasureSubtreeFocused = (
+    shouldRenderLeaf
+    && isTreasureSubtreeFocused(treasureTreeCards, nodeMapFocusedCardId)
+  );
+  const canDeleteCurrentCard = shouldRenderLeaf
+    ? visibleTopCardIndex !== null && visibleTopCardIndex >= 0
+    : focusedCardIndex !== null && focusedCardIndex >= 0;
   const nodeMapCards = shouldRenderLeaf
-    ? getLeafRootScopedCards(cards, nodeMapFocusedCardId)
+    ? (isLeafTreasureSubtreeFocused
+      ? getLeafRootScopedCards(treasureTreeCards, nodeMapFocusedCardId)
+      : getLeafRootScopedCards(cards, nodeMapFocusedCardId))
     : treasureTreeCards;
   const nodeMapFocusedCardIndex = nodeMapFocusedCardId === null
     ? null
@@ -1098,7 +1152,7 @@ export default function App() {
   ]);
 
   function handleDeleteCurrentLeafCard() {
-    if (!shouldRenderLeaf || visibleTopCardIndex === null) {
+    if (!shouldRenderLeaf || visibleTopCardIndex === null || visibleTopCardIndex < 0) {
       setIsDeleteHoldActive(false);
       return;
     }
@@ -1107,7 +1161,7 @@ export default function App() {
   }
 
   function handleDoneCurrentLeafCard() {
-    if (!shouldRenderLeaf || visibleTopCardIndex === null) {
+    if (!shouldRenderLeaf || visibleTopCardIndex === null || visibleTopCardIndex < 0) {
       return;
     }
 
@@ -1141,7 +1195,7 @@ export default function App() {
     }
 
     const renderedTopIndex = visibleCards[0]?.index ?? null;
-    if (cards.length === 0) {
+    if (leafCards.length === 0) {
       if (focusedCardIndex !== null) {
         setFocusedCardIndex(null);
       }
@@ -1156,7 +1210,7 @@ export default function App() {
   }, [
     shouldRenderLeaf,
     visibleCards,
-    cards.length,
+    leafCards.length,
     focusedCardIndex,
     leafFocusedCardId,
   ]);
@@ -1191,8 +1245,11 @@ export default function App() {
         : currentlyVisibleLeafCardIndex;
       const treeFocusedCardId = treeFocusedCardIndex === null
         ? null
-        : cards[treeFocusedCardIndex]?.id ?? null;
-      const expandedRootTreeIds = getRootTreeCardIds(cards, treeFocusedCardId);
+        : (treeFocusedCardIndex === -1 ? TREASURE_CARD_ID : cards[treeFocusedCardIndex]?.id ?? null);
+      const treeExpansionCards = isTreasureSubtreeFocused(treasureTreeCards, treeFocusedCardId)
+        ? treasureTreeCards
+        : cards;
+      const expandedRootTreeIds = getRootTreeCardIds(treeExpansionCards, treeFocusedCardId);
 
       if (expandedRootTreeIds.size > 0) {
         setCollapsedNodeIds((currentCollapsed) => {
@@ -1212,11 +1269,19 @@ export default function App() {
       setFocusedCardIndex(treeFocusedCardIndex);
       setLeafTopIndex(null);
     } else {
-      if (focusedCardInRange) {
+      if (nextFocusedCardIndex === -1) {
+        setFocusedCardIndex(-1);
+        setLeafTopIndex(-1);
+        setLeafFocusedCardId(TREASURE_CARD_ID);
+      } else if (focusedCardInRange) {
         setFocusedCardIndex(nextFocusedCardIndex);
         setLeafTopIndex(nextFocusedCardIndex);
+        setLeafFocusedCardId(cards[nextFocusedCardIndex]?.id ?? null);
       } else {
-        setLeafTopIndex(cards.length > 0 ? cards.length - 1 : null);
+        const fallbackIndex = cards.length > 0 ? cards.length - 1 : null;
+        setFocusedCardIndex(fallbackIndex);
+        setLeafTopIndex(fallbackIndex);
+        setLeafFocusedCardId(fallbackIndex === null ? null : cards[fallbackIndex]?.id ?? null);
       }
     }
 

@@ -61,7 +61,7 @@ export function StackCard({
         : focusedCardIndex === index)
   );
   const shouldShowControls = !hideControls && isFocusedCard;
-  const shouldShowEdit = isFocusedCard;
+  const shouldShowEdit = isFocusedCard && !isTreasureCard;
   const shouldShowArchive = (
     shouldShowControls
     && isTreeCard
@@ -182,6 +182,7 @@ export function StackCard({
         isLeafCard && styles.leafCard,
         isTreeCard && styles.treeCard,
         isTreeCard && isTreasureCard && styles.treasureCard,
+        isLeafCard && isTreasureCard && styles.leafTreasureCard,
         isTreeCard && isPreviewCard && styles.treePreviewCard,
         isTreeCard && isCollapsedStacked && styles.treeCollapsedCard,
         isEditing && isLeafCard && styles.leafEditingCard,
@@ -191,7 +192,7 @@ export function StackCard({
           position: 'absolute',
         },
         isFocusedCard && !isLeafCard && styles.focusedCard,
-        isFocusedCard && isTreeCard && isTreasureCard && styles.focusedTreasureCard,
+        isFocusedCard && isTreasureCard && styles.focusedTreasureCard,
         isDeleteProgressVisible && styles.deleteFocusedCard,
         zLayer != null ? { zIndex: zLayer } : null,
       ]}
@@ -300,7 +301,33 @@ export function StackCard({
       ) : (
         isLeafCard ? (
           <View style={styles.leafContentSurface}>
-            {leafContentMode === 'placeholder' ? (
+            {isTreasureCard ? (
+              <View style={[
+                styles.leafContentLayer,
+                styles.leafTreasureContent,
+              ]}
+              >
+                <View style={styles.treasureCardIconWrap}>
+                  <MaterialCommunityIcons
+                    color="#F8FAFC"
+                    name="treasure-chest-outline"
+                    size={30}
+                    style={styles.treasureCardIconHighlight}
+                  />
+                  <MaterialCommunityIcons
+                    color="#6B7280"
+                    name="treasure-chest-outline"
+                    size={30}
+                    style={styles.treasureCardIconShadow}
+                  />
+                  <MaterialCommunityIcons
+                    color="#9CA3AF"
+                    name="treasure-chest-outline"
+                    size={30}
+                  />
+                </View>
+              </View>
+            ) : leafContentMode === 'placeholder' ? (
               <View
                 pointerEvents="none"
                 style={[
@@ -353,7 +380,7 @@ export function StackCard({
                 </ScrollView>
               </View>
             ) : null}
-            {done ? (
+            {done && !isTreasureCard ? (
               <Image
                 pointerEvents="none"
                 source={doneStampImage}

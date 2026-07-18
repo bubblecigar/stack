@@ -542,6 +542,17 @@ export const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 14,
   },
+  leafTreasureCard: {
+    backgroundColor: '#D9DEE5',
+    borderWidth: 1,
+    borderTopColor: '#F8FAFC',
+    borderLeftColor: '#EEF2F7',
+    borderRightColor: '#AAB4C2',
+    borderBottomColor: '#94A3B8',
+    shadowColor: '#64748B',
+    shadowOpacity: 0.2,
+    shadowRadius: 14,
+  },
   treasureCardIconWrap: {
     width: 40,
     height: 40,
@@ -626,6 +637,10 @@ export const styles = StyleSheet.create({
     gap: 16,
     opacity: 0.95,
     paddingBottom: 16,
+  },
+  leafTreasureContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   leafContentScroll: {
     flex: 1,
