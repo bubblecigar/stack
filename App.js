@@ -235,6 +235,30 @@ function getLeafTraversalCards(cards, treasureCards, currentCardId) {
   return getLeafRootScopedCards(cards, currentCardId);
 }
 
+function getTreasureSubtreeCards(cards) {
+  const cardById = new Map(cards.map((card) => [card.id, card]));
+  const treasureCard = cardById.get(TREASURE_CARD_ID);
+  if (!treasureCard) {
+    return [];
+  }
+
+  const subtreeIds = new Set();
+  function collectSubtree(card) {
+    if (!card || subtreeIds.has(card.id)) {
+      return;
+    }
+
+    subtreeIds.add(card.id);
+    (card.childIds || [])
+      .map((childId) => cardById.get(childId))
+      .filter(Boolean)
+      .forEach(collectSubtree);
+  }
+
+  collectSubtree(treasureCard);
+  return cards.filter((card) => subtreeIds.has(card.id));
+}
+
 function getTreasureTreeCards(cards, archivedRootIds) {
   const archivedRootIdList = [...archivedRootIds].filter((rootId) => (
     cards.some((card) => card.id === rootId)
@@ -1045,7 +1069,7 @@ export default function App() {
     : focusedCardIndex !== null && focusedCardIndex >= 0;
   const nodeMapCards = shouldRenderLeaf
     ? (isLeafTreasureSubtreeFocused
-      ? treasureTreeCards
+      ? getTreasureSubtreeCards(treasureTreeCards)
       : getLeafRootScopedCards(cards, nodeMapFocusedCardId))
     : treasureTreeCards;
   const nodeMapFocusedCardIndex = nodeMapFocusedCardId === null
