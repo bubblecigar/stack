@@ -1401,6 +1401,11 @@ export default function App() {
         onLogout={resetSession}
         onToggleMode={handleToggleLayout}
         onCreateCard={handleCreateCard}
+        disableCardInsertion={
+          shouldRenderLeaf
+            ? Boolean(cards[visibleTopCardIndex]?.isTreasureCard)
+            : isTreasureCardFocused
+        }
       />
 
       <StatusBar style="light" />
