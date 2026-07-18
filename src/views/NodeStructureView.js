@@ -69,7 +69,7 @@ function animateValueXY(valueXY, toValue) {
   ]);
 }
 
-function getMapState(cards, focusedCardId) {
+function getMapState(cards, focusedCardId, expandTreasureTree = false) {
   const treasureCard = cards.find((card) => card?.isTreasureCard);
   if (!treasureCard) {
     return {
@@ -93,6 +93,17 @@ function getMapState(cards, focusedCardId) {
   }
 
   collectDescendants(treasureCard);
+
+  if (expandTreasureTree) {
+    return {
+      isTreasureFocusActive: (
+        focusedCardId === treasureCard.id
+        || hiddenTreasureDescendantIds.has(focusedCardId)
+      ),
+      mapCards: cards,
+    };
+  }
+
   return {
     isTreasureFocusActive: (
       focusedCardId === treasureCard.id
@@ -115,6 +126,7 @@ export function NodeStructureView({
   addPreviewRelation = null,
   anchorFocusedNode = false,
   deleteTargetActive = false,
+  expandTreasureTree = false,
 }) {
   const [mapSize, setMapSize] = useState({
     width: 180,
@@ -132,8 +144,8 @@ export function NodeStructureView({
     ? null
     : cards[focusedCardIndex]?.id ?? null);
   const mapState = useMemo(
-    () => getMapState(cards, focusedCardId),
-    [cards, focusedCardId],
+    () => getMapState(cards, focusedCardId, expandTreasureTree),
+    [cards, expandTreasureTree, focusedCardId],
   );
   const { mapCards, isTreasureFocusActive } = mapState;
   const mapFocusedCardIndex = focusedCardId === null

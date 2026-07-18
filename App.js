@@ -1045,7 +1045,7 @@ export default function App() {
     : focusedCardIndex !== null && focusedCardIndex >= 0;
   const nodeMapCards = shouldRenderLeaf
     ? (isLeafTreasureSubtreeFocused
-      ? getLeafRootScopedCards(treasureTreeCards, nodeMapFocusedCardId)
+      ? treasureTreeCards
       : getLeafRootScopedCards(cards, nodeMapFocusedCardId))
     : treasureTreeCards;
   const nodeMapFocusedCardIndex = nodeMapFocusedCardId === null
@@ -1385,6 +1385,7 @@ export default function App() {
         anchorFocusedNode={shouldRenderLeaf}
         cards={nodeMapCards}
         deleteTargetActive={isDeleteHoldActive}
+        expandTreasureTree={isLeafTreasureSubtreeFocused}
         focusedCardId={nodeMapFocusedCardId}
         focusedCardIndex={nodeMapFocusedCardIndex >= 0 ? nodeMapFocusedCardIndex : null}
       />
