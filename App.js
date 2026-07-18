@@ -257,6 +257,7 @@ export default function App() {
   const [authUser, setAuthUser] = useState(null);
   const [isRestoringSession, setIsRestoringSession] = useState(true);
   const [isLoadingUserData, setIsLoadingUserData] = useState(false);
+  const [hasLoadedUserData, setHasLoadedUserData] = useState(false);
   const [syncError, setSyncError] = useState('');
   const [editingIndex, setEditingIndex] = useState(null);
   const [editingValue, setEditingValue] = useState('');
@@ -419,6 +420,7 @@ export default function App() {
     setAuthUser(null);
     setIsRestoringSession(false);
     setIsLoadingUserData(false);
+    setHasLoadedUserData(false);
     setSyncError('');
     setEditingIndex(null);
     setEditingValue('');
@@ -445,6 +447,7 @@ export default function App() {
     setStoredAuthToken(result.token).catch(() => {});
     setAuthToken(result.token);
     setAuthUser(result.user);
+    setHasLoadedUserData(false);
     setSyncError('');
     hasLoadedDefaultStack.current = false;
     hasLoadedRemoteCards.current = false;
@@ -506,6 +509,7 @@ export default function App() {
     }
 
     let isMounted = true;
+    setHasLoadedUserData(false);
     setIsLoadingUserData(true);
     setSyncError('');
 
@@ -581,6 +585,7 @@ export default function App() {
       } finally {
         if (isMounted) {
           setIsLoadingUserData(false);
+          setHasLoadedUserData(true);
         }
       }
     }
@@ -1219,7 +1224,12 @@ export default function App() {
     setEditingValue('');
   }
 
-  if (!fontsLoaded || isRestoringSession || (authToken && !authUser)) {
+  if (
+    !fontsLoaded
+    || isRestoringSession
+    || (authToken && !authUser)
+    || (authToken && authUser && !hasLoadedUserData)
+  ) {
     return (
       <>
         <View style={styles.authContainer}>
