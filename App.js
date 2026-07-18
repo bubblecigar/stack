@@ -252,7 +252,7 @@ function getTreasureSubtreeCards(cards) {
 }
 
 function getTreasureTreeCards(cards) {
-  return cards.map((card) => ({
+  const renderCards = cards.map((card) => ({
     ...card,
     isArchivedRoot: (
       card.id !== TREASURE_CARD_ID
@@ -260,6 +260,10 @@ function getTreasureTreeCards(cards) {
       && card.parentIds.includes(TREASURE_CARD_ID)
     ),
   }));
+  const normalCards = renderCards.filter((card) => !card.isTreasureCard);
+  const treasureCards = renderCards.filter((card) => card.isTreasureCard);
+
+  return [...normalCards, ...treasureCards];
 }
 
 function getOppositeSwipeDirection(direction) {
