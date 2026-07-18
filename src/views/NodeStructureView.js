@@ -96,10 +96,7 @@ function getMapState(cards, focusedCardId, expandTreasureTree = false) {
 
   if (expandTreasureTree) {
     return {
-      isTreasureFocusActive: (
-        focusedCardId === treasureCard.id
-        || hiddenTreasureDescendantIds.has(focusedCardId)
-      ),
+      isTreasureFocusActive: focusedCardId === treasureCard.id,
       mapCards: cards,
     };
   }
