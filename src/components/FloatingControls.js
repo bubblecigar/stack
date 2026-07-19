@@ -528,7 +528,12 @@ export function FloatingControls({
                 transform: [
                   { translateX: addCardOffsetX },
                   { translateY: addCardOffsetY },
-                  { rotate: `${addCardRotation}deg` },
+                  {
+                    rotate: settingsPanelProgress.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [`${addCardRotation}deg`, '0deg'],
+                    }),
+                  },
                 ],
               },
             ]}
