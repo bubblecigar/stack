@@ -110,7 +110,7 @@ function formatControlTime(date) {
     padTimePart(date.getHours()),
     padTimePart(date.getMinutes()),
     padTimePart(date.getSeconds()),
-  ].join(' ');
+  ].join(' : ');
 }
 
 function getCalendarDays(date) {
