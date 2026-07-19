@@ -1,4 +1,5 @@
 import {
+  Alert,
   Animated,
   Dimensions,
   Easing,
@@ -405,6 +406,39 @@ export function FloatingControls({
     onDeleteHoldChange?.(false);
   }
 
+  function handleLogoutPress() {
+    Alert.alert(
+      'Log out?',
+      'You will need to sign in again to access your cards.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Continue',
+          onPress: () => {
+            Alert.alert(
+              'Confirm logout',
+              'Are you sure you want to log out?',
+              [
+                {
+                  text: 'Cancel',
+                  style: 'cancel',
+                },
+                {
+                  text: 'Log out',
+                  style: 'destructive',
+                  onPress: () => onLogout?.(),
+                },
+              ],
+            );
+          },
+        },
+      ],
+    );
+  }
+
   return (
     <>
       {shouldRenderDelete ? (
@@ -611,7 +645,7 @@ export function FloatingControls({
                 <Pressable
                   accessibilityLabel="Log out"
                   accessibilityRole="button"
-                  onPress={onLogout}
+                  onPress={handleLogoutPress}
                   style={({ pressed }) => [
                     styles.settingsIconButton,
                     pressed && styles.settingsIconButtonPressed,
