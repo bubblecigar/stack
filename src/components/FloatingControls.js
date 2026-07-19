@@ -210,7 +210,7 @@ export function FloatingControls({
       toValue: isSettingsPanelOpen ? 1 : 0,
       duration: SETTINGS_PANEL_TOGGLE_DURATION_MS,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
+      useNativeDriver: false,
     }).start();
   }, [
     isSettingsPanelOpen,
