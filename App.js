@@ -1441,8 +1441,11 @@ export default function App() {
         onCreateCard={handleCreateCard}
         disableCardInsertion={
           shouldRenderLeaf
-            ? Boolean(cards[visibleTopCardIndex]?.isTreasureCard)
-            : isTreasureCardFocused
+            ? (
+              visibleTopCardIndex === null
+              || Boolean(cards[visibleTopCardIndex]?.isTreasureCard)
+            )
+            : focusedCardIndex === null || isTreasureCardFocused
         }
       />
 
