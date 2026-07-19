@@ -212,7 +212,9 @@ export function StackCard({
           pointerEvents="none"
           style={[
             styles.treeCollapsedCornerLine,
+            isTreasure && styles.treasureTreeCollapsedCornerLine,
             isFocusedCard && styles.focusedTreeCollapsedCornerLine,
+            isFocusedCard && isTreasure && styles.focusedTreasureTreeCollapsedCornerLine,
             isDeleteProgressVisible && styles.deleteTreeCollapsedCornerLine,
           ]}
         />

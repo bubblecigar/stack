@@ -545,6 +545,16 @@ export const styles = StyleSheet.create({
     borderBottomColor: '#0EA5E9',
     opacity: 1,
   },
+  treasureTreeCollapsedCornerLine: {
+    borderRightColor: '#FFFFFF',
+    borderBottomColor: '#FFFFFF',
+    opacity: 1,
+  },
+  focusedTreasureTreeCollapsedCornerLine: {
+    borderRightColor: '#9CA3AF',
+    borderBottomColor: '#6B7280',
+    opacity: 1,
+  },
   deleteTreeCollapsedCornerLine: {
     borderRightColor: '#DC2626',
     borderBottomColor: '#DC2626',
