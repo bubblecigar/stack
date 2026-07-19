@@ -149,5 +149,5 @@ export function buildTreeLayout(cards = [], collapsedNodeIds = new Set(), overri
   };
 }
 
-export const TREE_CANVAS_PADDING = 420;
+export const TREE_CANVAS_PADDING = 220;
 export { DEFAULT_TREE_LAYOUT };
