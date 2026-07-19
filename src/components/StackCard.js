@@ -139,10 +139,6 @@ export function StackCard({
     inputRange: [0, 1],
     outputRange: [0.18, 1],
   });
-  const treasureMessage = `Every thought is a treasure
-keep and explore
-think and drop`;
-
   function handleControlPressIn(event) {
     event?.stopPropagation?.();
     onPressIn?.();
@@ -356,9 +352,6 @@ think and drop`;
                     size={treasureIconSize}
                   />
                 </View>
-                <Text style={styles.leafTreasureText}>
-                  {treasureMessage}
-                </Text>
               </View>
             ) : leafContentMode === 'placeholder' ? (
               <View
