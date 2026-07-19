@@ -516,39 +516,21 @@ export function FloatingControls({
                 },
               ]}
             >
-              <Animated.View
+              <View
                 pointerEvents="none"
-                style={[
-                  styles.addCardCalendarSurface,
-                  {
-                    opacity: settingsPanelProgress.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [1, 0],
-                    }),
-                  },
-                ]}
+                style={styles.addCardCalendarSurface}
               >
                 <View style={styles.addCardCalendarBinding} />
                 <View style={styles.addCardCalendarRingRow}>
                   <View style={styles.addCardCalendarRing} />
                   <View style={styles.addCardCalendarRing} />
                 </View>
-              </Animated.View>
-              <Animated.View
-                style={[
-                  styles.addCardButtonChrono,
-                  {
-                    opacity: settingsPanelProgress.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [1, 0],
-                    }),
-                  },
-                ]}
-              >
+              </View>
+              <View style={styles.addCardButtonChrono}>
                 <Text style={styles.addCardButtonChronoText}>
                   {controlTimeLabel}
                 </Text>
-              </Animated.View>
+              </View>
             </Animated.View>
             <Animated.View
               style={[
@@ -567,50 +549,24 @@ export function FloatingControls({
                 },
               ]}
             >
-              <Animated.View
+              <View
                 pointerEvents="none"
-                style={[
-                  styles.addCardCalendarSurface,
-                  {
-                    opacity: settingsPanelProgress.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [1, 0],
-                    }),
-                  },
-                ]}
+                style={styles.addCardCalendarSurface}
               >
                 <View style={styles.addCardCalendarBinding} />
                 <View style={styles.addCardCalendarRingRow}>
                   <View style={styles.addCardCalendarRing} />
                   <View style={styles.addCardCalendarRing} />
                 </View>
-              </Animated.View>
-              <Animated.View
-                style={[
-                  styles.addCardButtonChrono,
-                  {
-                    opacity: settingsPanelProgress.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [1, 0],
-                    }),
-                  },
-                ]}
-              >
+              </View>
+              <View style={styles.addCardButtonChrono}>
                 <Text style={styles.addCardButtonChronoText}>
                   {controlDateLabel}
                 </Text>
-              </Animated.View>
-              <Animated.View
+              </View>
+              <View
                 pointerEvents="none"
-                style={[
-                  styles.addCardCalendarGrid,
-                  {
-                    opacity: settingsPanelProgress.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [1, 0],
-                    }),
-                  },
-                ]}
+                style={styles.addCardCalendarGrid}
               >
                 {calendarDays.map((cell) => (
                   <View
@@ -622,53 +578,53 @@ export function FloatingControls({
                     ]}
                   />
                 ))}
-              </Animated.View>
+              </View>
             </Animated.View>
-            {isSettingsPanelOpen ? (
-              <View style={styles.settingsPanelContent}>
-                <Text
-                  numberOfLines={1}
-                  style={styles.settingsPanelUserName}
+            <View
+              pointerEvents="box-none"
+              style={styles.settingsPanelContent}
+            >
+              <Text
+                numberOfLines={1}
+                pointerEvents="none"
+                style={styles.settingsPanelUserName}
+              >
+                {userLabel}
+              </Text>
+
+              <View style={styles.settingsPanelAudioRow}>
+                <Pressable
+                  accessibilityLabel={audioEnabled ? 'Turn audio off' : 'Turn audio on'}
+                  accessibilityRole="button"
+                  onPress={() => onAudioEnabledChange?.(!audioEnabled)}
+                  style={({ pressed }) => [
+                    styles.settingsIconButton,
+                    pressed && styles.settingsIconButtonPressed,
+                  ]}
                 >
-                  {userLabel}
-                </Text>
-
-                <View style={styles.settingsPanelAudioRow}>
-                  <Pressable
-                    accessibilityLabel={audioEnabled ? 'Turn audio off' : 'Turn audio on'}
-                    accessibilityRole="button"
-                    onPress={() => onAudioEnabledChange?.(!audioEnabled)}
-                    style={({ pressed }) => [
-                      styles.settingsIconButton,
-                      pressed && styles.settingsIconButtonPressed,
-                    ]}
-                  >
-                    <MaterialCommunityIcons
-                      color="#D1D5DB"
-                      name={audioEnabled ? 'volume-high' : 'volume-off'}
-                      size={34}
-                    />
-                  </Pressable>
-                </View>
-
+                  <MaterialCommunityIcons
+                    color="#CBD5E1"
+                    name={audioEnabled ? 'volume-high' : 'volume-off'}
+                    size={24}
+                  />
+                </Pressable>
                 <Pressable
                   accessibilityLabel="Log out"
                   accessibilityRole="button"
                   onPress={onLogout}
                   style={({ pressed }) => [
                     styles.settingsIconButton,
-                    styles.settingsLogoutIconButton,
                     pressed && styles.settingsIconButtonPressed,
                   ]}
                 >
                   <MaterialCommunityIcons
-                    color="#D1D5DB"
+                    color="#CBD5E1"
                     name="logout"
-                    size={34}
+                    size={24}
                   />
                 </Pressable>
               </View>
-            ) : null}
+            </View>
           </Animated.View>
         </View>
       </Animated.View>
