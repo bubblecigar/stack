@@ -148,7 +148,7 @@ export const styles = StyleSheet.create({
     right: 0,
     top: 0,
     bottom: 0,
-    backgroundColor: 'transparent',
+    backgroundColor: 'rgba(15, 23, 42, 0.32)',
     zIndex: 6300,
     elevation: 35,
   },
