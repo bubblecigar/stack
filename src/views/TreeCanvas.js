@@ -22,6 +22,7 @@ export function TreeCanvas({
   onToggleCollapse,
   onDeleteCard,
   onDeleteHoldComplete,
+  onAdoptMissionRoot,
   onArchiveRootTree,
   onRestoreRootTree,
   onEditingValueChange,
@@ -217,6 +218,7 @@ export function TreeCanvas({
               const { card, left, top, depth, placementOrder, isCollapsedStacked } = entry;
               const isPreviewCard = card.id === PREVIEW_CARD_ID;
               const isRootCard = !Array.isArray(card.parentIds) || card.parentIds.length === 0;
+              const isSystemCard = Boolean(card.isMissionCard || card.isTreasureCard);
 
               return (
                 <StackCard
@@ -231,10 +233,12 @@ export function TreeCanvas({
                   visibleIndex={0}
                   onPressIn={handleCardPressIn}
                   onFocusCard={onCardFocus}
-                  hideControls={isPreviewCard || card.isTreasureCard}
+                  hideControls={isPreviewCard || isSystemCard}
                   isArchivedRoot={Boolean(card.isArchivedRoot)}
+                  isMissionRoot={Boolean(card.isMissionRoot)}
                   isPreviewCard={isPreviewCard}
                   isRootCard={isRootCard}
+                  isMissionCard={Boolean(card.isMissionCard)}
                   isTreasureCard={Boolean(card.isTreasureCard)}
                   treePosition={{
                     left,
@@ -253,6 +257,7 @@ export function TreeCanvas({
                   onToggleCollapse={onToggleCollapse}
                   onDeleteCard={onDeleteCard}
                   onDeleteHoldComplete={onDeleteHoldComplete}
+                  onAdoptMissionRoot={onAdoptMissionRoot}
                   onArchiveRootTree={onArchiveRootTree}
                   onRestoreRootTree={onRestoreRootTree}
                   onEditingValueChange={onEditingValueChange}

@@ -13,6 +13,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   useEffect, useMemo, useRef, useState,
 } from 'react';
+import { constrainAddRelation } from '../lib/cardInsertion';
 import { styles } from '../styles/appStyles';
 
 const voidStampImage = require('../../assets/card/void_stamp_gray.png');
@@ -148,6 +149,7 @@ export function FloatingControls({
   onDeleteHoldChange,
   onLogout,
   canDeleteCurrentCard = false,
+  childInsertionOnly = false,
   disableCardInsertion = false,
 }) {
   const shouldShowDelete = canDeleteCurrentCard;
@@ -256,10 +258,13 @@ export function FloatingControls({
       return;
     }
 
-    const relation = getAddRelationFromPoint(
-      dx,
-      dy,
-      addRelationRef.current,
+    const relation = constrainAddRelation(
+      getAddRelationFromPoint(
+        dx,
+        dy,
+        addRelationRef.current,
+      ),
+      childInsertionOnly,
     );
 
     if (relation === addRelationRef.current) {
@@ -372,10 +377,13 @@ export function FloatingControls({
         return;
       }
 
-      const relation = getAddRelationFromPoint(
-        dx,
-        dy,
-        addRelationRef.current,
+      const relation = constrainAddRelation(
+        getAddRelationFromPoint(
+          dx,
+          dy,
+          addRelationRef.current,
+        ),
+        childInsertionOnly,
       );
       resetAddPointing();
 
@@ -390,6 +398,7 @@ export function FloatingControls({
       resetAddPointing();
     },
   }), [
+    childInsertionOnly,
     disableCardInsertion,
     isSettingsPanelOpen,
     onAddHoldChange,

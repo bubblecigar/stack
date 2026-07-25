@@ -13,11 +13,14 @@ import {
   useEffect, useMemo, useRef, useState, useSyncExternalStore,
 } from 'react';
 import {
+  adoptMissionRoot,
   archiveRootTree,
-  ensureTreasureCard,
+  ensureSystemCards,
   getSnapshot,
   insertRelativeTo,
+  isSystemCard,
   loadCards,
+  MISSION_CARD_ID,
   push,
   removeAt,
   removeDoneCascadeAt,
@@ -46,6 +49,7 @@ import {
   getCollapsibleDescendantIds,
   moveInTraversal,
 } from './src/lib/cardTraversal';
+import { getDailyVisibleCards } from './src/lib/cardVisibility';
 import {
   playDoneStampSound,
   playLeafSwipeSound,
@@ -238,26 +242,28 @@ function getRootIdsForCard(cards, currentCardId) {
   return rootIds;
 }
 
-function isTreasureSubtreeFocused(cards, currentCardId) {
-  if (currentCardId === TREASURE_CARD_ID) {
-    return true;
+function getFocusedSystemRootId(cards, currentCardId) {
+  if (currentCardId === MISSION_CARD_ID || currentCardId === TREASURE_CARD_ID) {
+    return currentCardId;
   }
 
-  return getRootIdsForCard(cards, currentCardId).has(TREASURE_CARD_ID);
+  const rootIds = getRootIdsForCard(cards, currentCardId);
+  return [MISSION_CARD_ID, TREASURE_CARD_ID]
+    .find((systemCardId) => rootIds.has(systemCardId)) ?? null;
 }
 
-function getLeafTraversalCards(cards, treasureCards, currentCardId) {
-  if (isTreasureSubtreeFocused(treasureCards, currentCardId)) {
-    return getLeafRootScopedCards(treasureCards, currentCardId);
+function getLeafTraversalCards(cards, systemTreeCards, currentCardId) {
+  if (getFocusedSystemRootId(systemTreeCards, currentCardId)) {
+    return getLeafRootScopedCards(systemTreeCards, currentCardId);
   }
 
   return getLeafRootScopedCards(cards, currentCardId);
 }
 
-function getTreasureSubtreeCards(cards) {
+function getSystemSubtreeCards(cards, systemCardId) {
   const cardById = new Map(cards.map((card) => [card.id, card]));
-  const treasureCard = cardById.get(TREASURE_CARD_ID);
-  if (!treasureCard) {
+  const systemCard = cardById.get(systemCardId);
+  if (!systemCard) {
     return [];
   }
 
@@ -274,11 +280,11 @@ function getTreasureSubtreeCards(cards) {
       .forEach(collectSubtree);
   }
 
-  collectSubtree(treasureCard);
+  collectSubtree(systemCard);
   return cards.filter((card) => subtreeIds.has(card.id));
 }
 
-function getTreasureTreeCards(cards) {
+function getSystemTreeCards(cards) {
   const renderCards = cards.map((card) => ({
     ...card,
     isArchivedRoot: (
@@ -286,11 +292,17 @@ function getTreasureTreeCards(cards) {
       && Array.isArray(card.parentIds)
       && card.parentIds.includes(TREASURE_CARD_ID)
     ),
+    isMissionRoot: (
+      card.id !== MISSION_CARD_ID
+      && Array.isArray(card.parentIds)
+      && card.parentIds.includes(MISSION_CARD_ID)
+    ),
   }));
-  const normalCards = renderCards.filter((card) => !card.isTreasureCard);
+  const missionCards = renderCards.filter((card) => card.isMissionCard);
+  const normalCards = renderCards.filter((card) => !isSystemCard(card));
   const treasureCards = renderCards.filter((card) => card.isTreasureCard);
 
-  return [...normalCards, ...treasureCards];
+  return [...missionCards, ...normalCards, ...treasureCards];
 }
 
 function getOppositeSwipeDirection(direction) {
@@ -326,10 +338,15 @@ export default function App() {
   const [addPreviewRelation, setAddPreviewRelation] = useState(null);
   const [isAddHoldActive, setIsAddHoldActive] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+  const [currentDayReference, setCurrentDayReference] = useState(() => Date.now());
   const [treeCompletionCanvas, setTreeCompletionCanvas] = useState(EMPTY_TREE_COMPLETION_CANVAS);
 
   const stack = useSyncExternalStore(subscribe, getSnapshot);
   const cards = useMemo(() => stack.map((card, index) => ({ ...card, index })), [stack]);
+  const dailyVisibleCards = useMemo(
+    () => getDailyVisibleCards(cards, MISSION_CARD_ID, currentDayReference),
+    [cards, currentDayReference],
+  );
   const shouldRenderLeaf = layoutMode === 'leaf';
   const previousDayCompletedTaskCount = useMemo(
     () => countPreviousDayCompletedTasks(treeCompletionCanvas),
@@ -338,10 +355,12 @@ export default function App() {
   const focusedCardId = focusedCardIndex === null
     ? null
     : (focusedCardIndex < 0 ? TREASURE_CARD_ID : cards[focusedCardIndex]?.id ?? null);
-  const isTreasureCardFocused = !shouldRenderLeaf && focusedCardId === TREASURE_CARD_ID;
-  const treasureTreeCards = useMemo(
-    () => getTreasureTreeCards(cards),
-    [cards],
+  const isSystemCardFocused = !shouldRenderLeaf && isSystemCard(
+    cards.find((card) => card.id === focusedCardId),
+  );
+  const systemTreeCards = useMemo(
+    () => getSystemTreeCards(dailyVisibleCards),
+    [dailyVisibleCards],
   );
   const leafScopeFocusedCardId = shouldRenderLeaf
     ? leafFocusedCardId
@@ -350,8 +369,8 @@ export default function App() {
   const leafCards = useMemo(
     () => {
       const scopedCards = getLeafTraversalCards(
-        cards,
-        treasureTreeCards,
+        dailyVisibleCards,
+        systemTreeCards,
         leafScopeFocusedCardId,
       );
 
@@ -359,9 +378,9 @@ export default function App() {
         return scopedCards;
       }
 
-      return cards;
+      return dailyVisibleCards;
     },
-    [cards, leafScopeFocusedCardId, treasureTreeCards],
+    [dailyVisibleCards, leafScopeFocusedCardId, systemTreeCards],
   );
 
   const leafTopPosition = useMemo(() => {
@@ -371,7 +390,7 @@ export default function App() {
 
     const defaultLeafPosition = Math.max(
       -1,
-      ...leafCards.map((card, position) => (card.isTreasureCard ? -1 : position)),
+      ...leafCards.map((card, position) => (isSystemCard(card) ? -1 : position)),
     );
     const fallbackPosition = defaultLeafPosition >= 0
       ? defaultLeafPosition
@@ -421,6 +440,20 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const now = new Date();
+    const nextDay = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() + 1,
+    );
+    const timeoutId = setTimeout(() => {
+      setCurrentDayReference(Date.now());
+    }, Math.max(nextDay.getTime() - now.getTime(), 1));
+
+    return () => clearTimeout(timeoutId);
+  }, [currentDayReference]);
+
+  useEffect(() => {
     authUserRef.current = authUser;
   }, [authUser]);
 
@@ -439,13 +472,13 @@ export default function App() {
   }, [authUser, hasLoadedUserData, previousDayCompletedTaskCount]);
 
   useEffect(() => {
-    if (!isTreasureCardFocused) {
+    if (!isSystemCardFocused) {
       return;
     }
 
     setAddPreviewRelation(null);
     setIsAddHoldActive(false);
-  }, [isTreasureCardFocused]);
+  }, [isSystemCardFocused]);
 
   useEffect(() => {
     let isMounted = true;
@@ -496,7 +529,7 @@ export default function App() {
       return;
     }
 
-    const hasUserCards = stack.some((card) => !card?.isTreasureCard);
+    const hasUserCards = stack.some((card) => !isSystemCard(card));
     if (hasLoadedDefaultStack.current || hasUserCards) {
       return;
     }
@@ -629,7 +662,7 @@ export default function App() {
 
         isApplyingRemoteCards.current = true;
         loadCards(nextCards);
-        ensureTreasureCard(restoredUiState?.archivedRootIds || []);
+        ensureSystemCards(restoredUiState?.archivedRootIds || []);
         isApplyingRemoteCards.current = false;
         const loadedCards = getSnapshot();
         setTreeCompletionCanvas(canvasResult.value || EMPTY_TREE_COMPLETION_CANVAS);
@@ -726,7 +759,7 @@ export default function App() {
     const currentCard = currentIndex === null || currentIndex < 0
       ? null
       : cards[currentIndex];
-    if (currentCard?.isTreasureCard && relation !== 'child') {
+    if (isSystemCard(currentCard) && relation !== 'child') {
       return;
     }
 
@@ -734,7 +767,7 @@ export default function App() {
       ? push('')
       : insertRelativeTo(currentIndex, relation, '');
 
-    if (nextIndex === currentIndex && currentCard?.isTreasureCard) {
+    if (nextIndex === currentIndex && isSystemCard(currentCard)) {
       return;
     }
 
@@ -745,7 +778,7 @@ export default function App() {
   }
 
   function handleEditCard(index, text) {
-    if (cards[index]?.isTreasureCard) {
+    if (isSystemCard(cards[index])) {
       return;
     }
 
@@ -841,7 +874,7 @@ export default function App() {
 
   function handleDeleteCard(index) {
     const removedCard = cards[index];
-    if (!removedCard || removedCard.isTreasureCard) {
+    if (!removedCard || isSystemCard(removedCard)) {
       return;
     }
 
@@ -949,7 +982,7 @@ export default function App() {
 
   function handleToggleCollapse(index) {
     const card = index < 0
-      ? treasureTreeCards.find((candidateCard) => candidateCard.id === TREASURE_CARD_ID)
+      ? systemTreeCards.find((candidateCard) => candidateCard.id === TREASURE_CARD_ID)
       : cards[index];
 
     if (!card || !Array.isArray(card.childIds) || card.childIds.length === 0) {
@@ -957,8 +990,8 @@ export default function App() {
     }
 
     const cardId = card.id;
-    const treasureDescendantIds = cardId === TREASURE_CARD_ID
-      ? getCollapsibleDescendantIds(treasureTreeCards, cardId)
+    const systemDescendantIds = isSystemCard(card)
+      ? getCollapsibleDescendantIds(systemTreeCards, cardId)
       : [];
 
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -970,7 +1003,7 @@ export default function App() {
         nextCollapsed.delete(cardId);
       } else {
         nextCollapsed.add(cardId);
-        treasureDescendantIds.forEach((descendantId) => {
+        systemDescendantIds.forEach((descendantId) => {
           nextCollapsed.add(descendantId);
         });
       }
@@ -1013,12 +1046,28 @@ export default function App() {
 
   function handleArchiveRootTree(rootId) {
     const rootCard = cards.find((card) => card.id === rootId);
-    if (!rootCard || (Array.isArray(rootCard.parentIds) && rootCard.parentIds.length > 0)) {
+    const parentIds = Array.isArray(rootCard?.parentIds) ? rootCard.parentIds : [];
+    if (!rootCard || parentIds.length > 0) {
       return;
     }
 
-    archiveRootTree(rootId);
+    if (!archiveRootTree(rootId)) {
+      return;
+    }
     setFocusedCardIndex(null);
+    setEditingIndex(null);
+    setEditingValue('');
+    setIsDeleteHoldActive(false);
+    setAddPreviewRelation(null);
+  }
+
+  function handleAdoptMissionRoot(rootId) {
+    const adoptedIndex = adoptMissionRoot(rootId);
+    if (adoptedIndex < 0) {
+      return;
+    }
+
+    setFocusedCardIndex(adoptedIndex);
     setEditingIndex(null);
     setEditingValue('');
     setIsDeleteHoldActive(false);
@@ -1045,7 +1094,11 @@ export default function App() {
     }
 
     const currentCardId = visibleCards[0]?.id ?? leafFocusedCardId ?? cards[0]?.id;
-    const traversalCards = getLeafTraversalCards(cards, treasureTreeCards, currentCardId);
+    const traversalCards = getLeafTraversalCards(
+      dailyVisibleCards,
+      systemTreeCards,
+      currentCardId,
+    );
 
     if (traversalCards.length === 0) {
       setLeafFocusedCardId(null);
@@ -1075,27 +1128,31 @@ export default function App() {
 
   const visibleTopCardIndex = visibleCards[0]?.index ?? null;
   const effectiveLeafFocusedIndex = visibleTopCardIndex ?? focusedCardIndex;
+  const insertionTargetIndex = shouldRenderLeaf ? visibleTopCardIndex : focusedCardIndex;
+  const insertionTargetCard = insertionTargetIndex === null || insertionTargetIndex < 0
+    ? null
+    : cards[insertionTargetIndex];
+  const isMissionInsertionTarget = Boolean(insertionTargetCard?.isMissionCard);
   const nodeMapFocusedCardId = shouldRenderLeaf ? leafFocusedCardId : focusedCardId;
-  const isLeafTreasureSubtreeFocused = (
-    shouldRenderLeaf
-    && isTreasureSubtreeFocused(treasureTreeCards, nodeMapFocusedCardId)
-  );
+  const focusedSystemRootId = shouldRenderLeaf
+    ? getFocusedSystemRootId(systemTreeCards, nodeMapFocusedCardId)
+    : null;
   const canDeleteCurrentCard = shouldRenderLeaf
     ? (
       visibleTopCardIndex !== null
       && visibleTopCardIndex >= 0
-      && !cards[visibleTopCardIndex]?.isTreasureCard
+      && !isSystemCard(cards[visibleTopCardIndex])
     )
     : (
       focusedCardIndex !== null
       && focusedCardIndex >= 0
-      && !cards[focusedCardIndex]?.isTreasureCard
+      && !isSystemCard(cards[focusedCardIndex])
     );
   const nodeMapCards = shouldRenderLeaf
-    ? (isLeafTreasureSubtreeFocused
-      ? getTreasureSubtreeCards(treasureTreeCards)
-      : getLeafRootScopedCards(cards, nodeMapFocusedCardId))
-    : treasureTreeCards;
+    ? (focusedSystemRootId
+      ? getSystemSubtreeCards(systemTreeCards, focusedSystemRootId)
+      : getLeafRootScopedCards(dailyVisibleCards, nodeMapFocusedCardId))
+    : systemTreeCards;
   const nodeMapFocusedCardIndex = nodeMapFocusedCardId === null
     ? null
     : nodeMapCards.findIndex((card) => card.id === nodeMapFocusedCardId);
@@ -1212,7 +1269,7 @@ export default function App() {
     }
 
     const currentCard = cards[visibleTopCardIndex];
-    if (!currentCard || currentCard.isTreasureCard) {
+    if (!currentCard || isSystemCard(currentCard)) {
       return;
     }
 
@@ -1292,9 +1349,9 @@ export default function App() {
       const treeFocusedCardId = treeFocusedCardIndex === null
         ? null
         : (treeFocusedCardIndex === -1 ? TREASURE_CARD_ID : cards[treeFocusedCardIndex]?.id ?? null);
-      const treeExpansionCards = isTreasureSubtreeFocused(treasureTreeCards, treeFocusedCardId)
-        ? treasureTreeCards
-        : cards;
+      const treeExpansionCards = getFocusedSystemRootId(systemTreeCards, treeFocusedCardId)
+        ? systemTreeCards
+        : dailyVisibleCards;
       const expandedRootTreeIds = getRootTreeCardIds(treeExpansionCards, treeFocusedCardId);
 
       if (expandedRootTreeIds.size > 0) {
@@ -1404,7 +1461,7 @@ export default function App() {
         ) : (
           <TreeCanvas
             addPreviewRelation={addPreviewRelation}
-            cards={treasureTreeCards}
+            cards={systemTreeCards}
             collapsedNodeIds={collapsedNodeIds}
             focusedCardIndex={focusedCardIndex}
             focusedCardId={focusedCardId}
@@ -1416,6 +1473,7 @@ export default function App() {
             onToggleCollapse={handleToggleCollapse}
             onDeleteCard={handleDeleteCard}
             onDeleteHoldComplete={handleDeleteCard}
+            onAdoptMissionRoot={handleAdoptMissionRoot}
             onArchiveRootTree={handleArchiveRootTree}
             onRestoreRootTree={handleRestoreRootTree}
             onEditingValueChange={setEditingValue}
@@ -1431,7 +1489,7 @@ export default function App() {
         anchorFocusedNode={shouldRenderLeaf}
         cards={nodeMapCards}
         deleteTargetActive={isDeleteHoldActive}
-        expandTreasureTree={isLeafTreasureSubtreeFocused}
+        expandedSystemCardId={focusedSystemRootId}
         focusedCardId={nodeMapFocusedCardId}
         focusedCardIndex={nodeMapFocusedCardIndex >= 0 ? nodeMapFocusedCardIndex : null}
       />
@@ -1439,6 +1497,7 @@ export default function App() {
       <FloatingControls
         canDeleteCurrentCard={!shouldRenderLeaf && canDeleteCurrentCard}
         audioEnabled={isAudioEnabled}
+        childInsertionOnly={isMissionInsertionTarget}
         user={authUser}
         layoutMode={layoutMode}
         onAudioEnabledChange={setIsAudioEnabled}
@@ -1449,12 +1508,8 @@ export default function App() {
         onToggleMode={handleToggleLayout}
         onCreateCard={handleCreateCard}
         disableCardInsertion={
-          shouldRenderLeaf
-            ? (
-              visibleTopCardIndex === null
-              || Boolean(cards[visibleTopCardIndex]?.isTreasureCard)
-            )
-            : focusedCardIndex === null || isTreasureCardFocused
+          insertionTargetCard === null
+          || (isSystemCard(insertionTargetCard) && !isMissionInsertionTarget)
         }
       />
 

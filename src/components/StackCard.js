@@ -7,6 +7,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import AntDesign from '@expo/vector-icons/AntDesign';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useEffect, useRef } from 'react';
 import { DeleteHoldIndicator } from './DeleteHoldIndicator';
@@ -27,11 +28,14 @@ export function StackCard({
   treePosition,
   isCollapsedStacked = false,
   isArchivedRoot = false,
+  isMissionRoot = false,
   isRootCard = false,
+  isMissionCard = false,
   isTreasureCard = false,
   onPress,
   onPressIn,
   onCreateEdit,
+  onAdoptMissionRoot,
   onArchiveRootTree,
   onRestoreRootTree,
   onDeleteCard,
@@ -53,7 +57,12 @@ export function StackCard({
 
   const isLeafCard = layout === 'leaf';
   const isTreeCard = layout === 'tree';
+  const isMission = isMissionCard || Boolean(card?.isMissionCard);
   const isTreasure = isTreasureCard || Boolean(card?.isTreasureCard);
+  const isSystem = isMission || isTreasure;
+  const SystemCardIcon = isMission ? AntDesign : MaterialCommunityIcons;
+  const systemCardIconName = isMission ? 'printer' : 'treasure-chest-outline';
+  const isMissionRootCard = isMissionRoot || Boolean(card?.isMissionRoot);
   const isEditing = editingIndex === index;
   const isFocusedCard = (
     isLeafCard
@@ -63,12 +72,18 @@ export function StackCard({
         : focusedCardIndex === index)
   );
   const shouldShowControls = !hideControls && isFocusedCard;
-  const shouldShowEdit = isFocusedCard && !isTreasure;
+  const shouldShowEdit = isFocusedCard && !isSystem;
+  const shouldShowAdoptMission = (
+    shouldShowControls
+    && isTreeCard
+    && isMissionRootCard
+    && !isEditing
+  );
   const shouldShowArchive = (
     shouldShowControls
     && isTreeCard
     && (isRootCard || isArchivedRoot)
-    && !isTreasure
+    && !isSystem
     && !isEditing
   );
   const isTreeDeleteHoldActive = isTreeCard && isDeleteHoldActive;
@@ -80,7 +95,7 @@ export function StackCard({
     ? '#B91C1C'
     : (isTreeCard ? '#0284C7' : '#2563EB');
   const treasureIconSize = isLeafCard ? 40 : 30;
-  const canShowDoneStamp = done && !isTreasure;
+  const canShowDoneStamp = done && !isSystem;
   const shouldShowCollapsedCornerLine = (
     isTreeCard
     && !isCollapsedStacked
@@ -190,8 +205,8 @@ export function StackCard({
         styles.card,
         isLeafCard && styles.leafCard,
         isTreeCard && styles.treeCard,
-        isTreeCard && isTreasure && styles.treasureCard,
-        isLeafCard && isTreasure && styles.leafTreasureCard,
+        isTreeCard && isSystem && styles.treasureCard,
+        isLeafCard && isSystem && styles.leafTreasureCard,
         isTreeCard && isPreviewCard && styles.treePreviewCard,
         isTreeCard && isCollapsedStacked && styles.treeCollapsedCard,
         isEditing && isLeafCard && styles.leafEditingCard,
@@ -201,7 +216,7 @@ export function StackCard({
           position: 'absolute',
         },
         isFocusedCard && !isLeafCard && styles.focusedCard,
-        isFocusedCard && isTreasure && styles.focusedTreasureCard,
+        isFocusedCard && isSystem && styles.focusedTreasureCard,
         isDeleteProgressVisible && styles.deleteFocusedCard,
         zLayer != null ? { zIndex: zLayer } : null,
       ]}
@@ -211,9 +226,9 @@ export function StackCard({
           pointerEvents="none"
           style={[
             styles.treeCollapsedCornerLine,
-            isTreasure && styles.treasureTreeCollapsedCornerLine,
+            isSystem && styles.treasureTreeCollapsedCornerLine,
             isFocusedCard && styles.focusedTreeCollapsedCornerLine,
-            isFocusedCard && isTreasure && styles.focusedTreasureTreeCollapsedCornerLine,
+            isFocusedCard && isSystem && styles.focusedTreasureTreeCollapsedCornerLine,
             isDeleteProgressVisible && styles.deleteTreeCollapsedCornerLine,
           ]}
         />
@@ -224,6 +239,28 @@ export function StackCard({
         isTreeCard && styles.treeCardControls,
       ]}
       >
+        {shouldShowAdoptMission && (
+          <Pressable
+            accessibilityLabel="Adopt mission"
+            accessibilityRole="button"
+            onPressIn={handleControlPressIn}
+            onPress={(event) => handleControlPress(event, () => {
+              onAdoptMissionRoot?.(id);
+            })}
+            style={({ pressed }) => [
+              styles.iconButton,
+              styles.archiveButton,
+              pressed && styles.archiveButtonPressed,
+            ]}
+          >
+            <MaterialCommunityIcons
+              color="#FFFFFF"
+              name="flag-plus-outline"
+              size={18}
+            />
+          </Pressable>
+        )}
+
         {shouldShowArchive && (
           <Pressable
             accessibilityLabel={isArchivedRoot ? 'Restore tree' : 'Archive tree'}
@@ -323,7 +360,7 @@ export function StackCard({
       ) : (
         isLeafCard ? (
           <View style={styles.leafContentSurface}>
-            {isTreasure ? (
+            {isSystem ? (
               <View style={[
                 styles.leafContentLayer,
                 styles.leafTreasureContent,
@@ -334,21 +371,21 @@ export function StackCard({
                   styles.leafTreasureIconWrap,
                 ]}
                 >
-                  <MaterialCommunityIcons
+                  <SystemCardIcon
                     color="#F8FAFC"
-                    name="treasure-chest-outline"
+                    name={systemCardIconName}
                     size={treasureIconSize}
                     style={styles.treasureCardIconHighlight}
                   />
-                  <MaterialCommunityIcons
+                  <SystemCardIcon
                     color="#6B7280"
-                    name="treasure-chest-outline"
+                    name={systemCardIconName}
                     size={treasureIconSize}
                     style={styles.treasureCardIconShadow}
                   />
-                  <MaterialCommunityIcons
+                  <SystemCardIcon
                     color="#9CA3AF"
-                    name="treasure-chest-outline"
+                    name={systemCardIconName}
                     size={treasureIconSize}
                   />
                 </View>
@@ -416,23 +453,23 @@ export function StackCard({
           </View>
         ) : (
           <Animated.View style={{ opacity: 1 }}>
-            {isTreasure ? (
+            {isSystem ? (
               <View style={styles.treasureCardIconWrap}>
-                <MaterialCommunityIcons
+                <SystemCardIcon
                   color="#F8FAFC"
-                  name="treasure-chest-outline"
+                  name={systemCardIconName}
                   size={30}
                   style={styles.treasureCardIconHighlight}
                 />
-                <MaterialCommunityIcons
+                <SystemCardIcon
                   color="#6B7280"
-                  name="treasure-chest-outline"
+                  name={systemCardIconName}
                   size={30}
                   style={styles.treasureCardIconShadow}
                 />
-                <MaterialCommunityIcons
+                <SystemCardIcon
                   color="#9CA3AF"
-                  name="treasure-chest-outline"
+                  name={systemCardIconName}
                   size={30}
                 />
               </View>
@@ -462,7 +499,7 @@ export function StackCard({
       <View style={[
         styles.dependencyBar,
         isTreeCard && styles.treeDependencyBar,
-        isTreasure && styles.hiddenDependencyBar,
+        isSystem && styles.hiddenDependencyBar,
       ]}
       >
         <Text style={[

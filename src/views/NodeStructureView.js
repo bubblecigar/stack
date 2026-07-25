@@ -1,10 +1,11 @@
 import {
   Animated,
   Easing,
-  Text,
   useWindowDimensions,
   View,
 } from 'react-native';
+import AntDesign from '@expo/vector-icons/AntDesign';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { buildTreeLayout } from '../lib/treeLayout';
 import { buildPreviewCards, PREVIEW_CARD_ID } from '../lib/previewCards';
@@ -21,6 +22,26 @@ const LEAF_MAP_HEIGHT = 220;
 const LEAF_STACK_TOP = 84;
 const LEAF_STACK_HEIGHT = 360;
 const LEAF_ADD_CARD_VISIBLE_TOP_OFFSET = 90;
+
+function SystemMapNode({ entry }) {
+  const Icon = entry.card.isMissionCard ? AntDesign : MaterialCommunityIcons;
+
+  return (
+    <Icon
+      color={entry.isSystemFocusActive ? '#0EA5E9' : '#94A3B8'}
+      name={entry.card.isMissionCard ? 'printer' : 'treasure-chest-outline'}
+      size={11}
+      style={[
+        styles.nodeViewMapTreasureStar,
+        entry.isSystemFocusActive && styles.nodeViewMapTreasureStarActive,
+        {
+          left: entry.x,
+          top: entry.y,
+        },
+      ]}
+    />
+  );
+}
 
 function getOrthogonalEdgeSegments(fromNode, toNode) {
   const elbowX = fromNode.x + ((toNode.x - fromNode.x) / 2);
@@ -69,47 +90,48 @@ function animateValueXY(valueXY, toValue) {
   ]);
 }
 
-function getMapState(cards, focusedCardId, expandTreasureTree = false) {
-  const treasureCard = cards.find((card) => card?.isTreasureCard);
-  if (!treasureCard) {
-    return {
-      mapCards: cards,
-      isTreasureFocusActive: false,
-    };
-  }
-
+function getMapState(cards, focusedCardId, expandedSystemCardId = null) {
   const cardById = new Map(cards.map((card) => [card.id, card]));
-  const hiddenTreasureDescendantIds = new Set();
+  const systemCards = cards.filter((card) => card?.isMissionCard || card?.isTreasureCard);
+  const hiddenSystemDescendantIds = new Set();
+  const activeSystemCardIds = new Set();
 
-  function collectDescendants(card) {
+  function collectDescendants(card, descendantIds) {
     (card?.childIds || []).forEach((childId) => {
-      if (hiddenTreasureDescendantIds.has(childId)) {
+      if (descendantIds.has(childId)) {
         return;
       }
 
-      hiddenTreasureDescendantIds.add(childId);
-      collectDescendants(cardById.get(childId));
+      descendantIds.add(childId);
+      collectDescendants(cardById.get(childId), descendantIds);
     });
   }
 
-  collectDescendants(treasureCard);
+  systemCards.forEach((systemCard) => {
+    const descendantIds = new Set();
+    collectDescendants(systemCard, descendantIds);
 
-  if (expandTreasureTree) {
-    return {
-      isTreasureFocusActive: focusedCardId === treasureCard.id,
-      mapCards: cards,
-    };
-  }
+    if (
+      focusedCardId === systemCard.id
+      || (
+        expandedSystemCardId !== systemCard.id
+        && descendantIds.has(focusedCardId)
+      )
+    ) {
+      activeSystemCardIds.add(systemCard.id);
+    }
+
+    if (expandedSystemCardId !== systemCard.id) {
+      descendantIds.forEach((cardId) => hiddenSystemDescendantIds.add(cardId));
+    }
+  });
 
   return {
-    isTreasureFocusActive: (
-      focusedCardId === treasureCard.id
-      || hiddenTreasureDescendantIds.has(focusedCardId)
-    ),
+    activeSystemCardIds,
     mapCards: cards
-      .filter((card) => !hiddenTreasureDescendantIds.has(card.id))
+      .filter((card) => !hiddenSystemDescendantIds.has(card.id))
       .map((card) => (
-        card.id === treasureCard.id
+        (card.isMissionCard || card.isTreasureCard) && expandedSystemCardId !== card.id
           ? { ...card, childIds: [] }
           : card
       )),
@@ -123,7 +145,7 @@ export function NodeStructureView({
   addPreviewRelation = null,
   anchorFocusedNode = false,
   deleteTargetActive = false,
-  expandTreasureTree = false,
+  expandedSystemCardId = null,
 }) {
   const [mapSize, setMapSize] = useState({
     width: 180,
@@ -141,10 +163,10 @@ export function NodeStructureView({
     ? null
     : cards[focusedCardIndex]?.id ?? null);
   const mapState = useMemo(
-    () => getMapState(cards, focusedCardId, expandTreasureTree),
-    [cards, expandTreasureTree, focusedCardId],
+    () => getMapState(cards, focusedCardId, expandedSystemCardId),
+    [cards, expandedSystemCardId, focusedCardId],
   );
-  const { mapCards, isTreasureFocusActive } = mapState;
+  const { mapCards, activeSystemCardIds } = mapState;
   const mapFocusedCardIndex = focusedCardId === null
     ? null
     : mapCards.findIndex((card) => card.id === focusedCardId);
@@ -209,8 +231,8 @@ export function NodeStructureView({
           isFocused: entry.card.id === focusedCardId,
           isPreview: entry.card.id === PREVIEW_CARD_ID,
           isDone: Boolean(entry.card.done),
-          isTreasure: Boolean(entry.card.isTreasureCard),
-          isTreasureFocusActive: Boolean(entry.card.isTreasureCard) && isTreasureFocusActive,
+          isSystem: Boolean(entry.card.isMissionCard || entry.card.isTreasureCard),
+          isSystemFocusActive: activeSystemCardIds.has(entry.card.id),
           isDeleteTarget: deleteTargetActive && entry.card.id === focusedCardId,
         };
       }),
@@ -218,7 +240,7 @@ export function NodeStructureView({
     };
   }, [
     focusedCardId,
-    isTreasureFocusActive,
+    activeSystemCardIds,
     deleteTargetActive,
     mapLayout.maxHeight,
     mapLayout.maxWidth,
@@ -377,20 +399,11 @@ export function NodeStructureView({
             });
           })}
           {nodeEntries.nodes.map((entry) => (
-            entry.isTreasure ? (
-              <Text
+            entry.isSystem ? (
+              <SystemMapNode
+                entry={entry}
                 key={`map-node-${entry.card.id}`}
-                style={[
-                  styles.nodeViewMapTreasureStar,
-                  entry.isTreasureFocusActive && styles.nodeViewMapTreasureStarActive,
-                  {
-                    left: entry.x,
-                    top: entry.y,
-                  },
-                ]}
-              >
-                ★
-              </Text>
+              />
             ) : (
               <View
                 key={`map-node-${entry.card.id}`}
@@ -408,7 +421,7 @@ export function NodeStructureView({
             )
           ))}
         </Animated.View>
-        {focusedNode && !focusedNode.isTreasure && showFocusedCursor && (!anchorFocusedNode || focusedAnchor) && (
+        {focusedNode && !focusedNode.isSystem && showFocusedCursor && (!anchorFocusedNode || focusedAnchor) && (
           <Animated.View
             pointerEvents="none"
             style={[
