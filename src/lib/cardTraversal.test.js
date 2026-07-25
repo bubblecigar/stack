@@ -1,4 +1,8 @@
-import { buildCardTraversal, moveInTraversal } from './cardTraversal';
+import {
+  buildCardTraversal,
+  getCollapsibleDescendantIds,
+  moveInTraversal,
+} from './cardTraversal';
 
 function card(id, childIds = [], parentIds = []) {
   return {
@@ -46,5 +50,31 @@ describe('buildCardTraversal', () => {
 
   it('falls back to the first traversed card for a missing current card', () => {
     expect(moveInTraversal(cards, 'missing', 'right')?.id).toBe('root-a');
+  });
+});
+
+describe('getCollapsibleDescendantIds', () => {
+  it('returns every descendant branch without including leaf cards', () => {
+    const cards = [
+      card('treasure', ['branch', 'leaf']),
+      card('branch', ['nested-branch'], ['treasure']),
+      card('nested-branch', ['nested-leaf'], ['branch']),
+      card('nested-leaf', [], ['nested-branch']),
+      card('leaf', [], ['treasure']),
+    ];
+
+    expect(getCollapsibleDescendantIds(cards, 'treasure')).toEqual([
+      'branch',
+      'nested-branch',
+    ]);
+  });
+
+  it('stops safely when malformed card data contains a cycle', () => {
+    const cards = [
+      card('treasure', ['branch']),
+      card('branch', ['treasure'], ['treasure']),
+    ];
+
+    expect(getCollapsibleDescendantIds(cards, 'treasure')).toEqual(['branch']);
   });
 });

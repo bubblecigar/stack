@@ -10,6 +10,35 @@ function getOrderedChildCards(card, cardById) {
     .filter(Boolean);
 }
 
+export function getCollapsibleDescendantIds(cards = [], rootId) {
+  const cardById = new Map(cards.map((card) => [card.id, card]));
+  const rootCard = cardById.get(rootId);
+  const descendantIds = [];
+  const visited = new Set([rootId]);
+
+  function visit(card) {
+    getOrderedChildCards(card, cardById).forEach((childCard) => {
+      if (visited.has(childCard.id)) {
+        return;
+      }
+
+      visited.add(childCard.id);
+
+      if (Array.isArray(childCard.childIds) && childCard.childIds.length > 0) {
+        descendantIds.push(childCard.id);
+      }
+
+      visit(childCard);
+    });
+  }
+
+  if (rootCard) {
+    visit(rootCard);
+  }
+
+  return descendantIds;
+}
+
 export function buildCardTraversal(cards = [], mode = 'dfs') {
   const cardById = new Map(cards.map((card) => [card.id, card]));
   const roots = getRootCards(cards);

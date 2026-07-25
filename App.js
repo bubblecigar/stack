@@ -42,7 +42,10 @@ import {
   saveRemoteUserData,
 } from './src/lib/apiClient';
 import { clearStoredAuthToken, getStoredAuthToken, setStoredAuthToken } from './src/lib/authTokenStore';
-import { moveInTraversal } from './src/lib/cardTraversal';
+import {
+  getCollapsibleDescendantIds,
+  moveInTraversal,
+} from './src/lib/cardTraversal';
 import {
   playDoneStampSound,
   playLeafSwipeSound,
@@ -954,6 +957,9 @@ export default function App() {
     }
 
     const cardId = card.id;
+    const treasureDescendantIds = cardId === TREASURE_CARD_ID
+      ? getCollapsibleDescendantIds(treasureTreeCards, cardId)
+      : [];
 
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
 
@@ -964,6 +970,9 @@ export default function App() {
         nextCollapsed.delete(cardId);
       } else {
         nextCollapsed.add(cardId);
+        treasureDescendantIds.forEach((descendantId) => {
+          nextCollapsed.add(descendantId);
+        });
       }
 
       return nextCollapsed;
