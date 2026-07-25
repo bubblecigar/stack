@@ -36,11 +36,11 @@ const SETTINGS_PANEL_CENTER_OFFSET_Y = -(SCREEN_HEIGHT / 2 + 70);
 const SETTINGS_PANEL_TOGGLE_DURATION_MS = 260;
 const SYSTEM_CARD_EXPLANATIONS = {
   mission: {
-    body: 'Adopt a mission to copy its full tree into your cards. It will return here tomorrow.',
-    title: 'Mission',
+    body: 'Print these cards to your card list. Use them to give your day a clear direction and a simple place to begin.',
+    title: 'Printer',
   },
   treasure: {
-    body: 'Archived card trees live here. Their hierarchy stays intact while you browse or restore them.',
+    body: 'All ideas are treasures.\nWrite them down, think and drop.',
     title: 'Treasure',
   },
 };
