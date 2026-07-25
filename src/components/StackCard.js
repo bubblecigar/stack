@@ -7,6 +7,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import AntDesign from '@expo/vector-icons/AntDesign';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useEffect, useRef } from 'react';
 import { DeleteHoldIndicator } from './DeleteHoldIndicator';
@@ -59,6 +60,8 @@ export function StackCard({
   const isMission = isMissionCard || Boolean(card?.isMissionCard);
   const isTreasure = isTreasureCard || Boolean(card?.isTreasureCard);
   const isSystem = isMission || isTreasure;
+  const SystemCardIcon = isMission ? AntDesign : MaterialCommunityIcons;
+  const systemCardIconName = isMission ? 'printer' : 'treasure-chest-outline';
   const isMissionRootCard = isMissionRoot || Boolean(card?.isMissionRoot);
   const isEditing = editingIndex === index;
   const isFocusedCard = (
@@ -368,21 +371,21 @@ export function StackCard({
                   styles.leafTreasureIconWrap,
                 ]}
                 >
-                  <MaterialCommunityIcons
+                  <SystemCardIcon
                     color="#F8FAFC"
-                    name={isMission ? 'flag-variant-outline' : 'treasure-chest-outline'}
+                    name={systemCardIconName}
                     size={treasureIconSize}
                     style={styles.treasureCardIconHighlight}
                   />
-                  <MaterialCommunityIcons
+                  <SystemCardIcon
                     color="#6B7280"
-                    name={isMission ? 'flag-variant-outline' : 'treasure-chest-outline'}
+                    name={systemCardIconName}
                     size={treasureIconSize}
                     style={styles.treasureCardIconShadow}
                   />
-                  <MaterialCommunityIcons
+                  <SystemCardIcon
                     color="#9CA3AF"
-                    name={isMission ? 'flag-variant-outline' : 'treasure-chest-outline'}
+                    name={systemCardIconName}
                     size={treasureIconSize}
                   />
                 </View>
@@ -452,21 +455,21 @@ export function StackCard({
           <Animated.View style={{ opacity: 1 }}>
             {isSystem ? (
               <View style={styles.treasureCardIconWrap}>
-                <MaterialCommunityIcons
+                <SystemCardIcon
                   color="#F8FAFC"
-                  name={isMission ? 'flag-variant-outline' : 'treasure-chest-outline'}
+                  name={systemCardIconName}
                   size={30}
                   style={styles.treasureCardIconHighlight}
                 />
-                <MaterialCommunityIcons
+                <SystemCardIcon
                   color="#6B7280"
-                  name={isMission ? 'flag-variant-outline' : 'treasure-chest-outline'}
+                  name={systemCardIconName}
                   size={30}
                   style={styles.treasureCardIconShadow}
                 />
-                <MaterialCommunityIcons
+                <SystemCardIcon
                   color="#9CA3AF"
-                  name={isMission ? 'flag-variant-outline' : 'treasure-chest-outline'}
+                  name={systemCardIconName}
                   size={30}
                 />
               </View>

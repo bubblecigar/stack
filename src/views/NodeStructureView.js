@@ -1,10 +1,11 @@
 import {
   Animated,
   Easing,
-  Text,
   useWindowDimensions,
   View,
 } from 'react-native';
+import AntDesign from '@expo/vector-icons/AntDesign';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { buildTreeLayout } from '../lib/treeLayout';
 import { buildPreviewCards, PREVIEW_CARD_ID } from '../lib/previewCards';
@@ -21,6 +22,26 @@ const LEAF_MAP_HEIGHT = 220;
 const LEAF_STACK_TOP = 84;
 const LEAF_STACK_HEIGHT = 360;
 const LEAF_ADD_CARD_VISIBLE_TOP_OFFSET = 90;
+
+function SystemMapNode({ entry }) {
+  const Icon = entry.card.isMissionCard ? AntDesign : MaterialCommunityIcons;
+
+  return (
+    <Icon
+      color={entry.isSystemFocusActive ? '#0EA5E9' : '#94A3B8'}
+      name={entry.card.isMissionCard ? 'printer' : 'treasure-chest-outline'}
+      size={11}
+      style={[
+        styles.nodeViewMapTreasureStar,
+        entry.isSystemFocusActive && styles.nodeViewMapTreasureStarActive,
+        {
+          left: entry.x,
+          top: entry.y,
+        },
+      ]}
+    />
+  );
+}
 
 function getOrthogonalEdgeSegments(fromNode, toNode) {
   const elbowX = fromNode.x + ((toNode.x - fromNode.x) / 2);
@@ -379,19 +400,10 @@ export function NodeStructureView({
           })}
           {nodeEntries.nodes.map((entry) => (
             entry.isSystem ? (
-              <Text
+              <SystemMapNode
+                entry={entry}
                 key={`map-node-${entry.card.id}`}
-                style={[
-                  styles.nodeViewMapTreasureStar,
-                  entry.isSystemFocusActive && styles.nodeViewMapTreasureStarActive,
-                  {
-                    left: entry.x,
-                    top: entry.y,
-                  },
-                ]}
-              >
-                {entry.card.isMissionCard ? '◆' : '★'}
-              </Text>
+              />
             ) : (
               <View
                 key={`map-node-${entry.card.id}`}
