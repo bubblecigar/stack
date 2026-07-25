@@ -1093,6 +1093,11 @@ export default function App() {
 
   const visibleTopCardIndex = visibleCards[0]?.index ?? null;
   const effectiveLeafFocusedIndex = visibleTopCardIndex ?? focusedCardIndex;
+  const insertionTargetIndex = shouldRenderLeaf ? visibleTopCardIndex : focusedCardIndex;
+  const insertionTargetCard = insertionTargetIndex === null || insertionTargetIndex < 0
+    ? null
+    : cards[insertionTargetIndex];
+  const isMissionInsertionTarget = Boolean(insertionTargetCard?.isMissionCard);
   const nodeMapFocusedCardId = shouldRenderLeaf ? leafFocusedCardId : focusedCardId;
   const focusedSystemRootId = shouldRenderLeaf
     ? getFocusedSystemRootId(systemTreeCards, nodeMapFocusedCardId)
@@ -1456,6 +1461,7 @@ export default function App() {
       <FloatingControls
         canDeleteCurrentCard={!shouldRenderLeaf && canDeleteCurrentCard}
         audioEnabled={isAudioEnabled}
+        childInsertionOnly={isMissionInsertionTarget}
         user={authUser}
         layoutMode={layoutMode}
         onAudioEnabledChange={setIsAudioEnabled}
@@ -1466,12 +1472,8 @@ export default function App() {
         onToggleMode={handleToggleLayout}
         onCreateCard={handleCreateCard}
         disableCardInsertion={
-          shouldRenderLeaf
-            ? (
-              visibleTopCardIndex === null
-              || isSystemCard(cards[visibleTopCardIndex])
-            )
-            : focusedCardIndex === null || isSystemCardFocused
+          insertionTargetCard === null
+          || (isSystemCard(insertionTargetCard) && !isMissionInsertionTarget)
         }
       />
 
