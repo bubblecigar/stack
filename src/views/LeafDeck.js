@@ -257,7 +257,11 @@ export function LeafDeck({
   const topCard = getCircularCard(cards, normalizedTopIndex, 0);
   const activeCard = displayCard ?? topCard;
   const activeCardDone = Boolean(activeCard?.done);
-  const canShowDoneStampControl = activeCard?.index >= 0 && !activeCard?.isTreasureCard;
+  const canShowDoneStampControl = (
+    activeCard?.index >= 0
+    && !activeCard?.isMissionCard
+    && !activeCard?.isTreasureCard
+  );
   const canSwipeDeck = visualSlots.length > 1 || activeCardDone;
   const effectiveFocusedCardId = controlledFocusedCardId ?? topCard?.id ?? null;
   const visualCard = {

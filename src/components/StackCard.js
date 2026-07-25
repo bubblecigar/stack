@@ -27,7 +27,9 @@ export function StackCard({
   treePosition,
   isCollapsedStacked = false,
   isArchivedRoot = false,
+  isMissionRoot = false,
   isRootCard = false,
+  isMissionCard = false,
   isTreasureCard = false,
   onPress,
   onPressIn,
@@ -53,7 +55,9 @@ export function StackCard({
 
   const isLeafCard = layout === 'leaf';
   const isTreeCard = layout === 'tree';
+  const isMission = isMissionCard || Boolean(card?.isMissionCard);
   const isTreasure = isTreasureCard || Boolean(card?.isTreasureCard);
+  const isSystem = isMission || isTreasure;
   const isEditing = editingIndex === index;
   const isFocusedCard = (
     isLeafCard
@@ -63,12 +67,12 @@ export function StackCard({
         : focusedCardIndex === index)
   );
   const shouldShowControls = !hideControls && isFocusedCard;
-  const shouldShowEdit = isFocusedCard && !isTreasure;
+  const shouldShowEdit = isFocusedCard && !isSystem;
   const shouldShowArchive = (
     shouldShowControls
     && isTreeCard
-    && (isRootCard || isArchivedRoot)
-    && !isTreasure
+    && (isRootCard || isMissionRoot || isArchivedRoot)
+    && !isSystem
     && !isEditing
   );
   const isTreeDeleteHoldActive = isTreeCard && isDeleteHoldActive;
@@ -80,7 +84,7 @@ export function StackCard({
     ? '#B91C1C'
     : (isTreeCard ? '#0284C7' : '#2563EB');
   const treasureIconSize = isLeafCard ? 40 : 30;
-  const canShowDoneStamp = done && !isTreasure;
+  const canShowDoneStamp = done && !isSystem;
   const shouldShowCollapsedCornerLine = (
     isTreeCard
     && !isCollapsedStacked
@@ -190,8 +194,8 @@ export function StackCard({
         styles.card,
         isLeafCard && styles.leafCard,
         isTreeCard && styles.treeCard,
-        isTreeCard && isTreasure && styles.treasureCard,
-        isLeafCard && isTreasure && styles.leafTreasureCard,
+        isTreeCard && isSystem && styles.treasureCard,
+        isLeafCard && isSystem && styles.leafTreasureCard,
         isTreeCard && isPreviewCard && styles.treePreviewCard,
         isTreeCard && isCollapsedStacked && styles.treeCollapsedCard,
         isEditing && isLeafCard && styles.leafEditingCard,
@@ -201,7 +205,7 @@ export function StackCard({
           position: 'absolute',
         },
         isFocusedCard && !isLeafCard && styles.focusedCard,
-        isFocusedCard && isTreasure && styles.focusedTreasureCard,
+        isFocusedCard && isSystem && styles.focusedTreasureCard,
         isDeleteProgressVisible && styles.deleteFocusedCard,
         zLayer != null ? { zIndex: zLayer } : null,
       ]}
@@ -211,9 +215,9 @@ export function StackCard({
           pointerEvents="none"
           style={[
             styles.treeCollapsedCornerLine,
-            isTreasure && styles.treasureTreeCollapsedCornerLine,
+            isSystem && styles.treasureTreeCollapsedCornerLine,
             isFocusedCard && styles.focusedTreeCollapsedCornerLine,
-            isFocusedCard && isTreasure && styles.focusedTreasureTreeCollapsedCornerLine,
+            isFocusedCard && isSystem && styles.focusedTreasureTreeCollapsedCornerLine,
             isDeleteProgressVisible && styles.deleteTreeCollapsedCornerLine,
           ]}
         />
@@ -323,7 +327,7 @@ export function StackCard({
       ) : (
         isLeafCard ? (
           <View style={styles.leafContentSurface}>
-            {isTreasure ? (
+            {isSystem ? (
               <View style={[
                 styles.leafContentLayer,
                 styles.leafTreasureContent,
@@ -336,19 +340,19 @@ export function StackCard({
                 >
                   <MaterialCommunityIcons
                     color="#F8FAFC"
-                    name="treasure-chest-outline"
+                    name={isMission ? 'flag-variant-outline' : 'treasure-chest-outline'}
                     size={treasureIconSize}
                     style={styles.treasureCardIconHighlight}
                   />
                   <MaterialCommunityIcons
                     color="#6B7280"
-                    name="treasure-chest-outline"
+                    name={isMission ? 'flag-variant-outline' : 'treasure-chest-outline'}
                     size={treasureIconSize}
                     style={styles.treasureCardIconShadow}
                   />
                   <MaterialCommunityIcons
                     color="#9CA3AF"
-                    name="treasure-chest-outline"
+                    name={isMission ? 'flag-variant-outline' : 'treasure-chest-outline'}
                     size={treasureIconSize}
                   />
                 </View>
@@ -416,23 +420,23 @@ export function StackCard({
           </View>
         ) : (
           <Animated.View style={{ opacity: 1 }}>
-            {isTreasure ? (
+            {isSystem ? (
               <View style={styles.treasureCardIconWrap}>
                 <MaterialCommunityIcons
                   color="#F8FAFC"
-                  name="treasure-chest-outline"
+                  name={isMission ? 'flag-variant-outline' : 'treasure-chest-outline'}
                   size={30}
                   style={styles.treasureCardIconHighlight}
                 />
                 <MaterialCommunityIcons
                   color="#6B7280"
-                  name="treasure-chest-outline"
+                  name={isMission ? 'flag-variant-outline' : 'treasure-chest-outline'}
                   size={30}
                   style={styles.treasureCardIconShadow}
                 />
                 <MaterialCommunityIcons
                   color="#9CA3AF"
-                  name="treasure-chest-outline"
+                  name={isMission ? 'flag-variant-outline' : 'treasure-chest-outline'}
                   size={30}
                 />
               </View>
@@ -462,7 +466,7 @@ export function StackCard({
       <View style={[
         styles.dependencyBar,
         isTreeCard && styles.treeDependencyBar,
-        isTreasure && styles.hiddenDependencyBar,
+        isSystem && styles.hiddenDependencyBar,
       ]}
       >
         <Text style={[

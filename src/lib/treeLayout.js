@@ -18,14 +18,19 @@ export function buildTreeLayout(cards = [], collapsedNodeIds = new Set(), overri
   const rootCards = cards.filter((card) => (
     !Array.isArray(card.parentIds) || card.parentIds.length === 0
   )).sort((leftCard, rightCard) => {
-    const leftIsTreasure = Boolean(leftCard?.isTreasureCard);
-    const rightIsTreasure = Boolean(rightCard?.isTreasureCard);
+    function getRootRank(card) {
+      if (card?.systemType === 'mission' || card?.isMissionCard) {
+        return 0;
+      }
 
-    if (leftIsTreasure === rightIsTreasure) {
-      return 0;
+      if (card?.systemType === 'treasure' || card?.isTreasureCard) {
+        return 2;
+      }
+
+      return 1;
     }
 
-    return leftIsTreasure ? 1 : -1;
+    return getRootRank(leftCard) - getRootRank(rightCard);
   });
 
   const seen = new Set();

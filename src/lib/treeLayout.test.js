@@ -12,13 +12,15 @@ function card(id, childIds = [], parentIds = [], extra = {}) {
 }
 
 describe('buildTreeLayout', () => {
-  it('places treasure roots after normal roots', () => {
+  it('places mission first and treasure after normal roots', () => {
     const layout = buildTreeLayout([
       card('treasure', [], [], { isTreasureCard: true }),
       card('normal'),
+      card('mission', [], [], { isMissionCard: true }),
     ]);
 
     expect(layout.positionedCards.map((entry) => entry.card.id)).toEqual([
+      'mission',
       'normal',
       'treasure',
     ]);
