@@ -13,6 +13,7 @@ import {
   useEffect, useMemo, useRef, useState, useSyncExternalStore,
 } from 'react';
 import {
+  adoptMissionRoot,
   archiveRootTree,
   ensureSystemCards,
   getSnapshot,
@@ -1026,10 +1027,7 @@ export default function App() {
   function handleArchiveRootTree(rootId) {
     const rootCard = cards.find((card) => card.id === rootId);
     const parentIds = Array.isArray(rootCard?.parentIds) ? rootCard.parentIds : [];
-    if (
-      !rootCard
-      || (parentIds.length > 0 && !parentIds.every((parentId) => parentId === MISSION_CARD_ID))
-    ) {
+    if (!rootCard || parentIds.length > 0) {
       return;
     }
 
@@ -1037,6 +1035,19 @@ export default function App() {
       return;
     }
     setFocusedCardIndex(null);
+    setEditingIndex(null);
+    setEditingValue('');
+    setIsDeleteHoldActive(false);
+    setAddPreviewRelation(null);
+  }
+
+  function handleAdoptMissionRoot(rootId) {
+    const adoptedIndex = adoptMissionRoot(rootId);
+    if (adoptedIndex < 0) {
+      return;
+    }
+
+    setFocusedCardIndex(adoptedIndex);
     setEditingIndex(null);
     setEditingValue('');
     setIsDeleteHoldActive(false);
@@ -1438,6 +1449,7 @@ export default function App() {
             onToggleCollapse={handleToggleCollapse}
             onDeleteCard={handleDeleteCard}
             onDeleteHoldComplete={handleDeleteCard}
+            onAdoptMissionRoot={handleAdoptMissionRoot}
             onArchiveRootTree={handleArchiveRootTree}
             onRestoreRootTree={handleRestoreRootTree}
             onEditingValueChange={setEditingValue}

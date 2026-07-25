@@ -22,6 +22,7 @@ export function TreeCanvas({
   onToggleCollapse,
   onDeleteCard,
   onDeleteHoldComplete,
+  onAdoptMissionRoot,
   onArchiveRootTree,
   onRestoreRootTree,
   onEditingValueChange,
@@ -256,6 +257,7 @@ export function TreeCanvas({
                   onToggleCollapse={onToggleCollapse}
                   onDeleteCard={onDeleteCard}
                   onDeleteHoldComplete={onDeleteHoldComplete}
+                  onAdoptMissionRoot={onAdoptMissionRoot}
                   onArchiveRootTree={onArchiveRootTree}
                   onRestoreRootTree={onRestoreRootTree}
                   onEditingValueChange={onEditingValueChange}

@@ -502,28 +502,90 @@ export function removeAt(index) {
   return removedCards;
 }
 
+export function adoptMissionRoot(rootId) {
+  const missionRoot = stack.find((card) => card.id === rootId);
+  const parentIds = Array.isArray(missionRoot?.parentIds) ? missionRoot.parentIds : [];
+  if (
+    !missionRoot
+    || isSystemCard(missionRoot)
+    || !parentIds.includes(MISSION_CARD_ID)
+  ) {
+    return -1;
+  }
+
+  const cardById = new Map(stack.map((card) => [card.id, card]));
+  const sourceCards = [];
+  const sourceIds = new Set();
+
+  function collectSubtree(card) {
+    if (!card || sourceIds.has(card.id) || isSystemCard(card)) {
+      return;
+    }
+
+    sourceIds.add(card.id);
+    sourceCards.push(card);
+    (card.childIds || [])
+      .map((childId) => cardById.get(childId))
+      .filter(Boolean)
+      .forEach(collectSubtree);
+  }
+
+  collectSubtree(missionRoot);
+
+  const cloneBySourceId = new Map(sourceCards.map((sourceCard) => [
+    sourceCard.id,
+    createCard(sourceCard.text),
+  ]));
+  const parentSourceIdsByChildId = new Map();
+
+  sourceCards.forEach((sourceCard) => {
+    (sourceCard.childIds || []).forEach((childId) => {
+      if (!sourceIds.has(childId)) {
+        return;
+      }
+
+      const parentSourceIds = parentSourceIdsByChildId.get(childId) || [];
+      parentSourceIdsByChildId.set(
+        childId,
+        uniqueLinkedIds([...parentSourceIds, sourceCard.id], childId),
+      );
+    });
+  });
+
+  const adoptedCards = sourceCards.map((sourceCard) => {
+    const clone = cloneBySourceId.get(sourceCard.id);
+    return {
+      ...clone,
+      childIds: (sourceCard.childIds || [])
+        .filter((childId) => sourceIds.has(childId))
+        .map((childId) => cloneBySourceId.get(childId).id),
+      parentIds: sourceCard.id === rootId
+        ? []
+        : (parentSourceIdsByChildId.get(sourceCard.id) || [])
+          .map((parentId) => cloneBySourceId.get(parentId).id),
+    };
+  });
+
+  const adoptedIndex = stack.length;
+  stack = [...stack, ...adoptedCards];
+  emitChange();
+  return adoptedIndex;
+}
+
 export function archiveRootTree(rootId) {
   const rootCard = stack.find((card) => card.id === rootId);
   const treasureCard = stack.find(isTreasureCard);
   const parentIds = Array.isArray(rootCard?.parentIds) ? rootCard.parentIds : [];
-  const canArchive = parentIds.length === 0 || parentIds.every((id) => id === MISSION_CARD_ID);
   if (
     !rootCard
     || !treasureCard
     || isSystemCard(rootCard)
-    || !canArchive
+    || parentIds.length > 0
   ) {
     return false;
   }
 
   stack = stack.map((card) => {
-    if (isMissionCard(card)) {
-      return {
-        ...card,
-        childIds: (card.childIds || []).filter((childId) => childId !== rootId),
-      };
-    }
-
     if (isTreasureCard(card)) {
       return {
         ...card,

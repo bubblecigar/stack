@@ -34,6 +34,7 @@ export function StackCard({
   onPress,
   onPressIn,
   onCreateEdit,
+  onAdoptMissionRoot,
   onArchiveRootTree,
   onRestoreRootTree,
   onDeleteCard,
@@ -68,10 +69,16 @@ export function StackCard({
   );
   const shouldShowControls = !hideControls && isFocusedCard;
   const shouldShowEdit = isFocusedCard && !isSystem;
+  const shouldShowAdoptMission = (
+    shouldShowControls
+    && isTreeCard
+    && isMissionRoot
+    && !isEditing
+  );
   const shouldShowArchive = (
     shouldShowControls
     && isTreeCard
-    && (isRootCard || isMissionRoot || isArchivedRoot)
+    && (isRootCard || isArchivedRoot)
     && !isSystem
     && !isEditing
   );
@@ -228,6 +235,28 @@ export function StackCard({
         isTreeCard && styles.treeCardControls,
       ]}
       >
+        {shouldShowAdoptMission && (
+          <Pressable
+            accessibilityLabel="Adopt mission"
+            accessibilityRole="button"
+            onPressIn={handleControlPressIn}
+            onPress={(event) => handleControlPress(event, () => {
+              onAdoptMissionRoot?.(id);
+            })}
+            style={({ pressed }) => [
+              styles.iconButton,
+              styles.archiveButton,
+              pressed && styles.archiveButtonPressed,
+            ]}
+          >
+            <MaterialCommunityIcons
+              color="#FFFFFF"
+              name="flag-plus-outline"
+              size={18}
+            />
+          </Pressable>
+        )}
+
         {shouldShowArchive && (
           <Pressable
             accessibilityLabel={isArchivedRoot ? 'Restore tree' : 'Archive tree'}
