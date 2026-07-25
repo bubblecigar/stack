@@ -49,6 +49,7 @@ import {
   getCollapsibleDescendantIds,
   moveInTraversal,
 } from './src/lib/cardTraversal';
+import { getDailyVisibleCards } from './src/lib/cardVisibility';
 import {
   playDoneStampSound,
   playLeafSwipeSound,
@@ -337,10 +338,15 @@ export default function App() {
   const [addPreviewRelation, setAddPreviewRelation] = useState(null);
   const [isAddHoldActive, setIsAddHoldActive] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+  const [currentDayReference, setCurrentDayReference] = useState(() => Date.now());
   const [treeCompletionCanvas, setTreeCompletionCanvas] = useState(EMPTY_TREE_COMPLETION_CANVAS);
 
   const stack = useSyncExternalStore(subscribe, getSnapshot);
   const cards = useMemo(() => stack.map((card, index) => ({ ...card, index })), [stack]);
+  const dailyVisibleCards = useMemo(
+    () => getDailyVisibleCards(cards, MISSION_CARD_ID, currentDayReference),
+    [cards, currentDayReference],
+  );
   const shouldRenderLeaf = layoutMode === 'leaf';
   const previousDayCompletedTaskCount = useMemo(
     () => countPreviousDayCompletedTasks(treeCompletionCanvas),
@@ -353,8 +359,8 @@ export default function App() {
     cards.find((card) => card.id === focusedCardId),
   );
   const systemTreeCards = useMemo(
-    () => getSystemTreeCards(cards),
-    [cards],
+    () => getSystemTreeCards(dailyVisibleCards),
+    [dailyVisibleCards],
   );
   const leafScopeFocusedCardId = shouldRenderLeaf
     ? leafFocusedCardId
@@ -363,7 +369,7 @@ export default function App() {
   const leafCards = useMemo(
     () => {
       const scopedCards = getLeafTraversalCards(
-        cards,
+        dailyVisibleCards,
         systemTreeCards,
         leafScopeFocusedCardId,
       );
@@ -372,9 +378,9 @@ export default function App() {
         return scopedCards;
       }
 
-      return cards;
+      return dailyVisibleCards;
     },
-    [cards, leafScopeFocusedCardId, systemTreeCards],
+    [dailyVisibleCards, leafScopeFocusedCardId, systemTreeCards],
   );
 
   const leafTopPosition = useMemo(() => {
@@ -432,6 +438,20 @@ export default function App() {
       UIManager.setLayoutAnimationEnabledExperimental(true);
     }
   }, []);
+
+  useEffect(() => {
+    const now = new Date();
+    const nextDay = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() + 1,
+    );
+    const timeoutId = setTimeout(() => {
+      setCurrentDayReference(Date.now());
+    }, Math.max(nextDay.getTime() - now.getTime(), 1));
+
+    return () => clearTimeout(timeoutId);
+  }, [currentDayReference]);
 
   useEffect(() => {
     authUserRef.current = authUser;
@@ -1074,7 +1094,11 @@ export default function App() {
     }
 
     const currentCardId = visibleCards[0]?.id ?? leafFocusedCardId ?? cards[0]?.id;
-    const traversalCards = getLeafTraversalCards(cards, systemTreeCards, currentCardId);
+    const traversalCards = getLeafTraversalCards(
+      dailyVisibleCards,
+      systemTreeCards,
+      currentCardId,
+    );
 
     if (traversalCards.length === 0) {
       setLeafFocusedCardId(null);
@@ -1127,7 +1151,7 @@ export default function App() {
   const nodeMapCards = shouldRenderLeaf
     ? (focusedSystemRootId
       ? getSystemSubtreeCards(systemTreeCards, focusedSystemRootId)
-      : getLeafRootScopedCards(cards, nodeMapFocusedCardId))
+      : getLeafRootScopedCards(dailyVisibleCards, nodeMapFocusedCardId))
     : systemTreeCards;
   const nodeMapFocusedCardIndex = nodeMapFocusedCardId === null
     ? null
@@ -1327,7 +1351,7 @@ export default function App() {
         : (treeFocusedCardIndex === -1 ? TREASURE_CARD_ID : cards[treeFocusedCardIndex]?.id ?? null);
       const treeExpansionCards = getFocusedSystemRootId(systemTreeCards, treeFocusedCardId)
         ? systemTreeCards
-        : cards;
+        : dailyVisibleCards;
       const expandedRootTreeIds = getRootTreeCardIds(treeExpansionCards, treeFocusedCardId);
 
       if (expandedRootTreeIds.size > 0) {

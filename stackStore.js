@@ -245,6 +245,8 @@ function normalizeIncomingCard(rawCard, nextGeneratedId) {
   const rawChildIds = Array.isArray(rawCard?.childIds) ? rawCard.childIds : [];
   const rawParentIds = Array.isArray(rawCard?.parentIds) ? rawCard.parentIds : [];
   const rawStamps = Array.isArray(rawCard?.stamps) ? rawCard.stamps : [];
+  const rawLastAdoptedAt = rawCard?.lastAdoptedAt;
+  const lastAdoptedAt = Number(rawLastAdoptedAt);
 
   function normalizeLinkedId(id) {
     if (typeof id === 'string') {
@@ -301,6 +303,9 @@ function normalizeIncomingCard(rawCard, nextGeneratedId) {
     childIds,
     done: isSystem ? false : Boolean(rawCard?.done),
     id,
+    ...(rawLastAdoptedAt != null && Number.isFinite(lastAdoptedAt)
+      ? { lastAdoptedAt }
+      : {}),
     parentIds,
     stamps,
     ...(isSystem ? {
@@ -567,7 +572,13 @@ export function adoptMissionRoot(rootId) {
   });
 
   const adoptedIndex = stack.length;
-  stack = [...stack, ...adoptedCards];
+  const adoptedAt = Date.now();
+  stack = [
+    ...stack.map((card) => (
+      card.id === rootId ? { ...card, lastAdoptedAt: adoptedAt } : card
+    )),
+    ...adoptedCards,
+  ];
   emitChange();
   return adoptedIndex;
 }

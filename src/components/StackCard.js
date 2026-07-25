@@ -59,6 +59,7 @@ export function StackCard({
   const isMission = isMissionCard || Boolean(card?.isMissionCard);
   const isTreasure = isTreasureCard || Boolean(card?.isTreasureCard);
   const isSystem = isMission || isTreasure;
+  const isMissionRootCard = isMissionRoot || Boolean(card?.isMissionRoot);
   const isEditing = editingIndex === index;
   const isFocusedCard = (
     isLeafCard
@@ -72,7 +73,7 @@ export function StackCard({
   const shouldShowAdoptMission = (
     shouldShowControls
     && isTreeCard
-    && isMissionRoot
+    && isMissionRootCard
     && !isEditing
   );
   const shouldShowArchive = (

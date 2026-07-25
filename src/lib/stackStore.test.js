@@ -68,6 +68,12 @@ describe('system cards', () => {
     expect(missionCard.childIds).toContain(rootId);
     expect(missionRoot.parentIds).toEqual([MISSION_CARD_ID]);
     expect(missionRoot.childIds).toEqual([childId]);
+    expect(Number.isFinite(missionRoot.lastAdoptedAt)).toBe(true);
+
+    loadCards(cards);
+    expect(getSnapshot().find((card) => card.id === rootId).lastAdoptedAt).toBe(
+      missionRoot.lastAdoptedAt,
+    );
   });
 
   it('does not archive a mission root directly', () => {
