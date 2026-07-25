@@ -365,6 +365,11 @@ export default function App() {
   const leafScopeFocusedCardId = shouldRenderLeaf
     ? leafFocusedCardId
     : focusedCardId;
+  const focusedControlCardId = shouldRenderLeaf ? leafFocusedCardId : focusedCardId;
+  const focusedControlCard = cards.find((card) => card.id === focusedControlCardId);
+  const focusedSystemCardType = focusedControlCard?.isMissionCard
+    ? 'mission'
+    : (focusedControlCard?.isTreasureCard ? 'treasure' : null);
 
   const leafCards = useMemo(
     () => {
@@ -1498,6 +1503,7 @@ export default function App() {
         canDeleteCurrentCard={!shouldRenderLeaf && canDeleteCurrentCard}
         audioEnabled={isAudioEnabled}
         childInsertionOnly={isMissionInsertionTarget}
+        focusedSystemCardType={focusedSystemCardType}
         user={authUser}
         layoutMode={layoutMode}
         onAudioEnabledChange={setIsAudioEnabled}

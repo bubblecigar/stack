@@ -34,6 +34,16 @@ const SETTINGS_PANEL_TRIGGER_DRAG_Y = -160;
 const SETTINGS_PANEL_CENTER_OFFSET_X = 0;
 const SETTINGS_PANEL_CENTER_OFFSET_Y = -(SCREEN_HEIGHT / 2 + 70);
 const SETTINGS_PANEL_TOGGLE_DURATION_MS = 260;
+const SYSTEM_CARD_EXPLANATIONS = {
+  mission: {
+    body: 'Adopt a mission to copy its full tree into your cards. It will return here tomorrow.',
+    title: 'Mission',
+  },
+  treasure: {
+    body: 'Archived card trees live here. Their hierarchy stays intact while you browse or restore them.',
+    title: 'Treasure',
+  },
+};
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -151,8 +161,10 @@ export function FloatingControls({
   canDeleteCurrentCard = false,
   childInsertionOnly = false,
   disableCardInsertion = false,
+  focusedSystemCardType = null,
 }) {
   const shouldShowDelete = canDeleteCurrentCard;
+  const systemCardExplanation = SYSTEM_CARD_EXPLANATIONS[focusedSystemCardType] ?? null;
   const [isAddPressed, setIsAddPressed] = useState(false);
   const [addCardRotation, setAddCardRotation] = useState(ADD_CARD_BASE_ROTATION);
   const [addCardOffsetX, setAddCardOffsetX] = useState(0);
@@ -574,11 +586,25 @@ export function FloatingControls({
                   <View style={styles.addCardCalendarRing} />
                 </View>
               </View>
-              <View style={styles.addCardButtonChrono}>
-                <Text style={styles.addCardButtonChronoText}>
-                  {controlTimeLabel}
-                </Text>
-              </View>
+              {systemCardExplanation ? (
+                <View
+                  pointerEvents="none"
+                  style={styles.addCardSystemExplanation}
+                >
+                  <Text style={styles.addCardSystemExplanationTitle}>
+                    {systemCardExplanation.title}
+                  </Text>
+                  <Text style={styles.addCardSystemExplanationBody}>
+                    {systemCardExplanation.body}
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.addCardButtonChrono}>
+                  <Text style={styles.addCardButtonChronoText}>
+                    {controlTimeLabel}
+                  </Text>
+                </View>
+              )}
             </Animated.View>
             <Animated.View
               style={[
@@ -607,26 +633,42 @@ export function FloatingControls({
                   <View style={styles.addCardCalendarRing} />
                 </View>
               </View>
-              <View style={styles.addCardButtonChrono}>
-                <Text style={styles.addCardButtonChronoText}>
-                  {controlDateLabel}
-                </Text>
-              </View>
-              <View
-                pointerEvents="none"
-                style={styles.addCardCalendarGrid}
-              >
-                {calendarDays.map((cell) => (
+              {systemCardExplanation ? (
+                <View
+                  pointerEvents="none"
+                  style={styles.addCardSystemExplanation}
+                >
+                  <Text style={styles.addCardSystemExplanationTitle}>
+                    {systemCardExplanation.title}
+                  </Text>
+                  <Text style={styles.addCardSystemExplanationBody}>
+                    {systemCardExplanation.body}
+                  </Text>
+                </View>
+              ) : (
+                <>
+                  <View style={styles.addCardButtonChrono}>
+                    <Text style={styles.addCardButtonChronoText}>
+                      {controlDateLabel}
+                    </Text>
+                  </View>
                   <View
-                    key={`calendar-day-${cell.day}`}
-                    style={[
-                      styles.addCardCalendarDateSquare,
-                      cell.isBlank && styles.addCardCalendarDateSquareBlank,
-                      cell.day === currentDay && styles.addCardCalendarDateSquareToday,
-                    ]}
-                  />
-                ))}
-              </View>
+                    pointerEvents="none"
+                    style={styles.addCardCalendarGrid}
+                  >
+                    {calendarDays.map((cell) => (
+                      <View
+                        key={`calendar-day-${cell.day}`}
+                        style={[
+                          styles.addCardCalendarDateSquare,
+                          cell.isBlank && styles.addCardCalendarDateSquareBlank,
+                          cell.day === currentDay && styles.addCardCalendarDateSquareToday,
+                        ]}
+                      />
+                    ))}
+                  </View>
+                </>
+              )}
             </Animated.View>
             <View
               pointerEvents="box-none"
