@@ -35,7 +35,7 @@ export function MathNotationPalette({
 }) {
   const visibleKeys = [
     ...SYSTEM_MATH_KEYS,
-    ...(Array.isArray(keys) ? keys : []),
+    ...(Array.isArray(keys) ? keys.filter((key) => !key?.isEmpty) : []),
   ];
 
   if (visibleKeys.length === 0) {
@@ -58,14 +58,14 @@ export function MathNotationPalette({
         contentContainerStyle={styles.mathNotationPaletteScroll}
       >
         <View style={styles.mathNotationGroup}>
-          {visibleKeys.map((key) => (
+          {visibleKeys.map((key, keyIndex) => (
             <Pressable
               accessibilityLabel={key.action === 'delete'
                 ? 'Delete previous character'
                 : `Insert ${key.label}`}
               accessibilityRole="button"
               disabled={disabled}
-              key={key.id}
+              key={`${key.id}-${keyIndex}`}
               onPress={() => {
                 if (key.action === 'delete') {
                   onDeleteNotation?.();

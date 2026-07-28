@@ -68,7 +68,8 @@ import {
 import { getStoredUiState, normalizeUiState, setStoredUiState } from './src/lib/uiStateStore';
 import { ensureDailyReminderScheduled } from './src/lib/dailyReminder';
 import {
-  createMathKeyboardKey,
+  normalizeMathKeyboardKeys,
+  updateMathKeyboardKeyAt,
 } from './src/lib/mathKeyboardConfig';
 import {
   getStoredMathKeyboardKeys,
@@ -354,7 +355,7 @@ export default function App() {
   const [addPreviewRelation, setAddPreviewRelation] = useState(null);
   const [isAddHoldActive, setIsAddHoldActive] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
-  const [mathKeyboardKeys, setMathKeyboardKeys] = useState([]);
+  const [mathKeyboardKeys, setMathKeyboardKeys] = useState(() => normalizeMathKeyboardKeys([]));
   const [currentDayReference, setCurrentDayReference] = useState(() => Date.now());
   const [treeCompletionCanvas, setTreeCompletionCanvas] = useState(EMPTY_TREE_COMPLETION_CANVAS);
 
@@ -1357,20 +1358,8 @@ export default function App() {
     setStoredMathKeyboardKeys(nextKeys).catch(() => {});
   }
 
-  function handleAddMathKeyboardKey(value) {
-    const nextKey = createMathKeyboardKey(value);
-    if (!nextKey) {
-      return;
-    }
-
-    persistMathKeyboardKeys([
-      ...mathKeyboardKeys,
-      nextKey,
-    ]);
-  }
-
-  function handleRemoveMathKeyboardKey(keyId) {
-    persistMathKeyboardKeys(mathKeyboardKeys.filter((key) => key.id !== keyId));
+  function handleUpdateMathKeyboardKey(index, value) {
+    persistMathKeyboardKeys(updateMathKeyboardKeyAt(mathKeyboardKeys, index, value));
   }
 
   function getMathNotationTarget() {
@@ -1672,12 +1661,11 @@ export default function App() {
         user={authUser}
         layoutMode={layoutMode}
         onAudioEnabledChange={setIsAudioEnabled}
-        onAddMathKeyboardKey={handleAddMathKeyboardKey}
         onDeleteHoldChange={setIsDeleteHoldActive}
         onAddHoldChange={setIsAddHoldActive}
         onAddPreviewChange={setAddPreviewRelation}
         onLogout={resetSession}
-        onRemoveMathKeyboardKey={handleRemoveMathKeyboardKey}
+        onUpdateMathKeyboardKey={handleUpdateMathKeyboardKey}
         onToggleMode={handleToggleLayout}
         onCreateCard={handleCreateCard}
         disableCardInsertion={
