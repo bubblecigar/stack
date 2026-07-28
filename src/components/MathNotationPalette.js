@@ -37,8 +37,7 @@ export function MathNotationPalette({
               key={`math-notation-slot-${key.slotIndex ?? keyIndex}`}
               style={[
                 styles.mathNotationGridKey,
-                styles.mathNotationGridEmptyKey,
-                key.isReserved && styles.mathNotationGridReservedKey,
+                styles.mathNotationGridInvisibleKey,
               ]}
             />
           ) : (

@@ -208,6 +208,11 @@ export const styles = StyleSheet.create({
   mathNotationGridEmptyKey: {
     opacity: 0.46,
   },
+  mathNotationGridInvisibleKey: {
+    backgroundColor: 'transparent',
+    borderColor: 'transparent',
+    opacity: 1,
+  },
   mathNotationGridReservedKey: {
     backgroundColor: 'transparent',
     borderColor: 'transparent',
