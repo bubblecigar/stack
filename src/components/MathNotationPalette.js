@@ -6,46 +6,16 @@ import {
 } from 'react-native';
 import { styles } from '../styles/appStyles';
 
-const MATH_NOTATION_GROUPS = [
-  ['≡', '≢', '≅', '≇', '≈', '≠', '≤', '≥'],
-  ['mod', 'gcd', 'lcm', '∈', '∉', '⊂', '⊆', '∅'],
-  ['α', 'β', 'γ', 'θ', 'λ', 'π', '∞', '∑', '∏', '∫', '√'],
-  ['^', '_', '()', '[]', '{}', '$$', '→', '↔'],
-];
-
-function getNotationInsert(notation) {
-  if (notation === 'mod') {
-    return ' (mod n)';
-  }
-
-  if (notation === 'gcd' || notation === 'lcm') {
-    return `${notation}(a, b)`;
-  }
-
-  if (notation === '()') {
-    return '()';
-  }
-
-  if (notation === '[]') {
-    return '[]';
-  }
-
-  if (notation === '{}') {
-    return '{}';
-  }
-
-  if (notation === '$$') {
-    return '$$';
-  }
-
-  return notation;
-}
-
 export function MathNotationPalette({
   disabled = false,
+  keys = [],
   onTouchStart,
   onInsertNotation,
 }) {
+  if (!Array.isArray(keys) || keys.length === 0) {
+    return null;
+  }
+
   return (
     <View
       onTouchStart={onTouchStart}
@@ -61,30 +31,31 @@ export function MathNotationPalette({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.mathNotationPaletteScroll}
       >
-        {MATH_NOTATION_GROUPS.map((group, groupIndex) => (
-          <View
-            key={`math-notation-group-${groupIndex}`}
-            style={styles.mathNotationGroup}
-          >
-            {group.map((notation) => (
-              <Pressable
-                accessibilityLabel={`Insert ${notation}`}
-                accessibilityRole="button"
-                disabled={disabled}
-                key={notation}
-                onPress={() => {
-                  onInsertNotation?.(getNotationInsert(notation));
-                }}
-                style={({ pressed }) => [
-                  styles.mathNotationKey,
-                  pressed && styles.mathNotationKeyPressed,
-                ]}
+        <View style={styles.mathNotationGroup}>
+          {keys.map((key) => (
+            <Pressable
+              accessibilityLabel={`Insert ${key.label}`}
+              accessibilityRole="button"
+              disabled={disabled}
+              key={key.id}
+              onPress={() => {
+                onInsertNotation?.(key.insert);
+              }}
+              style={({ pressed }) => [
+                styles.mathNotationKey,
+                pressed && styles.mathNotationKeyPressed,
+              ]}
+            >
+              <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                style={styles.mathNotationKeyText}
               >
-                <Text style={styles.mathNotationKeyText}>{notation}</Text>
-              </Pressable>
-            ))}
-          </View>
-        ))}
+                {key.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
       </ScrollView>
     </View>
   );

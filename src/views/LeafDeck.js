@@ -197,6 +197,7 @@ export function LeafDeck({
   editingValue,
   focusedCardIndex,
   focusedCardId: controlledFocusedCardId,
+  mathKeyboardKeys = [],
   collapsedNodeIds,
   onCreateEdit,
   onDeleteCard,
@@ -1053,6 +1054,7 @@ export function LeafDeck({
       ) : null}
       <MathNotationPalette
         disabled={!canUseMathNotationPalette}
+        keys={mathKeyboardKeys}
         onInsertNotation={onInsertMathNotation}
         onTouchStart={() => {
           inputTouchRef.current = true;

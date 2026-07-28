@@ -7,6 +7,7 @@ import {
   PanResponder,
   Pressable,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -151,13 +152,16 @@ export function FloatingControls({
   layoutMode,
   user = null,
   audioEnabled = true,
+  mathKeyboardKeys = [],
   onToggleMode,
   onCreateCard,
+  onAddMathKeyboardKey,
   onAudioEnabledChange,
   onAddPreviewChange,
   onAddHoldChange,
   onDeleteHoldChange,
   onLogout,
+  onRemoveMathKeyboardKey,
   canDeleteCurrentCard = false,
   childInsertionOnly = false,
   disableCardInsertion = false,
@@ -173,11 +177,14 @@ export function FloatingControls({
   const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(false);
   const [settingsPanelOffsetX, setSettingsPanelOffsetX] = useState(0);
   const [settingsPanelOffsetY, setSettingsPanelOffsetY] = useState(0);
+  const [isAddingMathKey, setIsAddingMathKey] = useState(false);
+  const [draftMathKey, setDraftMathKey] = useState('');
   const [currentTime, setCurrentTime] = useState(() => new Date());
   const flipProgress = useRef(new Animated.Value(layoutMode === 'tree' ? 1 : 0)).current;
   const deleteSlideProgress = useRef(new Animated.Value(shouldShowDelete ? 1 : 0)).current;
   const settingsPanelProgress = useRef(new Animated.Value(0)).current;
   const addRelationRef = useRef(null);
+  const isCommittingDraftMathKeyRef = useRef(false);
   const lastModeTapRef = useRef(0);
   const addStartRef = useRef({
     pageX: 0,
@@ -460,6 +467,102 @@ export function FloatingControls({
     );
   }
 
+  function startAddingMathKey() {
+    if (isAddingMathKey) {
+      return;
+    }
+
+    isCommittingDraftMathKeyRef.current = false;
+    setDraftMathKey('');
+    setIsAddingMathKey(true);
+  }
+
+  function cancelAddingMathKey() {
+    isCommittingDraftMathKeyRef.current = false;
+    setDraftMathKey('');
+    setIsAddingMathKey(false);
+  }
+
+  function confirmAddingMathKey() {
+    if (!isAddingMathKey || isCommittingDraftMathKeyRef.current) {
+      return;
+    }
+
+    isCommittingDraftMathKeyRef.current = true;
+    const trimmedKey = draftMathKey.trim();
+    if (!trimmedKey) {
+      cancelAddingMathKey();
+      return;
+    }
+
+    onAddMathKeyboardKey?.(trimmedKey);
+    cancelAddingMathKey();
+  }
+
+  function renderMathKeyboardConfig() {
+    return (
+      <View
+        onStartShouldSetResponder={() => true}
+        style={styles.addCardMathKeyboardConfig}
+      >
+        <View style={styles.addCardMathKeyboardKeyRow}>
+          {mathKeyboardKeys.map((key) => (
+            <Pressable
+              accessibilityHint="Long press to remove this key"
+              accessibilityLabel={`Configured key ${key.label}`}
+              accessibilityRole="button"
+              key={key.id}
+              onLongPress={() => onRemoveMathKeyboardKey?.(key.id)}
+              style={({ pressed }) => [
+                styles.addCardMathKeyboardKey,
+                pressed && styles.addCardMathKeyboardKeyPressed,
+              ]}
+            >
+              <Text
+                adjustsFontSizeToFit
+                numberOfLines={1}
+                style={styles.addCardMathKeyboardKeyText}
+              >
+                {key.label}
+              </Text>
+            </Pressable>
+          ))}
+          {isAddingMathKey ? (
+            <View style={[
+              styles.addCardMathKeyboardKey,
+              styles.addCardMathKeyboardDraftKey,
+            ]}
+            >
+              <TextInput
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoFocus
+                onChangeText={setDraftMathKey}
+                onBlur={confirmAddingMathKey}
+                onSubmitEditing={confirmAddingMathKey}
+                returnKeyType="done"
+                style={styles.addCardMathKeyboardKeyInput}
+                value={draftMathKey}
+              />
+            </View>
+          ) : null}
+          <Pressable
+            accessibilityLabel="Add math key"
+            accessibilityRole="button"
+            onPress={startAddingMathKey}
+            style={({ pressed }) => [
+              styles.addCardMathKeyboardKey,
+              styles.addCardMathKeyboardAddKey,
+              pressed && styles.addCardMathKeyboardKeyPressed,
+            ]}
+          >
+            <Text style={styles.addCardMathKeyboardAddKeyText}>+</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <>
       {shouldRenderDelete ? (
@@ -560,6 +663,7 @@ export function FloatingControls({
             ]}
           >
             <Animated.View
+              pointerEvents={layoutMode === 'leaf' ? 'box-none' : 'none'}
               style={[
                 styles.addCardButton,
                 styles.addCardFace,
@@ -599,14 +703,18 @@ export function FloatingControls({
                   </Text>
                 </View>
               ) : (
-                <View style={styles.addCardButtonChrono}>
-                  <Text style={styles.addCardButtonChronoText}>
-                    {controlTimeLabel}
-                  </Text>
-                </View>
+                <>
+                  <View style={styles.addCardButtonChrono}>
+                    <Text style={styles.addCardButtonChronoText}>
+                      {controlTimeLabel}
+                    </Text>
+                  </View>
+                  {renderMathKeyboardConfig()}
+                </>
               )}
             </Animated.View>
             <Animated.View
+              pointerEvents={layoutMode === 'tree' ? 'box-none' : 'none'}
               style={[
                 styles.addCardButton,
                 styles.addCardFace,

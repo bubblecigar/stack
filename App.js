@@ -63,6 +63,13 @@ import {
 } from './src/lib/soundEffects';
 import { getStoredUiState, normalizeUiState, setStoredUiState } from './src/lib/uiStateStore';
 import { ensureDailyReminderScheduled } from './src/lib/dailyReminder';
+import {
+  createMathKeyboardKey,
+} from './src/lib/mathKeyboardConfig';
+import {
+  getStoredMathKeyboardKeys,
+  setStoredMathKeyboardKeys,
+} from './src/lib/mathKeyboardStore';
 import { styles } from './src/styles/appStyles';
 
 const LEAF_VISIBLE_COUNT = 5;
@@ -343,6 +350,7 @@ export default function App() {
   const [addPreviewRelation, setAddPreviewRelation] = useState(null);
   const [isAddHoldActive, setIsAddHoldActive] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+  const [mathKeyboardKeys, setMathKeyboardKeys] = useState([]);
   const [currentDayReference, setCurrentDayReference] = useState(() => Date.now());
   const [treeCompletionCanvas, setTreeCompletionCanvas] = useState(EMPTY_TREE_COMPLETION_CANVAS);
 
@@ -454,6 +462,23 @@ export default function App() {
     if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
       UIManager.setLayoutAnimationEnabledExperimental(true);
     }
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadMathKeyboardKeys() {
+      const storedKeys = await getStoredMathKeyboardKeys();
+      if (isMounted) {
+        setMathKeyboardKeys(storedKeys);
+      }
+    }
+
+    loadMathKeyboardKeys();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -1323,6 +1348,27 @@ export default function App() {
     playDoneStampSound();
   }
 
+  function persistMathKeyboardKeys(nextKeys) {
+    setMathKeyboardKeys(nextKeys);
+    setStoredMathKeyboardKeys(nextKeys).catch(() => {});
+  }
+
+  function handleAddMathKeyboardKey(value) {
+    const nextKey = createMathKeyboardKey(value);
+    if (!nextKey) {
+      return;
+    }
+
+    persistMathKeyboardKeys([
+      ...mathKeyboardKeys,
+      nextKey,
+    ]);
+  }
+
+  function handleRemoveMathKeyboardKey(keyId) {
+    persistMathKeyboardKeys(mathKeyboardKeys.filter((key) => key.id !== keyId));
+  }
+
   function handleInsertMathNotation(notation) {
     if (!shouldRenderLeaf || !notation) {
       return;
@@ -1522,6 +1568,7 @@ export default function App() {
             editingIndex={editingIndex}
             editingValue={editingValue}
             editingSelection={editingSelection}
+            mathKeyboardKeys={mathKeyboardKeys}
             focusedCardIndex={effectiveLeafFocusedIndex}
             focusedCardId={leafFocusedCardId}
             collapsedNodeIds={collapsedNodeIds}
@@ -1580,13 +1627,16 @@ export default function App() {
         audioEnabled={isAudioEnabled}
         childInsertionOnly={isMissionInsertionTarget}
         focusedSystemCardType={focusedSystemCardType}
+        mathKeyboardKeys={mathKeyboardKeys}
         user={authUser}
         layoutMode={layoutMode}
         onAudioEnabledChange={setIsAudioEnabled}
+        onAddMathKeyboardKey={handleAddMathKeyboardKey}
         onDeleteHoldChange={setIsDeleteHoldActive}
         onAddHoldChange={setIsAddHoldActive}
         onAddPreviewChange={setAddPreviewRelation}
         onLogout={resetSession}
+        onRemoveMathKeyboardKey={handleRemoveMathKeyboardKey}
         onToggleMode={handleToggleLayout}
         onCreateCard={handleCreateCard}
         disableCardInsertion={
