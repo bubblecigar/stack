@@ -62,7 +62,7 @@ export function MathNotationPalette({
             >
               {key.isSystem ? (
                 <MaterialCommunityIcons
-                  color="#64748B"
+                  color="#94A3B8"
                   name={SYSTEM_KEY_ICONS[key.systemKeyId]}
                   size={16}
                 />
