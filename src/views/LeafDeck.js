@@ -581,6 +581,19 @@ export function LeafDeck({
     };
   }
 
+  function isPointInsideTopCard(pageX, pageY) {
+    const bounds = topCardFrameBoundsRef.current;
+    return Boolean(
+      bounds
+      && typeof pageX === 'number'
+      && typeof pageY === 'number'
+      && pageX >= bounds.x
+      && pageX <= bounds.x + bounds.width
+      && pageY >= bounds.y
+      && pageY <= bounds.y + bounds.height,
+    );
+  }
+
   function handleDeckTouchEnd(event) {
     if (editingIndex !== null) {
       if (inputTouchRef.current) {
@@ -619,9 +632,21 @@ export function LeafDeck({
     const { pageX = 0, pageY = 0 } = event.nativeEvent;
     const deltaX = Math.abs(pageX - touchStartRef.current.pageX);
     const deltaY = Math.abs(pageY - touchStartRef.current.pageY);
+    const startedInsideTopCard = isPointInsideTopCard(
+      touchStartRef.current.pageX,
+      touchStartRef.current.pageY,
+    );
+    const endedInsideTopCard = isPointInsideTopCard(pageX, pageY);
     touchStartRef.current = null;
 
-    if (Math.max(deltaX, deltaY) > TAP_MOVE_TOLERANCE) {
+    if (
+      Math.max(deltaX, deltaY) > TAP_MOVE_TOLERANCE
+      || !startedInsideTopCard
+      || !endedInsideTopCard
+    ) {
+      lastTapRef.current = {
+        timestamp: 0,
+      };
       return;
     }
 
