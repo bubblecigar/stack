@@ -51,6 +51,10 @@ import {
 } from './src/lib/cardTraversal';
 import { getDailyVisibleCards } from './src/lib/cardVisibility';
 import {
+  getHiddenSystemCardIds,
+  getVisibleCardsExcludingIds,
+} from './src/lib/systemVisibility';
+import {
   playDoneStampSound,
   playLeafSwipeSound,
   playModeFlipSound,
@@ -343,9 +347,16 @@ export default function App() {
 
   const stack = useSyncExternalStore(subscribe, getSnapshot);
   const cards = useMemo(() => stack.map((card, index) => ({ ...card, index })), [stack]);
+  const hiddenSystemCardIds = useMemo(
+    () => getHiddenSystemCardIds(cards, [MISSION_CARD_ID]),
+    [cards],
+  );
   const dailyVisibleCards = useMemo(
-    () => getDailyVisibleCards(cards, MISSION_CARD_ID, currentDayReference),
-    [cards, currentDayReference],
+    () => getVisibleCardsExcludingIds(
+      getDailyVisibleCards(cards, MISSION_CARD_ID, currentDayReference),
+      hiddenSystemCardIds,
+    ),
+    [cards, currentDayReference, hiddenSystemCardIds],
   );
   const shouldRenderLeaf = layoutMode === 'leaf';
   const previousDayCompletedTaskCount = useMemo(
@@ -524,6 +535,17 @@ export default function App() {
       currentTop === null ? fallbackTopCard?.index ?? null : Math.min(currentTop, cards.length - 1)
     ));
   }, [cards.length, leafCards]);
+
+  useEffect(() => {
+    if (focusedCardId !== null && hiddenSystemCardIds.has(focusedCardId)) {
+      setFocusedCardIndex(null);
+    }
+
+    if (leafFocusedCardId !== null && hiddenSystemCardIds.has(leafFocusedCardId)) {
+      setLeafFocusedCardId(null);
+      setLeafTopIndex(null);
+    }
+  }, [focusedCardId, hiddenSystemCardIds, leafFocusedCardId]);
 
   useEffect(() => {
     if (!__DEV__) {
