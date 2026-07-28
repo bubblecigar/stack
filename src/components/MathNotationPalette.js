@@ -23,18 +23,21 @@ export function MathNotationPalette({
 
   return (
     <View
-      onTouchStart={onTouchStart}
-      pointerEvents={disabled ? 'none' : 'auto'}
+      pointerEvents={disabled ? 'none' : 'box-none'}
       style={[
         styles.mathNotationPalette,
         disabled && styles.mathNotationPaletteDisabled,
       ]}
     >
-      <View style={styles.mathNotationGrid}>
+      <View
+        pointerEvents="box-none"
+        style={styles.mathNotationGrid}
+      >
         {customKeys.map((key, keyIndex) => (
           key?.isEmpty ? (
             <View
               key={`math-notation-slot-${key.slotIndex ?? keyIndex}`}
+              pointerEvents="none"
               style={[
                 styles.mathNotationGridKey,
                 styles.mathNotationGridInvisibleKey,
@@ -46,6 +49,7 @@ export function MathNotationPalette({
               accessibilityRole="button"
               disabled={disabled}
               key={`math-notation-slot-${key.slotIndex ?? keyIndex}`}
+              onTouchStart={onTouchStart}
               onPress={() => {
                 if (key.action === 'delete') {
                   onDeleteNotation?.();

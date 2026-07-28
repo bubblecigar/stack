@@ -3,7 +3,6 @@ import {
   Dimensions,
   Easing,
   Image,
-  Keyboard,
   PanResponder,
   View,
 } from 'react-native';
@@ -613,7 +612,7 @@ export function LeafDeck({
       touchStartRef.current = null;
 
       if (Math.max(deltaX, deltaY) <= TAP_MOVE_TOLERANCE) {
-        Keyboard.dismiss();
+        onCompleteEdit?.(editingIndex, editingValue);
       }
 
       return;
