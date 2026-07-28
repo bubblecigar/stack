@@ -9,6 +9,7 @@ import {
   push,
   restoreRootTree,
   TREASURE_CARD_ID,
+  updateAt,
 } from '../../stackStore';
 
 describe('system cards', () => {
@@ -95,5 +96,13 @@ describe('system cards', () => {
 
     expect(restoreRootTree(rootId)).toBe(true);
     expect(getSnapshot().find((card) => card.id === rootId).parentIds).toEqual([]);
+  });
+
+  it('preserves whitespace when editing an existing card', () => {
+    const cardIndex = push('Formula');
+
+    updateAt(cardIndex, 'a + b \n ');
+
+    expect(getSnapshot()[cardIndex].text).toBe('a + b \n ');
   });
 });

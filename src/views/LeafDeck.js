@@ -3,12 +3,12 @@ import {
   Dimensions,
   Easing,
   Image,
-  Keyboard,
   PanResponder,
   View,
 } from 'react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { DeleteHoldIndicator } from '../components/DeleteHoldIndicator';
+import { MathNotationPalette } from '../components/MathNotationPalette';
 import { StackCard } from '../components/StackCard';
 import { styles } from '../styles/appStyles';
 
@@ -194,13 +194,19 @@ export function LeafDeck({
   visibleCount = DEFAULT_VISIBLE_COUNT,
   editingIndex,
   editingValue,
+  suppressEditingKeyboard = false,
   focusedCardIndex,
   focusedCardId: controlledFocusedCardId,
+  mathKeyboardKeys = [],
   collapsedNodeIds,
   onCreateEdit,
   onDeleteCard,
   onEditingValueChange,
+  onEditingSelectionChange,
   onCompleteEdit,
+  onDeleteMathNotation,
+  onInsertMathNotation,
+  editingSelection,
   onLeafSwipe,
   isDeleteHoldActive = false,
   isAddHoldActive = false,
@@ -258,6 +264,11 @@ export function LeafDeck({
   const activeCard = displayCard ?? topCard;
   const activeCardDone = Boolean(activeCard?.done);
   const canShowDoneStampControl = (
+    activeCard?.index >= 0
+    && !activeCard?.isMissionCard
+    && !activeCard?.isTreasureCard
+  );
+  const canUseMathNotationPalette = (
     activeCard?.index >= 0
     && !activeCard?.isMissionCard
     && !activeCard?.isTreasureCard
@@ -570,6 +581,19 @@ export function LeafDeck({
     };
   }
 
+  function isPointInsideTopCard(pageX, pageY) {
+    const bounds = topCardFrameBoundsRef.current;
+    return Boolean(
+      bounds
+      && typeof pageX === 'number'
+      && typeof pageY === 'number'
+      && pageX >= bounds.x
+      && pageX <= bounds.x + bounds.width
+      && pageY >= bounds.y
+      && pageY <= bounds.y + bounds.height,
+    );
+  }
+
   function handleDeckTouchEnd(event) {
     if (editingIndex !== null) {
       if (inputTouchRef.current) {
@@ -588,7 +612,7 @@ export function LeafDeck({
       touchStartRef.current = null;
 
       if (Math.max(deltaX, deltaY) <= TAP_MOVE_TOLERANCE) {
-        Keyboard.dismiss();
+        onCompleteEdit?.(editingIndex, editingValue);
       }
 
       return;
@@ -608,9 +632,21 @@ export function LeafDeck({
     const { pageX = 0, pageY = 0 } = event.nativeEvent;
     const deltaX = Math.abs(pageX - touchStartRef.current.pageX);
     const deltaY = Math.abs(pageY - touchStartRef.current.pageY);
+    const startedInsideTopCard = isPointInsideTopCard(
+      touchStartRef.current.pageX,
+      touchStartRef.current.pageY,
+    );
+    const endedInsideTopCard = isPointInsideTopCard(pageX, pageY);
     touchStartRef.current = null;
 
-    if (Math.max(deltaX, deltaY) > TAP_MOVE_TOLERANCE) {
+    if (
+      Math.max(deltaX, deltaY) > TAP_MOVE_TOLERANCE
+      || !startedInsideTopCard
+      || !endedInsideTopCard
+    ) {
+      lastTapRef.current = {
+        timestamp: 0,
+      };
       return;
     }
 
@@ -850,6 +886,7 @@ export function LeafDeck({
                 collapsedNodeIds={collapsedNodeIds}
                 editingIndex={shouldRenderActiveTopSlot ? editingIndex : null}
                 editingValue={shouldRenderActiveTopSlot ? editingValue : ''}
+                suppressEditingKeyboard={shouldRenderActiveTopSlot && suppressEditingKeyboard}
                 focusedCardIndex={focusedCardIndex}
                 focusedCardId={effectiveFocusedCardId}
                 hideControls
@@ -860,7 +897,9 @@ export function LeafDeck({
                 onCreateEdit={onCreateEdit}
                 onDeleteCard={onDeleteCard}
                 onEditingValueChange={onEditingValueChange}
+                onEditingSelectionChange={onEditingSelectionChange}
                 onCompleteEdit={onCompleteEdit}
+                editingSelection={shouldRenderActiveTopSlot ? editingSelection : undefined}
                 onPressIn={() => {
                   if (shouldRenderActiveTopSlot && editingIndex === activeCard.index) {
                     inputTouchRef.current = true;
@@ -911,7 +950,9 @@ export function LeafDeck({
                       onCreateEdit={onCreateEdit}
                       onDeleteCard={onDeleteCard}
                       onEditingValueChange={onEditingValueChange}
+                      onEditingSelectionChange={onEditingSelectionChange}
                       onCompleteEdit={onCompleteEdit}
+                      editingSelection={undefined}
                       onToggleCollapse={() => {}}
                       leafContentMode="none"
                     />
@@ -984,7 +1025,9 @@ export function LeafDeck({
             onCreateEdit={onCreateEdit}
             onDeleteCard={onDeleteCard}
             onEditingValueChange={onEditingValueChange}
+            onEditingSelectionChange={onEditingSelectionChange}
             onCompleteEdit={onCompleteEdit}
+            editingSelection={undefined}
             onToggleCollapse={() => {}}
             leafContentMode="placeholder"
           />
@@ -1036,6 +1079,15 @@ export function LeafDeck({
           />
         </>
       ) : null}
+      <MathNotationPalette
+        disabled={!canUseMathNotationPalette}
+        keys={mathKeyboardKeys}
+        onDeleteNotation={onDeleteMathNotation}
+        onInsertNotation={onInsertMathNotation}
+        onTouchStart={() => {
+          inputTouchRef.current = true;
+        }}
+      />
     </View>
   );
 }

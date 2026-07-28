@@ -7,6 +7,7 @@ import {
   PanResponder,
   Pressable,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -14,6 +15,10 @@ import {
   useEffect, useMemo, useRef, useState,
 } from 'react';
 import { constrainAddRelation } from '../lib/cardInsertion';
+import {
+  MATH_KEYBOARD_GRID_COLUMNS,
+  MATH_KEYBOARD_GRID_ROWS,
+} from '../lib/mathKeyboardConfig';
 import { styles } from '../styles/appStyles';
 
 const voidStampImage = require('../../assets/card/void_stamp_gray.png');
@@ -34,6 +39,7 @@ const SETTINGS_PANEL_TRIGGER_DRAG_Y = -160;
 const SETTINGS_PANEL_CENTER_OFFSET_X = 0;
 const SETTINGS_PANEL_CENTER_OFFSET_Y = -(SCREEN_HEIGHT / 2 + 70);
 const SETTINGS_PANEL_TOGGLE_DURATION_MS = 260;
+const MATH_KEYBOARD_DRAG_THRESHOLD = 8;
 const SYSTEM_CARD_EXPLANATIONS = {
   mission: {
     body: 'Print these cards to your card list. Use them to give your day a clear direction and a simple place to begin.',
@@ -43,6 +49,11 @@ const SYSTEM_CARD_EXPLANATIONS = {
     body: 'All ideas are treasures.\nWrite them down, think and drop.',
     title: 'Treasure',
   },
+};
+const SYSTEM_MATH_KEY_ICONS = {
+  delete: 'backspace-outline',
+  newline: 'keyboard-return',
+  space: 'keyboard-space',
 };
 
 function clamp(value, min, max) {
@@ -147,10 +158,15 @@ function getCalendarDays(date) {
   return [...cells, ...trailingBlankCells];
 }
 
+function getMathKeyboardDraftValues(keys) {
+  return (Array.isArray(keys) ? keys : []).map((key) => key?.label || '');
+}
+
 export function FloatingControls({
   layoutMode,
   user = null,
   audioEnabled = true,
+  mathKeyboardKeys = [],
   onToggleMode,
   onCreateCard,
   onAudioEnabledChange,
@@ -158,6 +174,8 @@ export function FloatingControls({
   onAddHoldChange,
   onDeleteHoldChange,
   onLogout,
+  onMoveMathKeyboardKey,
+  onUpdateMathKeyboardKey,
   canDeleteCurrentCard = false,
   childInsertionOnly = false,
   disableCardInsertion = false,
@@ -173,6 +191,13 @@ export function FloatingControls({
   const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(false);
   const [settingsPanelOffsetX, setSettingsPanelOffsetX] = useState(0);
   const [settingsPanelOffsetY, setSettingsPanelOffsetY] = useState(0);
+  const [mathKeyboardDraftValues, setMathKeyboardDraftValues] = useState(
+    () => getMathKeyboardDraftValues(mathKeyboardKeys),
+  );
+  const [mathKeyboardDragState, setMathKeyboardDragState] = useState({
+    sourceIndex: null,
+    targetIndex: null,
+  });
   const [currentTime, setCurrentTime] = useState(() => new Date());
   const flipProgress = useRef(new Animated.Value(layoutMode === 'tree' ? 1 : 0)).current;
   const deleteSlideProgress = useRef(new Animated.Value(shouldShowDelete ? 1 : 0)).current;
@@ -183,6 +208,19 @@ export function FloatingControls({
     pageX: 0,
     pageY: 0,
   });
+  const mathKeyboardGridRef = useRef(null);
+  const mathKeyboardGridLayoutRef = useRef({
+    height: 0,
+    pageX: 0,
+    pageY: 0,
+    width: 0,
+  });
+  const mathKeyboardDragSourceIndexRef = useRef(null);
+  const mathKeyboardDragStartRef = useRef({
+    pageX: 0,
+    pageY: 0,
+  });
+  const mathKeyboardInputRefs = useRef([]);
 
   useEffect(() => {
     Animated.timing(flipProgress, {
@@ -195,6 +233,10 @@ export function FloatingControls({
     flipProgress,
     layoutMode,
   ]);
+
+  useEffect(() => {
+    setMathKeyboardDraftValues(getMathKeyboardDraftValues(mathKeyboardKeys));
+  }, [mathKeyboardKeys]);
 
   useEffect(() => {
     if (shouldShowDelete) {
@@ -460,6 +502,236 @@ export function FloatingControls({
     );
   }
 
+  function renderMathKeyboardConfig() {
+    const canEditMathKeyboardConfig = isSettingsPanelOpen;
+
+    function updateGridLayoutFromRef() {
+      mathKeyboardGridRef.current?.measureInWindow?.((pageX, pageY, width, height) => {
+        mathKeyboardGridLayoutRef.current = {
+          height,
+          pageX,
+          pageY,
+          width,
+        };
+      });
+    }
+
+    function getMathKeyboardSlotIndexFromPoint(pageX, pageY) {
+      const layout = mathKeyboardGridLayoutRef.current;
+      if (
+        !layout.width
+        || !layout.height
+        || pageX < layout.pageX
+        || pageX > layout.pageX + layout.width
+        || pageY < layout.pageY
+        || pageY > layout.pageY + layout.height
+      ) {
+        return null;
+      }
+
+      const column = clamp(
+        Math.floor(((pageX - layout.pageX) / layout.width) * MATH_KEYBOARD_GRID_COLUMNS),
+        0,
+        MATH_KEYBOARD_GRID_COLUMNS - 1,
+      );
+      const row = clamp(
+        Math.floor(((pageY - layout.pageY) / layout.height) * MATH_KEYBOARD_GRID_ROWS),
+        0,
+        MATH_KEYBOARD_GRID_ROWS - 1,
+      );
+
+      return (row * MATH_KEYBOARD_GRID_COLUMNS) + column;
+    }
+
+    function canDragMathKeyboardKey(key) {
+      return canEditMathKeyboardConfig && !key?.isReserved;
+    }
+
+    function handleMathKeyboardKeyDragStart(event, keyIndex) {
+      if (!canEditMathKeyboardConfig) {
+        return;
+      }
+
+      mathKeyboardDragSourceIndexRef.current = keyIndex;
+      mathKeyboardDragStartRef.current = {
+        pageX: event.nativeEvent.pageX,
+        pageY: event.nativeEvent.pageY,
+      };
+      setMathKeyboardDragState({
+        sourceIndex: keyIndex,
+        targetIndex: keyIndex,
+      });
+      updateGridLayoutFromRef();
+    }
+
+    function handleMathKeyboardKeyDragMove(event) {
+      if (!canEditMathKeyboardConfig) {
+        return;
+      }
+
+      const sourceIndex = mathKeyboardDragSourceIndexRef.current;
+      if (sourceIndex === null) {
+        return;
+      }
+
+      const targetIndex = getMathKeyboardSlotIndexFromPoint(
+        event.nativeEvent.pageX,
+        event.nativeEvent.pageY,
+      );
+      const targetKey = targetIndex === null
+        ? null
+        : mathKeyboardKeys[targetIndex];
+      const nextTargetIndex = targetIndex !== null && !targetKey?.isReserved
+        ? targetIndex
+        : null;
+
+      setMathKeyboardDragState((currentState) => (
+        currentState.sourceIndex === sourceIndex
+        && currentState.targetIndex === nextTargetIndex
+          ? currentState
+          : {
+            sourceIndex,
+            targetIndex: nextTargetIndex,
+          }
+      ));
+    }
+
+    function handleMathKeyboardKeyDragRelease(event) {
+      const sourceIndex = mathKeyboardDragSourceIndexRef.current;
+      mathKeyboardDragSourceIndexRef.current = null;
+      setMathKeyboardDragState({
+        sourceIndex: null,
+        targetIndex: null,
+      });
+
+      if (sourceIndex === null) {
+        return;
+      }
+
+      if (!canEditMathKeyboardConfig) {
+        return;
+      }
+
+      const dragDistance = Math.hypot(
+        event.nativeEvent.pageX - mathKeyboardDragStartRef.current.pageX,
+        event.nativeEvent.pageY - mathKeyboardDragStartRef.current.pageY,
+      );
+      const sourceKey = mathKeyboardKeys[sourceIndex];
+
+      if (dragDistance < MATH_KEYBOARD_DRAG_THRESHOLD) {
+        if (!sourceKey?.isSystem && !sourceKey?.isReserved) {
+          mathKeyboardInputRefs.current[sourceIndex]?.focus?.();
+        }
+        return;
+      }
+
+      const targetIndex = getMathKeyboardSlotIndexFromPoint(
+        event.nativeEvent.pageX,
+        event.nativeEvent.pageY,
+      );
+
+      if (targetIndex === null) {
+        return;
+      }
+
+      onMoveMathKeyboardKey?.(sourceIndex, targetIndex);
+    }
+
+    function updateDraftKey(keyIndex, nextValue) {
+      if (!canEditMathKeyboardConfig) {
+        return;
+      }
+
+      setMathKeyboardDraftValues((currentValues) => {
+        const nextValues = [...currentValues];
+        nextValues[keyIndex] = nextValue;
+        return nextValues;
+      });
+    }
+
+    function commitDraftKey(keyIndex) {
+      if (!canEditMathKeyboardConfig) {
+        return;
+      }
+
+      onUpdateMathKeyboardKey?.(
+        keyIndex,
+        mathKeyboardDraftValues[keyIndex] ?? '',
+      );
+    }
+
+    return (
+      <View
+        onStartShouldSetResponder={() => canEditMathKeyboardConfig}
+        style={styles.addCardMathKeyboardConfig}
+      >
+        <View
+          onLayout={updateGridLayoutFromRef}
+          ref={mathKeyboardGridRef}
+          style={styles.addCardMathKeyboardGrid}
+        >
+          {mathKeyboardKeys.map((key, keyIndex) => (
+            <View
+              key={`math-keyboard-config-slot-${keyIndex}`}
+              style={[
+                styles.addCardMathKeyboardKey,
+                key.isEmpty && styles.addCardMathKeyboardEmptyKey,
+                key.isReserved && styles.addCardMathKeyboardReservedKey,
+                key.isSystem && styles.addCardMathKeyboardSystemKey,
+                mathKeyboardDragState.targetIndex === keyIndex
+                  && mathKeyboardDragState.sourceIndex !== keyIndex
+                  && styles.addCardMathKeyboardDropTargetKey,
+                mathKeyboardDragState.sourceIndex === keyIndex
+                  && styles.addCardMathKeyboardDraggingKey,
+              ]}
+              onResponderGrant={(event) => handleMathKeyboardKeyDragStart(event, keyIndex)}
+              onResponderMove={handleMathKeyboardKeyDragMove}
+              onResponderRelease={handleMathKeyboardKeyDragRelease}
+              onResponderTerminationRequest={() => false}
+              onResponderTerminate={() => {
+                mathKeyboardDragSourceIndexRef.current = null;
+                setMathKeyboardDragState({
+                  sourceIndex: null,
+                  targetIndex: null,
+                });
+              }}
+              onStartShouldSetResponder={() => canDragMathKeyboardKey(key)}
+            >
+              {key.isReserved ? null : key.isSystem ? (
+                <MaterialCommunityIcons
+                  color="#94A3B8"
+                  name={SYSTEM_MATH_KEY_ICONS[key.systemKeyId]}
+                  size={16}
+                />
+              ) : (
+                <TextInput
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  numberOfLines={1}
+                  onBlur={() => commitDraftKey(keyIndex)}
+                  onChangeText={(nextValue) => updateDraftKey(keyIndex, nextValue)}
+                  onSubmitEditing={() => commitDraftKey(keyIndex)}
+                  editable={canEditMathKeyboardConfig}
+                  pointerEvents="none"
+                  ref={(inputRef) => {
+                    mathKeyboardInputRefs.current[keyIndex] = inputRef;
+                  }}
+                  returnKeyType="done"
+                  selectTextOnFocus
+                  style={[
+                    styles.addCardMathKeyboardKeyInput,
+                    key.isEmpty && styles.addCardMathKeyboardEmptyKeyInput,
+                  ]}
+                  value={mathKeyboardDraftValues[keyIndex] ?? key.label}
+                />
+              )}
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  }
+
   return (
     <>
       {shouldRenderDelete ? (
@@ -560,6 +832,7 @@ export function FloatingControls({
             ]}
           >
             <Animated.View
+              pointerEvents={layoutMode === 'leaf' ? 'box-none' : 'none'}
               style={[
                 styles.addCardButton,
                 styles.addCardFace,
@@ -599,14 +872,18 @@ export function FloatingControls({
                   </Text>
                 </View>
               ) : (
-                <View style={styles.addCardButtonChrono}>
-                  <Text style={styles.addCardButtonChronoText}>
-                    {controlTimeLabel}
-                  </Text>
-                </View>
+                <>
+                  <View style={styles.addCardButtonChrono}>
+                    <Text style={styles.addCardButtonChronoText}>
+                      {controlTimeLabel}
+                    </Text>
+                  </View>
+                  {renderMathKeyboardConfig()}
+                </>
               )}
             </Animated.View>
             <Animated.View
+              pointerEvents={layoutMode === 'tree' ? 'box-none' : 'none'}
               style={[
                 styles.addCardButton,
                 styles.addCardFace,

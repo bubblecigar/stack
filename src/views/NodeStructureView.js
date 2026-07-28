@@ -5,7 +5,6 @@ import {
   View,
 } from 'react-native';
 import AntDesign from '@expo/vector-icons/AntDesign';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { buildTreeLayout } from '../lib/treeLayout';
 import { buildPreviewCards, PREVIEW_CARD_ID } from '../lib/previewCards';
@@ -24,12 +23,12 @@ const LEAF_STACK_HEIGHT = 360;
 const LEAF_ADD_CARD_VISIBLE_TOP_OFFSET = 90;
 
 function SystemMapNode({ entry }) {
-  const Icon = entry.card.isMissionCard ? AntDesign : MaterialCommunityIcons;
+  const Icon = AntDesign;
 
   return (
     <Icon
       color={entry.isSystemFocusActive ? '#0EA5E9' : '#94A3B8'}
-      name={entry.card.isMissionCard ? 'printer' : 'treasure-chest-outline'}
+      name={entry.card.isMissionCard ? 'printer' : 'star'}
       size={11}
       style={[
         styles.nodeViewMapTreasureStar,

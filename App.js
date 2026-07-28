@@ -55,6 +55,10 @@ import {
   getVisibleCardsExcludingIds,
 } from './src/lib/systemVisibility';
 import {
+  deleteTextAtSelection,
+  insertTextAtSelection,
+} from './src/lib/textEditActions';
+import {
   playDoneStampSound,
   playLeafSwipeSound,
   playModeFlipSound,
@@ -63,6 +67,15 @@ import {
 } from './src/lib/soundEffects';
 import { getStoredUiState, normalizeUiState, setStoredUiState } from './src/lib/uiStateStore';
 import { ensureDailyReminderScheduled } from './src/lib/dailyReminder';
+import {
+  moveMathKeyboardKey,
+  normalizeMathKeyboardKeys,
+  updateMathKeyboardKeyAt,
+} from './src/lib/mathKeyboardConfig';
+import {
+  getStoredMathKeyboardKeys,
+  setStoredMathKeyboardKeys,
+} from './src/lib/mathKeyboardStore';
 import { styles } from './src/styles/appStyles';
 
 const LEAF_VISIBLE_COUNT = 5;
@@ -333,6 +346,8 @@ export default function App() {
   const [syncError, setSyncError] = useState('');
   const [editingIndex, setEditingIndex] = useState(null);
   const [editingValue, setEditingValue] = useState('');
+  const [editingSelection, setEditingSelection] = useState(null);
+  const [suppressEditingKeyboard, setSuppressEditingKeyboard] = useState(false);
   const [focusedCardIndex, setFocusedCardIndex] = useState(null);
   const [layoutMode, setLayoutMode] = useState('leaf');
   const [collapsedNodeIds, setCollapsedNodeIds] = useState(() => new Set());
@@ -342,6 +357,7 @@ export default function App() {
   const [addPreviewRelation, setAddPreviewRelation] = useState(null);
   const [isAddHoldActive, setIsAddHoldActive] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+  const [mathKeyboardKeys, setMathKeyboardKeys] = useState(() => normalizeMathKeyboardKeys([]));
   const [currentDayReference, setCurrentDayReference] = useState(() => Date.now());
   const [treeCompletionCanvas, setTreeCompletionCanvas] = useState(EMPTY_TREE_COMPLETION_CANVAS);
 
@@ -453,6 +469,23 @@ export default function App() {
     if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
       UIManager.setLayoutAnimationEnabledExperimental(true);
     }
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadMathKeyboardKeys() {
+      const storedKeys = await getStoredMathKeyboardKeys();
+      if (isMounted) {
+        setMathKeyboardKeys(storedKeys);
+      }
+    }
+
+    loadMathKeyboardKeys();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -582,6 +615,7 @@ export default function App() {
     setSyncError('');
     setEditingIndex(null);
     setEditingValue('');
+    setEditingSelection(null);
     setFocusedCardIndex(null);
     setLeafTopIndex(null);
     setLeafFocusedCardId(null);
@@ -799,7 +833,9 @@ export default function App() {
     }
 
     setEditingIndex(nextIndex);
+    setSuppressEditingKeyboard(false);
     setEditingValue('');
+    setEditingSelection({ start: 0, end: 0 });
     setFocusedCardIndex(nextIndex);
     setLeafTopIndex(nextIndex);
   }
@@ -810,7 +846,10 @@ export default function App() {
     }
 
     setEditingIndex(index);
+    setSuppressEditingKeyboard(false);
     setEditingValue(text);
+    const textLength = String(text || '').length;
+    setEditingSelection({ start: textLength, end: textLength });
     setFocusedCardIndex(index);
     setLeafTopIndex(index);
   }
@@ -822,7 +861,9 @@ export default function App() {
 
     updateAt(index, value);
     setEditingIndex(null);
+    setSuppressEditingKeyboard(false);
     setEditingValue('');
+    setEditingSelection(null);
   }
 
   function handleConfirmEdit() {
@@ -966,6 +1007,7 @@ export default function App() {
     if (nextEditingIndex === null) {
       setEditingIndex(null);
       setEditingValue('');
+      setEditingSelection(null);
     } else if (nextEditingIndex !== editingIndex) {
       setEditingIndex(nextEditingIndex);
     }
@@ -1084,6 +1126,7 @@ export default function App() {
     setFocusedCardIndex(null);
     setEditingIndex(null);
     setEditingValue('');
+    setEditingSelection(null);
     setIsDeleteHoldActive(false);
     setAddPreviewRelation(null);
   }
@@ -1097,6 +1140,7 @@ export default function App() {
     setFocusedCardIndex(adoptedIndex);
     setEditingIndex(null);
     setEditingValue('');
+    setEditingSelection(null);
     setIsDeleteHoldActive(false);
     setAddPreviewRelation(null);
   }
@@ -1111,6 +1155,7 @@ export default function App() {
     setFocusedCardIndex(rootCard.index);
     setEditingIndex(null);
     setEditingValue('');
+    setEditingSelection(null);
     setIsDeleteHoldActive(false);
     setAddPreviewRelation(null);
   }
@@ -1313,6 +1358,93 @@ export default function App() {
     playDoneStampSound();
   }
 
+  function persistMathKeyboardKeys(nextKeys) {
+    setMathKeyboardKeys(nextKeys);
+    setStoredMathKeyboardKeys(nextKeys).catch(() => {});
+  }
+
+  function handleUpdateMathKeyboardKey(index, value) {
+    persistMathKeyboardKeys(updateMathKeyboardKeyAt(mathKeyboardKeys, index, value));
+  }
+
+  function handleMoveMathKeyboardKey(sourceIndex, targetIndex) {
+    persistMathKeyboardKeys(moveMathKeyboardKey(mathKeyboardKeys, sourceIndex, targetIndex));
+  }
+
+  function getMathNotationTarget() {
+    const targetIndex = visibleTopCardIndex;
+    if (targetIndex === null || targetIndex < 0) {
+      return null;
+    }
+
+    const targetCard = cards[targetIndex];
+    if (!targetCard || isSystemCard(targetCard)) {
+      return null;
+    }
+
+    const isEditingTargetCard = editingIndex === targetIndex;
+    const currentValue = isEditingTargetCard
+      ? editingValue
+      : String(targetCard.text || '');
+    const selection = isEditingTargetCard && editingSelection
+      ? editingSelection
+      : { start: currentValue.length, end: currentValue.length };
+
+    return {
+      currentValue,
+      isEditingTargetCard,
+      selection,
+      targetCard,
+      targetIndex,
+    };
+  }
+
+  function applyMathNotationEdit(target, nextValue, nextSelection) {
+    setEditingIndex(target.targetIndex);
+    setSuppressEditingKeyboard(true);
+    setEditingValue(nextValue);
+    setEditingSelection(nextSelection);
+
+    setFocusedCardIndex(target.targetIndex);
+    setLeafTopIndex(target.targetIndex);
+    setLeafFocusedCardId(target.targetCard.id);
+  }
+
+  function handleInsertMathNotation(notation) {
+    if (!shouldRenderLeaf || notation === null || notation === undefined) {
+      return;
+    }
+
+    const target = getMathNotationTarget();
+    if (!target) {
+      return;
+    }
+
+    const { nextValue, nextSelection } = insertTextAtSelection(
+      target.currentValue,
+      notation,
+      target.selection,
+    );
+    applyMathNotationEdit(target, nextValue, nextSelection);
+  }
+
+  function handleDeleteMathNotation() {
+    if (!shouldRenderLeaf) {
+      return;
+    }
+
+    const target = getMathNotationTarget();
+    if (!target) {
+      return;
+    }
+
+    const { nextValue, nextSelection } = deleteTextAtSelection(
+      target.currentValue,
+      target.selection,
+    );
+    applyMathNotationEdit(target, nextValue, nextSelection);
+  }
+
   useEffect(() => {
     if (!shouldRenderLeaf) {
       return;
@@ -1417,6 +1549,7 @@ export default function App() {
 
     setEditingIndex(null);
     setEditingValue('');
+    setEditingSelection(null);
   }
 
   if (
@@ -1470,13 +1603,19 @@ export default function App() {
             visibleCount={LEAF_VISIBLE_COUNT}
             editingIndex={editingIndex}
             editingValue={editingValue}
+            editingSelection={editingSelection}
+            suppressEditingKeyboard={suppressEditingKeyboard}
+            mathKeyboardKeys={mathKeyboardKeys}
             focusedCardIndex={effectiveLeafFocusedIndex}
             focusedCardId={leafFocusedCardId}
             collapsedNodeIds={collapsedNodeIds}
             onCreateEdit={handleToggleEdit}
             onDeleteCard={handleDeleteCard}
             onEditingValueChange={setEditingValue}
+            onEditingSelectionChange={setEditingSelection}
             onCompleteEdit={handleCompleteEdit}
+            onDeleteMathNotation={handleDeleteMathNotation}
+            onInsertMathNotation={handleInsertMathNotation}
             onLeafSwipe={handleLeafSwipe}
             isDeleteHoldActive={isDeleteHoldActive}
             isAddHoldActive={isAddHoldActive}
@@ -1526,6 +1665,7 @@ export default function App() {
         audioEnabled={isAudioEnabled}
         childInsertionOnly={isMissionInsertionTarget}
         focusedSystemCardType={focusedSystemCardType}
+        mathKeyboardKeys={mathKeyboardKeys}
         user={authUser}
         layoutMode={layoutMode}
         onAudioEnabledChange={setIsAudioEnabled}
@@ -1533,6 +1673,8 @@ export default function App() {
         onAddHoldChange={setIsAddHoldActive}
         onAddPreviewChange={setAddPreviewRelation}
         onLogout={resetSession}
+        onMoveMathKeyboardKey={handleMoveMathKeyboardKey}
+        onUpdateMathKeyboardKey={handleUpdateMathKeyboardKey}
         onToggleMode={handleToggleLayout}
         onCreateCard={handleCreateCard}
         disableCardInsertion={
