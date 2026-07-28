@@ -1103,11 +1103,8 @@ export const styles = StyleSheet.create({
     opacity: 1,
   },
   addCardMathKeyboardSystemKey: {
-    backgroundColor: 'rgba(226, 232, 240, 0.58)',
-    borderTopColor: '#FFFFFF',
-    borderLeftColor: '#FFFFFF',
-    borderRightColor: '#CBD5E1',
-    borderBottomColor: '#CBD5E1',
+    backgroundColor: 'rgba(203, 213, 225, 0.42)',
+    borderColor: '#CBD5E1',
   },
   addCardMathKeyboardDropTargetKey: {
     backgroundColor: 'rgba(14, 165, 233, 0.12)',

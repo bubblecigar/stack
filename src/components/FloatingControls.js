@@ -677,7 +677,7 @@ export function FloatingControls({
             >
               {key.isReserved ? null : key.isSystem ? (
                 <MaterialCommunityIcons
-                  color="#64748B"
+                  color="#94A3B8"
                   name={SYSTEM_MATH_KEY_ICONS[key.systemKeyId]}
                   size={16}
                 />
