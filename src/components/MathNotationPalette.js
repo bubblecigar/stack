@@ -1,6 +1,5 @@
 import {
   Pressable,
-  ScrollView,
   Text,
   View,
 } from 'react-native';
@@ -33,14 +32,7 @@ export function MathNotationPalette({
   onDeleteNotation,
   onInsertNotation,
 }) {
-  const visibleKeys = [
-    ...SYSTEM_MATH_KEYS,
-    ...(Array.isArray(keys) ? keys.filter((key) => !key?.isEmpty) : []),
-  ];
-
-  if (visibleKeys.length === 0) {
-    return null;
-  }
+  const customKeys = Array.isArray(keys) ? keys : [];
 
   return (
     <View
@@ -51,31 +43,59 @@ export function MathNotationPalette({
         disabled && styles.mathNotationPaletteDisabled,
       ]}
     >
-      <ScrollView
-        horizontal
-        keyboardShouldPersistTaps="always"
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.mathNotationPaletteScroll}
-      >
-        <View style={styles.mathNotationGroup}>
-          {visibleKeys.map((key, keyIndex) => (
+      <View style={styles.mathNotationSystemRow}>
+        {SYSTEM_MATH_KEYS.map((key) => (
+          <Pressable
+            accessibilityLabel={key.action === 'delete'
+              ? 'Delete previous character'
+              : `Insert ${key.label}`}
+            accessibilityRole="button"
+            disabled={disabled}
+            key={key.id}
+            onPress={() => {
+              if (key.action === 'delete') {
+                onDeleteNotation?.();
+                return;
+              }
+
+              onInsertNotation?.(key.insert);
+            }}
+            style={({ pressed }) => [
+              styles.mathNotationSystemKey,
+              pressed && styles.mathNotationKeyPressed,
+            ]}
+          >
+            <Text
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              style={styles.mathNotationKeyText}
+            >
+              {key.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+      <View style={styles.mathNotationGrid}>
+        {customKeys.map((key, keyIndex) => (
+          key?.isEmpty ? (
+            <View
+              key={`math-notation-slot-${key.slotIndex ?? keyIndex}`}
+              style={[
+                styles.mathNotationGridKey,
+                styles.mathNotationGridEmptyKey,
+              ]}
+            />
+          ) : (
             <Pressable
-              accessibilityLabel={key.action === 'delete'
-                ? 'Delete previous character'
-                : `Insert ${key.label}`}
+              accessibilityLabel={`Insert ${key.label}`}
               accessibilityRole="button"
               disabled={disabled}
-              key={`${key.id}-${keyIndex}`}
+              key={`math-notation-slot-${key.slotIndex ?? keyIndex}`}
               onPress={() => {
-                if (key.action === 'delete') {
-                  onDeleteNotation?.();
-                  return;
-                }
-
                 onInsertNotation?.(key.insert);
               }}
               style={({ pressed }) => [
-                styles.mathNotationKey,
+                styles.mathNotationGridKey,
                 pressed && styles.mathNotationKeyPressed,
               ]}
             >
@@ -87,9 +107,9 @@ export function MathNotationPalette({
                 {key.label}
               </Text>
             </Pressable>
-          ))}
-        </View>
-      </ScrollView>
+          )
+        ))}
+      </View>
     </View>
   );
 }
