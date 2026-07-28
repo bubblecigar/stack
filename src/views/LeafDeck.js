@@ -195,6 +195,7 @@ export function LeafDeck({
   visibleCount = DEFAULT_VISIBLE_COUNT,
   editingIndex,
   editingValue,
+  suppressEditingKeyboard = false,
   focusedCardIndex,
   focusedCardId: controlledFocusedCardId,
   mathKeyboardKeys = [],
@@ -886,6 +887,7 @@ export function LeafDeck({
                 collapsedNodeIds={collapsedNodeIds}
                 editingIndex={shouldRenderActiveTopSlot ? editingIndex : null}
                 editingValue={shouldRenderActiveTopSlot ? editingValue : ''}
+                suppressEditingKeyboard={shouldRenderActiveTopSlot && suppressEditingKeyboard}
                 focusedCardIndex={focusedCardIndex}
                 focusedCardId={effectiveFocusedCardId}
                 hideControls

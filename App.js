@@ -347,6 +347,7 @@ export default function App() {
   const [editingIndex, setEditingIndex] = useState(null);
   const [editingValue, setEditingValue] = useState('');
   const [editingSelection, setEditingSelection] = useState(null);
+  const [suppressEditingKeyboard, setSuppressEditingKeyboard] = useState(false);
   const [focusedCardIndex, setFocusedCardIndex] = useState(null);
   const [layoutMode, setLayoutMode] = useState('leaf');
   const [collapsedNodeIds, setCollapsedNodeIds] = useState(() => new Set());
@@ -832,6 +833,7 @@ export default function App() {
     }
 
     setEditingIndex(nextIndex);
+    setSuppressEditingKeyboard(false);
     setEditingValue('');
     setEditingSelection({ start: 0, end: 0 });
     setFocusedCardIndex(nextIndex);
@@ -844,6 +846,7 @@ export default function App() {
     }
 
     setEditingIndex(index);
+    setSuppressEditingKeyboard(false);
     setEditingValue(text);
     const textLength = String(text || '').length;
     setEditingSelection({ start: textLength, end: textLength });
@@ -858,6 +861,7 @@ export default function App() {
 
     updateAt(index, value);
     setEditingIndex(null);
+    setSuppressEditingKeyboard(false);
     setEditingValue('');
     setEditingSelection(null);
   }
@@ -1396,12 +1400,10 @@ export default function App() {
   }
 
   function applyMathNotationEdit(target, nextValue, nextSelection) {
-    if (target.isEditingTargetCard) {
-      setEditingValue(nextValue);
-      setEditingSelection(nextSelection);
-    } else {
-      updateAt(target.targetIndex, nextValue);
-    }
+    setEditingIndex(target.targetIndex);
+    setSuppressEditingKeyboard(true);
+    setEditingValue(nextValue);
+    setEditingSelection(nextSelection);
 
     setFocusedCardIndex(target.targetIndex);
     setLeafTopIndex(target.targetIndex);
@@ -1602,6 +1604,7 @@ export default function App() {
             editingIndex={editingIndex}
             editingValue={editingValue}
             editingSelection={editingSelection}
+            suppressEditingKeyboard={suppressEditingKeyboard}
             mathKeyboardKeys={mathKeyboardKeys}
             focusedCardIndex={effectiveLeafFocusedIndex}
             focusedCardId={leafFocusedCardId}
