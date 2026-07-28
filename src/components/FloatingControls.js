@@ -39,6 +39,7 @@ const SETTINGS_PANEL_TRIGGER_DRAG_Y = -160;
 const SETTINGS_PANEL_CENTER_OFFSET_X = 0;
 const SETTINGS_PANEL_CENTER_OFFSET_Y = -(SCREEN_HEIGHT / 2 + 70);
 const SETTINGS_PANEL_TOGGLE_DURATION_MS = 260;
+const MATH_KEYBOARD_DRAG_THRESHOLD = 8;
 const SYSTEM_CARD_EXPLANATIONS = {
   mission: {
     body: 'Print these cards to your card list. Use them to give your day a clear direction and a simple place to begin.',
@@ -211,6 +212,11 @@ export function FloatingControls({
     width: 0,
   });
   const mathKeyboardDragSourceIndexRef = useRef(null);
+  const mathKeyboardDragStartRef = useRef({
+    pageX: 0,
+    pageY: 0,
+  });
+  const mathKeyboardInputRefs = useRef([]);
 
   useEffect(() => {
     Animated.timing(flipProgress, {
@@ -531,16 +537,37 @@ export function FloatingControls({
       return (row * MATH_KEYBOARD_GRID_COLUMNS) + column;
     }
 
-    function handleMathKeyboardSystemDragStart(keyIndex) {
+    function canDragMathKeyboardKey(key) {
+      return !key?.isReserved;
+    }
+
+    function handleMathKeyboardKeyDragStart(event, keyIndex) {
       mathKeyboardDragSourceIndexRef.current = keyIndex;
+      mathKeyboardDragStartRef.current = {
+        pageX: event.nativeEvent.pageX,
+        pageY: event.nativeEvent.pageY,
+      };
       updateGridLayoutFromRef();
     }
 
-    function handleMathKeyboardSystemDragRelease(event) {
+    function handleMathKeyboardKeyDragRelease(event) {
       const sourceIndex = mathKeyboardDragSourceIndexRef.current;
       mathKeyboardDragSourceIndexRef.current = null;
 
       if (sourceIndex === null) {
+        return;
+      }
+
+      const dragDistance = Math.hypot(
+        event.nativeEvent.pageX - mathKeyboardDragStartRef.current.pageX,
+        event.nativeEvent.pageY - mathKeyboardDragStartRef.current.pageY,
+      );
+      const sourceKey = mathKeyboardKeys[sourceIndex];
+
+      if (dragDistance < MATH_KEYBOARD_DRAG_THRESHOLD) {
+        if (!sourceKey?.isSystem && !sourceKey?.isReserved) {
+          mathKeyboardInputRefs.current[sourceIndex]?.focus?.();
+        }
         return;
       }
 
@@ -590,12 +617,13 @@ export function FloatingControls({
                 key.isReserved && styles.addCardMathKeyboardReservedKey,
                 key.isSystem && styles.addCardMathKeyboardSystemKey,
               ]}
-              onResponderGrant={() => handleMathKeyboardSystemDragStart(keyIndex)}
-              onResponderRelease={handleMathKeyboardSystemDragRelease}
+              onResponderGrant={(event) => handleMathKeyboardKeyDragStart(event, keyIndex)}
+              onResponderRelease={handleMathKeyboardKeyDragRelease}
+              onResponderTerminationRequest={() => false}
               onResponderTerminate={() => {
                 mathKeyboardDragSourceIndexRef.current = null;
               }}
-              onStartShouldSetResponder={() => Boolean(key.isSystem)}
+              onStartShouldSetResponder={() => canDragMathKeyboardKey(key)}
             >
               {key.isReserved ? null : key.isSystem ? (
                 <MaterialCommunityIcons
@@ -611,6 +639,10 @@ export function FloatingControls({
                   onBlur={() => commitDraftKey(keyIndex)}
                   onChangeText={(nextValue) => updateDraftKey(keyIndex, nextValue)}
                   onSubmitEditing={() => commitDraftKey(keyIndex)}
+                  pointerEvents="none"
+                  ref={(inputRef) => {
+                    mathKeyboardInputRefs.current[keyIndex] = inputRef;
+                  }}
                   returnKeyType="done"
                   selectTextOnFocus
                   style={[
