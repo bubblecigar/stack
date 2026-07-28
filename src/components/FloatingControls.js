@@ -49,6 +49,11 @@ const SYSTEM_CARD_EXPLANATIONS = {
     title: 'Treasure',
   },
 };
+const SYSTEM_MATH_KEY_ICONS = {
+  delete: 'backspace-outline',
+  newline: 'keyboard-return',
+  space: 'keyboard-space',
+};
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -593,16 +598,11 @@ export function FloatingControls({
               onStartShouldSetResponder={() => Boolean(key.isSystem)}
             >
               {key.isReserved ? null : key.isSystem ? (
-                <Text
-                  adjustsFontSizeToFit
-                  numberOfLines={1}
-                  style={[
-                    styles.addCardMathKeyboardKeyInput,
-                    styles.addCardMathKeyboardSystemKeyText,
-                  ]}
-                >
-                  {key.label}
-                </Text>
+                <MaterialCommunityIcons
+                  color="#64748B"
+                  name={SYSTEM_MATH_KEY_ICONS[key.systemKeyId]}
+                  size={16}
+                />
               ) : (
                 <TextInput
                   autoCapitalize="none"

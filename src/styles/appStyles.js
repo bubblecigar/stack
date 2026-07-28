@@ -1127,9 +1127,6 @@ export const styles = StyleSheet.create({
   addCardMathKeyboardEmptyKeyInput: {
     color: '#CBD5E1',
   },
-  addCardMathKeyboardSystemKeyText: {
-    color: '#64748B',
-  },
   addCardCalendarGrid: {
     position: 'absolute',
     left: 18,
