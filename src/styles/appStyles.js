@@ -177,7 +177,7 @@ export const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 104,
+    bottom: 66,
     height: 226,
     alignItems: 'center',
     justifyContent: 'flex-start',
