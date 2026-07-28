@@ -148,6 +148,10 @@ function getCalendarDays(date) {
   return [...cells, ...trailingBlankCells];
 }
 
+function getMathKeyboardDraftValues(keys) {
+  return (Array.isArray(keys) ? keys : []).map((key) => key?.label || '');
+}
+
 export function FloatingControls({
   layoutMode,
   user = null,
@@ -176,6 +180,9 @@ export function FloatingControls({
   const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(false);
   const [settingsPanelOffsetX, setSettingsPanelOffsetX] = useState(0);
   const [settingsPanelOffsetY, setSettingsPanelOffsetY] = useState(0);
+  const [mathKeyboardDraftValues, setMathKeyboardDraftValues] = useState(
+    () => getMathKeyboardDraftValues(mathKeyboardKeys),
+  );
   const [currentTime, setCurrentTime] = useState(() => new Date());
   const flipProgress = useRef(new Animated.Value(layoutMode === 'tree' ? 1 : 0)).current;
   const deleteSlideProgress = useRef(new Animated.Value(shouldShowDelete ? 1 : 0)).current;
@@ -198,6 +205,10 @@ export function FloatingControls({
     flipProgress,
     layoutMode,
   ]);
+
+  useEffect(() => {
+    setMathKeyboardDraftValues(getMathKeyboardDraftValues(mathKeyboardKeys));
+  }, [mathKeyboardKeys]);
 
   useEffect(() => {
     if (shouldShowDelete) {
@@ -464,6 +475,21 @@ export function FloatingControls({
   }
 
   function renderMathKeyboardConfig() {
+    function updateDraftKey(keyIndex, nextValue) {
+      setMathKeyboardDraftValues((currentValues) => {
+        const nextValues = [...currentValues];
+        nextValues[keyIndex] = nextValue;
+        return nextValues;
+      });
+    }
+
+    function commitDraftKey(keyIndex) {
+      onUpdateMathKeyboardKey?.(
+        keyIndex,
+        mathKeyboardDraftValues[keyIndex] ?? '',
+      );
+    }
+
     return (
       <View
         onStartShouldSetResponder={() => true}
@@ -482,14 +508,16 @@ export function FloatingControls({
                 autoCapitalize="none"
                 autoCorrect={false}
                 numberOfLines={1}
-                onChangeText={(nextValue) => onUpdateMathKeyboardKey?.(keyIndex, nextValue)}
+                onBlur={() => commitDraftKey(keyIndex)}
+                onChangeText={(nextValue) => updateDraftKey(keyIndex, nextValue)}
+                onSubmitEditing={() => commitDraftKey(keyIndex)}
                 returnKeyType="done"
                 selectTextOnFocus
                 style={[
                   styles.addCardMathKeyboardKeyInput,
                   key.isEmpty && styles.addCardMathKeyboardEmptyKeyInput,
                 ]}
-                value={key.label}
+                value={mathKeyboardDraftValues[keyIndex] ?? key.label}
               />
             </View>
           ))}
