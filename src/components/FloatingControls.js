@@ -194,6 +194,10 @@ export function FloatingControls({
   const [mathKeyboardDraftValues, setMathKeyboardDraftValues] = useState(
     () => getMathKeyboardDraftValues(mathKeyboardKeys),
   );
+  const [mathKeyboardDragState, setMathKeyboardDragState] = useState({
+    sourceIndex: null,
+    targetIndex: null,
+  });
   const [currentTime, setCurrentTime] = useState(() => new Date());
   const flipProgress = useRef(new Animated.Value(layoutMode === 'tree' ? 1 : 0)).current;
   const deleteSlideProgress = useRef(new Animated.Value(shouldShowDelete ? 1 : 0)).current;
@@ -547,12 +551,48 @@ export function FloatingControls({
         pageX: event.nativeEvent.pageX,
         pageY: event.nativeEvent.pageY,
       };
+      setMathKeyboardDragState({
+        sourceIndex: keyIndex,
+        targetIndex: keyIndex,
+      });
       updateGridLayoutFromRef();
+    }
+
+    function handleMathKeyboardKeyDragMove(event) {
+      const sourceIndex = mathKeyboardDragSourceIndexRef.current;
+      if (sourceIndex === null) {
+        return;
+      }
+
+      const targetIndex = getMathKeyboardSlotIndexFromPoint(
+        event.nativeEvent.pageX,
+        event.nativeEvent.pageY,
+      );
+      const targetKey = targetIndex === null
+        ? null
+        : mathKeyboardKeys[targetIndex];
+      const nextTargetIndex = targetIndex !== null && !targetKey?.isReserved
+        ? targetIndex
+        : null;
+
+      setMathKeyboardDragState((currentState) => (
+        currentState.sourceIndex === sourceIndex
+        && currentState.targetIndex === nextTargetIndex
+          ? currentState
+          : {
+            sourceIndex,
+            targetIndex: nextTargetIndex,
+          }
+      ));
     }
 
     function handleMathKeyboardKeyDragRelease(event) {
       const sourceIndex = mathKeyboardDragSourceIndexRef.current;
       mathKeyboardDragSourceIndexRef.current = null;
+      setMathKeyboardDragState({
+        sourceIndex: null,
+        targetIndex: null,
+      });
 
       if (sourceIndex === null) {
         return;
@@ -616,12 +656,22 @@ export function FloatingControls({
                 key.isEmpty && styles.addCardMathKeyboardEmptyKey,
                 key.isReserved && styles.addCardMathKeyboardReservedKey,
                 key.isSystem && styles.addCardMathKeyboardSystemKey,
+                mathKeyboardDragState.targetIndex === keyIndex
+                  && mathKeyboardDragState.sourceIndex !== keyIndex
+                  && styles.addCardMathKeyboardDropTargetKey,
+                mathKeyboardDragState.sourceIndex === keyIndex
+                  && styles.addCardMathKeyboardDraggingKey,
               ]}
               onResponderGrant={(event) => handleMathKeyboardKeyDragStart(event, keyIndex)}
+              onResponderMove={handleMathKeyboardKeyDragMove}
               onResponderRelease={handleMathKeyboardKeyDragRelease}
               onResponderTerminationRequest={() => false}
               onResponderTerminate={() => {
                 mathKeyboardDragSourceIndexRef.current = null;
+                setMathKeyboardDragState({
+                  sourceIndex: null,
+                  targetIndex: null,
+                });
               }}
               onStartShouldSetResponder={() => canDragMathKeyboardKey(key)}
             >

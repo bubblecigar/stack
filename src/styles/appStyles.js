@@ -1112,6 +1112,24 @@ export const styles = StyleSheet.create({
     borderRightColor: '#CBD5E1',
     borderBottomColor: '#CBD5E1',
   },
+  addCardMathKeyboardDropTargetKey: {
+    backgroundColor: 'rgba(14, 165, 233, 0.12)',
+    borderColor: '#0EA5E9',
+  },
+  addCardMathKeyboardDraggingKey: {
+    backgroundColor: 'rgba(239, 246, 255, 0.92)',
+    borderColor: '#0EA5E9',
+    opacity: 0.9,
+    shadowColor: '#0EA5E9',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.22,
+    shadowRadius: 5,
+    transform: [{ scale: 1.08 }, { translateY: -2 }],
+    elevation: 5,
+  },
   addCardMathKeyboardKeyInput: {
     width: '100%',
     height: '100%',
