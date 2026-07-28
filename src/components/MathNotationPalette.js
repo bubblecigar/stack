@@ -5,26 +5,6 @@ import {
 } from 'react-native';
 import { styles } from '../styles/appStyles';
 
-const SYSTEM_MATH_KEYS = [
-  {
-    action: 'insert',
-    id: 'system-math-key-space',
-    insert: ' ',
-    label: 'space',
-  },
-  {
-    action: 'insert',
-    id: 'system-math-key-newline',
-    insert: '\n',
-    label: 'enter',
-  },
-  {
-    action: 'delete',
-    id: 'system-math-key-delete',
-    label: 'delete',
-  },
-];
-
 export function MathNotationPalette({
   disabled = false,
   keys = [],
@@ -43,38 +23,6 @@ export function MathNotationPalette({
         disabled && styles.mathNotationPaletteDisabled,
       ]}
     >
-      <View style={styles.mathNotationSystemRow}>
-        {SYSTEM_MATH_KEYS.map((key) => (
-          <Pressable
-            accessibilityLabel={key.action === 'delete'
-              ? 'Delete previous character'
-              : `Insert ${key.label}`}
-            accessibilityRole="button"
-            disabled={disabled}
-            key={key.id}
-            onPress={() => {
-              if (key.action === 'delete') {
-                onDeleteNotation?.();
-                return;
-              }
-
-              onInsertNotation?.(key.insert);
-            }}
-            style={({ pressed }) => [
-              styles.mathNotationSystemKey,
-              pressed && styles.mathNotationKeyPressed,
-            ]}
-          >
-            <Text
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              style={styles.mathNotationKeyText}
-            >
-              {key.label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
       <View style={styles.mathNotationGrid}>
         {customKeys.map((key, keyIndex) => (
           key?.isEmpty ? (
@@ -83,6 +31,7 @@ export function MathNotationPalette({
               style={[
                 styles.mathNotationGridKey,
                 styles.mathNotationGridEmptyKey,
+                key.isReserved && styles.mathNotationGridReservedKey,
               ]}
             />
           ) : (
@@ -92,10 +41,16 @@ export function MathNotationPalette({
               disabled={disabled}
               key={`math-notation-slot-${key.slotIndex ?? keyIndex}`}
               onPress={() => {
+                if (key.action === 'delete') {
+                  onDeleteNotation?.();
+                  return;
+                }
+
                 onInsertNotation?.(key.insert);
               }}
               style={({ pressed }) => [
                 styles.mathNotationGridKey,
+                key.isSystem && styles.mathNotationGridSystemKey,
                 pressed && styles.mathNotationKeyPressed,
               ]}
             >

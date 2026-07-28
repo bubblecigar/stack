@@ -15,6 +15,10 @@ import {
   useEffect, useMemo, useRef, useState,
 } from 'react';
 import { constrainAddRelation } from '../lib/cardInsertion';
+import {
+  MATH_KEYBOARD_GRID_COLUMNS,
+  MATH_KEYBOARD_GRID_ROWS,
+} from '../lib/mathKeyboardConfig';
 import { styles } from '../styles/appStyles';
 
 const voidStampImage = require('../../assets/card/void_stamp_gray.png');
@@ -164,6 +168,7 @@ export function FloatingControls({
   onAddHoldChange,
   onDeleteHoldChange,
   onLogout,
+  onMoveMathKeyboardKey,
   onUpdateMathKeyboardKey,
   canDeleteCurrentCard = false,
   childInsertionOnly = false,
@@ -193,6 +198,14 @@ export function FloatingControls({
     pageX: 0,
     pageY: 0,
   });
+  const mathKeyboardGridRef = useRef(null);
+  const mathKeyboardGridLayoutRef = useRef({
+    height: 0,
+    pageX: 0,
+    pageY: 0,
+    width: 0,
+  });
+  const mathKeyboardDragSourceIndexRef = useRef(null);
 
   useEffect(() => {
     Animated.timing(flipProgress, {
@@ -475,6 +488,69 @@ export function FloatingControls({
   }
 
   function renderMathKeyboardConfig() {
+    function updateGridLayoutFromRef() {
+      mathKeyboardGridRef.current?.measureInWindow?.((pageX, pageY, width, height) => {
+        mathKeyboardGridLayoutRef.current = {
+          height,
+          pageX,
+          pageY,
+          width,
+        };
+      });
+    }
+
+    function getMathKeyboardSlotIndexFromPoint(pageX, pageY) {
+      const layout = mathKeyboardGridLayoutRef.current;
+      if (
+        !layout.width
+        || !layout.height
+        || pageX < layout.pageX
+        || pageX > layout.pageX + layout.width
+        || pageY < layout.pageY
+        || pageY > layout.pageY + layout.height
+      ) {
+        return null;
+      }
+
+      const column = clamp(
+        Math.floor(((pageX - layout.pageX) / layout.width) * MATH_KEYBOARD_GRID_COLUMNS),
+        0,
+        MATH_KEYBOARD_GRID_COLUMNS - 1,
+      );
+      const row = clamp(
+        Math.floor(((pageY - layout.pageY) / layout.height) * MATH_KEYBOARD_GRID_ROWS),
+        0,
+        MATH_KEYBOARD_GRID_ROWS - 1,
+      );
+
+      return (row * MATH_KEYBOARD_GRID_COLUMNS) + column;
+    }
+
+    function handleMathKeyboardSystemDragStart(keyIndex) {
+      mathKeyboardDragSourceIndexRef.current = keyIndex;
+      updateGridLayoutFromRef();
+    }
+
+    function handleMathKeyboardSystemDragRelease(event) {
+      const sourceIndex = mathKeyboardDragSourceIndexRef.current;
+      mathKeyboardDragSourceIndexRef.current = null;
+
+      if (sourceIndex === null) {
+        return;
+      }
+
+      const targetIndex = getMathKeyboardSlotIndexFromPoint(
+        event.nativeEvent.pageX,
+        event.nativeEvent.pageY,
+      );
+
+      if (targetIndex === null) {
+        return;
+      }
+
+      onMoveMathKeyboardKey?.(sourceIndex, targetIndex);
+    }
+
     function updateDraftKey(keyIndex, nextValue) {
       setMathKeyboardDraftValues((currentValues) => {
         const nextValues = [...currentValues];
@@ -495,30 +571,55 @@ export function FloatingControls({
         onStartShouldSetResponder={() => true}
         style={styles.addCardMathKeyboardConfig}
       >
-        <View style={styles.addCardMathKeyboardGrid}>
+        <View
+          onLayout={updateGridLayoutFromRef}
+          ref={mathKeyboardGridRef}
+          style={styles.addCardMathKeyboardGrid}
+        >
           {mathKeyboardKeys.map((key, keyIndex) => (
             <View
               key={`math-keyboard-config-slot-${keyIndex}`}
               style={[
                 styles.addCardMathKeyboardKey,
                 key.isEmpty && styles.addCardMathKeyboardEmptyKey,
+                key.isReserved && styles.addCardMathKeyboardReservedKey,
+                key.isSystem && styles.addCardMathKeyboardSystemKey,
               ]}
+              onResponderGrant={() => handleMathKeyboardSystemDragStart(keyIndex)}
+              onResponderRelease={handleMathKeyboardSystemDragRelease}
+              onResponderTerminate={() => {
+                mathKeyboardDragSourceIndexRef.current = null;
+              }}
+              onStartShouldSetResponder={() => Boolean(key.isSystem)}
             >
-              <TextInput
-                autoCapitalize="none"
-                autoCorrect={false}
-                numberOfLines={1}
-                onBlur={() => commitDraftKey(keyIndex)}
-                onChangeText={(nextValue) => updateDraftKey(keyIndex, nextValue)}
-                onSubmitEditing={() => commitDraftKey(keyIndex)}
-                returnKeyType="done"
-                selectTextOnFocus
-                style={[
-                  styles.addCardMathKeyboardKeyInput,
-                  key.isEmpty && styles.addCardMathKeyboardEmptyKeyInput,
-                ]}
-                value={mathKeyboardDraftValues[keyIndex] ?? key.label}
-              />
+              {key.isReserved ? null : key.isSystem ? (
+                <Text
+                  adjustsFontSizeToFit
+                  numberOfLines={1}
+                  style={[
+                    styles.addCardMathKeyboardKeyInput,
+                    styles.addCardMathKeyboardSystemKeyText,
+                  ]}
+                >
+                  {key.label}
+                </Text>
+              ) : (
+                <TextInput
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  numberOfLines={1}
+                  onBlur={() => commitDraftKey(keyIndex)}
+                  onChangeText={(nextValue) => updateDraftKey(keyIndex, nextValue)}
+                  onSubmitEditing={() => commitDraftKey(keyIndex)}
+                  returnKeyType="done"
+                  selectTextOnFocus
+                  style={[
+                    styles.addCardMathKeyboardKeyInput,
+                    key.isEmpty && styles.addCardMathKeyboardEmptyKeyInput,
+                  ]}
+                  value={mathKeyboardDraftValues[keyIndex] ?? key.label}
+                />
+              )}
             </View>
           ))}
         </View>

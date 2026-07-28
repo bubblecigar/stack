@@ -68,6 +68,7 @@ import {
 import { getStoredUiState, normalizeUiState, setStoredUiState } from './src/lib/uiStateStore';
 import { ensureDailyReminderScheduled } from './src/lib/dailyReminder';
 import {
+  moveMathKeyboardKey,
   normalizeMathKeyboardKeys,
   updateMathKeyboardKeyAt,
 } from './src/lib/mathKeyboardConfig';
@@ -1362,6 +1363,10 @@ export default function App() {
     persistMathKeyboardKeys(updateMathKeyboardKeyAt(mathKeyboardKeys, index, value));
   }
 
+  function handleMoveMathKeyboardKey(sourceIndex, targetIndex) {
+    persistMathKeyboardKeys(moveMathKeyboardKey(mathKeyboardKeys, sourceIndex, targetIndex));
+  }
+
   function getMathNotationTarget() {
     const targetIndex = visibleTopCardIndex;
     if (targetIndex === null || targetIndex < 0) {
@@ -1665,6 +1670,7 @@ export default function App() {
         onAddHoldChange={setIsAddHoldActive}
         onAddPreviewChange={setAddPreviewRelation}
         onLogout={resetSession}
+        onMoveMathKeyboardKey={handleMoveMathKeyboardKey}
         onUpdateMathKeyboardKey={handleUpdateMathKeyboardKey}
         onToggleMode={handleToggleLayout}
         onCreateCard={handleCreateCard}

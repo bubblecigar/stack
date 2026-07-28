@@ -178,7 +178,7 @@ export const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 104,
-    height: 272,
+    height: 226,
     alignItems: 'center',
     justifyContent: 'flex-start',
     zIndex: 1800,
@@ -187,15 +187,6 @@ export const styles = StyleSheet.create({
   mathNotationPaletteDisabled: {
     opacity: 0.24,
   },
-  mathNotationSystemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 284,
-    gap: 8,
-    paddingTop: 4,
-    paddingBottom: 10,
-  },
   mathNotationGrid: {
     width: 284,
     height: 226,
@@ -203,27 +194,6 @@ export const styles = StyleSheet.create({
     flexWrap: 'wrap',
     alignContent: 'space-between',
     justifyContent: 'space-between',
-  },
-  mathNotationSystemKey: {
-    width: 58,
-    height: 30,
-    borderRadius: 7,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderTopColor: '#FFFFFF',
-    borderLeftColor: '#FFFFFF',
-    borderRightColor: '#CBD5E1',
-    borderBottomColor: '#CBD5E1',
-    shadowColor: '#64748B',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.12,
-    shadowRadius: 2,
-    elevation: 1,
   },
   mathNotationGridKey: {
     width: '13.1%',
@@ -237,6 +207,18 @@ export const styles = StyleSheet.create({
   },
   mathNotationGridEmptyKey: {
     opacity: 0.46,
+  },
+  mathNotationGridReservedKey: {
+    backgroundColor: 'transparent',
+    borderColor: 'transparent',
+    opacity: 1,
+  },
+  mathNotationGridSystemKey: {
+    backgroundColor: 'rgba(226, 232, 240, 0.58)',
+    borderTopColor: '#FFFFFF',
+    borderLeftColor: '#FFFFFF',
+    borderRightColor: '#CBD5E1',
+    borderBottomColor: '#CBD5E1',
   },
   mathNotationKeyPressed: {
     backgroundColor: '#E2E8F0',
@@ -1118,6 +1100,18 @@ export const styles = StyleSheet.create({
   addCardMathKeyboardEmptyKey: {
     opacity: 0.46,
   },
+  addCardMathKeyboardReservedKey: {
+    backgroundColor: 'transparent',
+    borderColor: 'transparent',
+    opacity: 1,
+  },
+  addCardMathKeyboardSystemKey: {
+    backgroundColor: 'rgba(226, 232, 240, 0.58)',
+    borderTopColor: '#FFFFFF',
+    borderLeftColor: '#FFFFFF',
+    borderRightColor: '#CBD5E1',
+    borderBottomColor: '#CBD5E1',
+  },
   addCardMathKeyboardKeyInput: {
     width: '100%',
     height: '100%',
@@ -1132,6 +1126,9 @@ export const styles = StyleSheet.create({
   },
   addCardMathKeyboardEmptyKeyInput: {
     color: '#CBD5E1',
+  },
+  addCardMathKeyboardSystemKeyText: {
+    color: '#64748B',
   },
   addCardCalendarGrid: {
     position: 'absolute',
