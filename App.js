@@ -79,6 +79,7 @@ import {
 import { styles } from './src/styles/appStyles';
 
 const LEAF_VISIBLE_COUNT = 5;
+const EMPTY_USER_CARD_ID = '__empty_user_card__';
 const TREE_COMPLETION_CANVAS_KEY = 'treeCompletionCanvas';
 const UI_STATE_KEY = 'uiState';
 const DAY_START_OFFSET_MS = ((4 * 60) + 30) * 60 * 1000;
@@ -389,6 +390,31 @@ export default function App() {
     () => getSystemTreeCards(dailyVisibleCards),
     [dailyVisibleCards],
   );
+  const treeCanvasCards = useMemo(() => {
+    const treasureSubtreeCardIds = new Set(
+      getSystemSubtreeCards(systemTreeCards, TREASURE_CARD_ID)
+        .map((card) => card.id),
+    );
+    const hasActiveUserCard = systemTreeCards.some((card) => (
+      !isSystemCard(card) && !treasureSubtreeCardIds.has(card.id)
+    ));
+
+    if (hasActiveUserCard) {
+      return systemTreeCards;
+    }
+
+    return [
+      ...systemTreeCards,
+      {
+        childIds: [],
+        id: EMPTY_USER_CARD_ID,
+        index: null,
+        isEmptyUserCard: true,
+        parentIds: [],
+        text: '+',
+      },
+    ];
+  }, [systemTreeCards]);
   const leafScopeFocusedCardId = shouldRenderLeaf
     ? leafFocusedCardId
     : focusedCardId;
@@ -832,6 +858,18 @@ export default function App() {
       return;
     }
 
+    setEditingIndex(nextIndex);
+    setSuppressEditingKeyboard(false);
+    setEditingValue('');
+    setEditingSelection({ start: 0, end: 0 });
+    setFocusedCardIndex(nextIndex);
+    setLeafTopIndex(nextIndex);
+  }
+
+  function handleCreateRootCard() {
+    setAddPreviewRelation(null);
+
+    const nextIndex = push('');
     setEditingIndex(nextIndex);
     setSuppressEditingKeyboard(false);
     setEditingValue('');
@@ -1627,7 +1665,7 @@ export default function App() {
         ) : (
           <TreeCanvas
             addPreviewRelation={addPreviewRelation}
-            cards={systemTreeCards}
+            cards={treeCanvasCards}
             collapsedNodeIds={collapsedNodeIds}
             focusedCardIndex={focusedCardIndex}
             focusedCardId={focusedCardId}
@@ -1635,6 +1673,7 @@ export default function App() {
             editingValue={editingValue}
             onCardPress={handleTreeCardPress}
             onCardFocus={handleTreeCardFocus}
+            onCreateRootCard={handleCreateRootCard}
             onCreateEdit={handleToggleEdit}
             onToggleCollapse={handleToggleCollapse}
             onDeleteCard={handleDeleteCard}

@@ -691,6 +691,26 @@ export const styles = StyleSheet.create({
   treePreviewCardText: {
     color: '#F97316',
   },
+  treeEmptyCreateCard: {
+    borderStyle: 'dashed',
+    borderColor: '#CBD5E1',
+    borderWidth: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.58)',
+    opacity: 0.92,
+    shadowOpacity: 0.06,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  treeEmptyCreateCardPressed: {
+    backgroundColor: 'rgba(219, 234, 254, 0.72)',
+    borderColor: '#0EA5E9',
+  },
+  treeEmptyCreateCardText: {
+    color: '#94A3B8',
+    fontSize: 34,
+    fontWeight: '300',
+    lineHeight: 40,
+  },
   treeCardInput: {
     minHeight: 66,
     fontSize: 17,
