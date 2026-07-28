@@ -503,6 +503,8 @@ export function FloatingControls({
   }
 
   function renderMathKeyboardConfig() {
+    const canEditMathKeyboardConfig = isSettingsPanelOpen;
+
     function updateGridLayoutFromRef() {
       mathKeyboardGridRef.current?.measureInWindow?.((pageX, pageY, width, height) => {
         mathKeyboardGridLayoutRef.current = {
@@ -542,10 +544,14 @@ export function FloatingControls({
     }
 
     function canDragMathKeyboardKey(key) {
-      return !key?.isReserved;
+      return canEditMathKeyboardConfig && !key?.isReserved;
     }
 
     function handleMathKeyboardKeyDragStart(event, keyIndex) {
+      if (!canEditMathKeyboardConfig) {
+        return;
+      }
+
       mathKeyboardDragSourceIndexRef.current = keyIndex;
       mathKeyboardDragStartRef.current = {
         pageX: event.nativeEvent.pageX,
@@ -559,6 +565,10 @@ export function FloatingControls({
     }
 
     function handleMathKeyboardKeyDragMove(event) {
+      if (!canEditMathKeyboardConfig) {
+        return;
+      }
+
       const sourceIndex = mathKeyboardDragSourceIndexRef.current;
       if (sourceIndex === null) {
         return;
@@ -598,6 +608,10 @@ export function FloatingControls({
         return;
       }
 
+      if (!canEditMathKeyboardConfig) {
+        return;
+      }
+
       const dragDistance = Math.hypot(
         event.nativeEvent.pageX - mathKeyboardDragStartRef.current.pageX,
         event.nativeEvent.pageY - mathKeyboardDragStartRef.current.pageY,
@@ -624,6 +638,10 @@ export function FloatingControls({
     }
 
     function updateDraftKey(keyIndex, nextValue) {
+      if (!canEditMathKeyboardConfig) {
+        return;
+      }
+
       setMathKeyboardDraftValues((currentValues) => {
         const nextValues = [...currentValues];
         nextValues[keyIndex] = nextValue;
@@ -632,6 +650,10 @@ export function FloatingControls({
     }
 
     function commitDraftKey(keyIndex) {
+      if (!canEditMathKeyboardConfig) {
+        return;
+      }
+
       onUpdateMathKeyboardKey?.(
         keyIndex,
         mathKeyboardDraftValues[keyIndex] ?? '',
@@ -640,7 +662,7 @@ export function FloatingControls({
 
     return (
       <View
-        onStartShouldSetResponder={() => true}
+        onStartShouldSetResponder={() => canEditMathKeyboardConfig}
         style={styles.addCardMathKeyboardConfig}
       >
         <View
@@ -689,6 +711,7 @@ export function FloatingControls({
                   onBlur={() => commitDraftKey(keyIndex)}
                   onChangeText={(nextValue) => updateDraftKey(keyIndex, nextValue)}
                   onSubmitEditing={() => commitDraftKey(keyIndex)}
+                  editable={canEditMathKeyboardConfig}
                   pointerEvents="none"
                   ref={(inputRef) => {
                     mathKeyboardInputRefs.current[keyIndex] = inputRef;
