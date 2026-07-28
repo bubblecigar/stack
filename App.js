@@ -333,6 +333,7 @@ export default function App() {
   const [syncError, setSyncError] = useState('');
   const [editingIndex, setEditingIndex] = useState(null);
   const [editingValue, setEditingValue] = useState('');
+  const [editingSelection, setEditingSelection] = useState(null);
   const [focusedCardIndex, setFocusedCardIndex] = useState(null);
   const [layoutMode, setLayoutMode] = useState('leaf');
   const [collapsedNodeIds, setCollapsedNodeIds] = useState(() => new Set());
@@ -582,6 +583,7 @@ export default function App() {
     setSyncError('');
     setEditingIndex(null);
     setEditingValue('');
+    setEditingSelection(null);
     setFocusedCardIndex(null);
     setLeafTopIndex(null);
     setLeafFocusedCardId(null);
@@ -800,6 +802,7 @@ export default function App() {
 
     setEditingIndex(nextIndex);
     setEditingValue('');
+    setEditingSelection({ start: 0, end: 0 });
     setFocusedCardIndex(nextIndex);
     setLeafTopIndex(nextIndex);
   }
@@ -811,6 +814,8 @@ export default function App() {
 
     setEditingIndex(index);
     setEditingValue(text);
+    const textLength = String(text || '').length;
+    setEditingSelection({ start: textLength, end: textLength });
     setFocusedCardIndex(index);
     setLeafTopIndex(index);
   }
@@ -823,6 +828,7 @@ export default function App() {
     updateAt(index, value);
     setEditingIndex(null);
     setEditingValue('');
+    setEditingSelection(null);
   }
 
   function handleConfirmEdit() {
@@ -966,6 +972,7 @@ export default function App() {
     if (nextEditingIndex === null) {
       setEditingIndex(null);
       setEditingValue('');
+      setEditingSelection(null);
     } else if (nextEditingIndex !== editingIndex) {
       setEditingIndex(nextEditingIndex);
     }
@@ -1084,6 +1091,7 @@ export default function App() {
     setFocusedCardIndex(null);
     setEditingIndex(null);
     setEditingValue('');
+    setEditingSelection(null);
     setIsDeleteHoldActive(false);
     setAddPreviewRelation(null);
   }
@@ -1097,6 +1105,7 @@ export default function App() {
     setFocusedCardIndex(adoptedIndex);
     setEditingIndex(null);
     setEditingValue('');
+    setEditingSelection(null);
     setIsDeleteHoldActive(false);
     setAddPreviewRelation(null);
   }
@@ -1111,6 +1120,7 @@ export default function App() {
     setFocusedCardIndex(rootCard.index);
     setEditingIndex(null);
     setEditingValue('');
+    setEditingSelection(null);
     setIsDeleteHoldActive(false);
     setAddPreviewRelation(null);
   }
@@ -1313,6 +1323,46 @@ export default function App() {
     playDoneStampSound();
   }
 
+  function handleInsertMathNotation(notation) {
+    if (!shouldRenderLeaf || !notation) {
+      return;
+    }
+
+    const targetIndex = visibleTopCardIndex;
+    if (targetIndex === null || targetIndex < 0) {
+      return;
+    }
+
+    const targetCard = cards[targetIndex];
+    if (!targetCard || isSystemCard(targetCard)) {
+      return;
+    }
+
+    const isEditingTargetCard = editingIndex === targetIndex;
+    const currentValue = isEditingTargetCard
+      ? editingValue
+      : String(targetCard.text || '');
+    const fallbackPosition = currentValue.length;
+    const selection = isEditingTargetCard && editingSelection
+      ? editingSelection
+      : { start: fallbackPosition, end: fallbackPosition };
+    const selectionStart = Math.max(0, Math.min(selection.start ?? fallbackPosition, currentValue.length));
+    const selectionEnd = Math.max(selectionStart, Math.min(selection.end ?? selectionStart, currentValue.length));
+    const nextValue = `${currentValue.slice(0, selectionStart)}${notation}${currentValue.slice(selectionEnd)}`;
+    const nextCursor = selectionStart + notation.length;
+
+    if (isEditingTargetCard) {
+      setEditingValue(nextValue);
+      setEditingSelection({ start: nextCursor, end: nextCursor });
+    } else {
+      updateAt(targetIndex, nextValue);
+    }
+
+    setFocusedCardIndex(targetIndex);
+    setLeafTopIndex(targetIndex);
+    setLeafFocusedCardId(targetCard.id);
+  }
+
   useEffect(() => {
     if (!shouldRenderLeaf) {
       return;
@@ -1417,6 +1467,7 @@ export default function App() {
 
     setEditingIndex(null);
     setEditingValue('');
+    setEditingSelection(null);
   }
 
   if (
@@ -1470,13 +1521,16 @@ export default function App() {
             visibleCount={LEAF_VISIBLE_COUNT}
             editingIndex={editingIndex}
             editingValue={editingValue}
+            editingSelection={editingSelection}
             focusedCardIndex={effectiveLeafFocusedIndex}
             focusedCardId={leafFocusedCardId}
             collapsedNodeIds={collapsedNodeIds}
             onCreateEdit={handleToggleEdit}
             onDeleteCard={handleDeleteCard}
             onEditingValueChange={setEditingValue}
+            onEditingSelectionChange={setEditingSelection}
             onCompleteEdit={handleCompleteEdit}
+            onInsertMathNotation={handleInsertMathNotation}
             onLeafSwipe={handleLeafSwipe}
             isDeleteHoldActive={isDeleteHoldActive}
             isAddHoldActive={isAddHoldActive}

@@ -41,8 +41,10 @@ export function StackCard({
   onDeleteCard,
   onDeleteHoldComplete,
   onEditingValueChange,
+  onEditingSelectionChange,
   onCompleteEdit,
   onFocusCard,
+  editingSelection,
   isDeleteHoldActive = false,
   isPreviewCard = false,
   leafContentMode = 'text',
@@ -180,6 +182,9 @@ export function StackCard({
       returnKeyType="done"
       scrollEnabled={isLeafCard}
       onChangeText={onEditingValueChange}
+      onSelectionChange={(event) => {
+        onEditingSelectionChange?.(event.nativeEvent.selection);
+      }}
       onEndEditing={(event) => {
         onCompleteEdit?.(index, event.nativeEvent.text);
       }}
@@ -191,6 +196,7 @@ export function StackCard({
         isLeafCard && styles.leafCardInput,
         isTreeCard && styles.treeCardInput,
       ]}
+      selection={editingSelection || undefined}
       submitBehavior="submit"
       value={editingValue}
     />

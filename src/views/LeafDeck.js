@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { DeleteHoldIndicator } from '../components/DeleteHoldIndicator';
+import { MathNotationPalette } from '../components/MathNotationPalette';
 import { StackCard } from '../components/StackCard';
 import { styles } from '../styles/appStyles';
 
@@ -200,7 +201,10 @@ export function LeafDeck({
   onCreateEdit,
   onDeleteCard,
   onEditingValueChange,
+  onEditingSelectionChange,
   onCompleteEdit,
+  onInsertMathNotation,
+  editingSelection,
   onLeafSwipe,
   isDeleteHoldActive = false,
   isAddHoldActive = false,
@@ -258,6 +262,11 @@ export function LeafDeck({
   const activeCard = displayCard ?? topCard;
   const activeCardDone = Boolean(activeCard?.done);
   const canShowDoneStampControl = (
+    activeCard?.index >= 0
+    && !activeCard?.isMissionCard
+    && !activeCard?.isTreasureCard
+  );
+  const canUseMathNotationPalette = (
     activeCard?.index >= 0
     && !activeCard?.isMissionCard
     && !activeCard?.isTreasureCard
@@ -860,7 +869,9 @@ export function LeafDeck({
                 onCreateEdit={onCreateEdit}
                 onDeleteCard={onDeleteCard}
                 onEditingValueChange={onEditingValueChange}
+                onEditingSelectionChange={onEditingSelectionChange}
                 onCompleteEdit={onCompleteEdit}
+                editingSelection={shouldRenderActiveTopSlot ? editingSelection : undefined}
                 onPressIn={() => {
                   if (shouldRenderActiveTopSlot && editingIndex === activeCard.index) {
                     inputTouchRef.current = true;
@@ -911,7 +922,9 @@ export function LeafDeck({
                       onCreateEdit={onCreateEdit}
                       onDeleteCard={onDeleteCard}
                       onEditingValueChange={onEditingValueChange}
+                      onEditingSelectionChange={onEditingSelectionChange}
                       onCompleteEdit={onCompleteEdit}
+                      editingSelection={undefined}
                       onToggleCollapse={() => {}}
                       leafContentMode="none"
                     />
@@ -984,7 +997,9 @@ export function LeafDeck({
             onCreateEdit={onCreateEdit}
             onDeleteCard={onDeleteCard}
             onEditingValueChange={onEditingValueChange}
+            onEditingSelectionChange={onEditingSelectionChange}
             onCompleteEdit={onCompleteEdit}
+            editingSelection={undefined}
             onToggleCollapse={() => {}}
             leafContentMode="placeholder"
           />
@@ -1036,6 +1051,13 @@ export function LeafDeck({
           />
         </>
       ) : null}
+      <MathNotationPalette
+        disabled={!canUseMathNotationPalette}
+        onInsertNotation={onInsertMathNotation}
+        onTouchStart={() => {
+          inputTouchRef.current = true;
+        }}
+      />
     </View>
   );
 }
