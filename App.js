@@ -55,6 +55,10 @@ import {
   getVisibleCardsExcludingIds,
 } from './src/lib/systemVisibility';
 import {
+  deleteTextAtSelection,
+  insertTextAtSelection,
+} from './src/lib/textEditActions';
+import {
   playDoneStampSound,
   playLeafSwipeSound,
   playModeFlipSound,
@@ -1369,44 +1373,80 @@ export default function App() {
     persistMathKeyboardKeys(mathKeyboardKeys.filter((key) => key.id !== keyId));
   }
 
-  function handleInsertMathNotation(notation) {
-    if (!shouldRenderLeaf || !notation) {
-      return;
-    }
-
+  function getMathNotationTarget() {
     const targetIndex = visibleTopCardIndex;
     if (targetIndex === null || targetIndex < 0) {
-      return;
+      return null;
     }
 
     const targetCard = cards[targetIndex];
     if (!targetCard || isSystemCard(targetCard)) {
-      return;
+      return null;
     }
 
     const isEditingTargetCard = editingIndex === targetIndex;
     const currentValue = isEditingTargetCard
       ? editingValue
       : String(targetCard.text || '');
-    const fallbackPosition = currentValue.length;
     const selection = isEditingTargetCard && editingSelection
       ? editingSelection
-      : { start: fallbackPosition, end: fallbackPosition };
-    const selectionStart = Math.max(0, Math.min(selection.start ?? fallbackPosition, currentValue.length));
-    const selectionEnd = Math.max(selectionStart, Math.min(selection.end ?? selectionStart, currentValue.length));
-    const nextValue = `${currentValue.slice(0, selectionStart)}${notation}${currentValue.slice(selectionEnd)}`;
-    const nextCursor = selectionStart + notation.length;
+      : { start: currentValue.length, end: currentValue.length };
 
-    if (isEditingTargetCard) {
+    return {
+      currentValue,
+      isEditingTargetCard,
+      selection,
+      targetCard,
+      targetIndex,
+    };
+  }
+
+  function applyMathNotationEdit(target, nextValue, nextSelection) {
+    if (target.isEditingTargetCard) {
       setEditingValue(nextValue);
-      setEditingSelection({ start: nextCursor, end: nextCursor });
+      setEditingSelection(nextSelection);
     } else {
-      updateAt(targetIndex, nextValue);
+      updateAt(target.targetIndex, nextValue);
     }
 
-    setFocusedCardIndex(targetIndex);
-    setLeafTopIndex(targetIndex);
-    setLeafFocusedCardId(targetCard.id);
+    setFocusedCardIndex(target.targetIndex);
+    setLeafTopIndex(target.targetIndex);
+    setLeafFocusedCardId(target.targetCard.id);
+  }
+
+  function handleInsertMathNotation(notation) {
+    if (!shouldRenderLeaf || notation === null || notation === undefined) {
+      return;
+    }
+
+    const target = getMathNotationTarget();
+    if (!target) {
+      return;
+    }
+
+    const { nextValue, nextSelection } = insertTextAtSelection(
+      target.currentValue,
+      notation,
+      target.selection,
+    );
+    applyMathNotationEdit(target, nextValue, nextSelection);
+  }
+
+  function handleDeleteMathNotation() {
+    if (!shouldRenderLeaf) {
+      return;
+    }
+
+    const target = getMathNotationTarget();
+    if (!target) {
+      return;
+    }
+
+    const { nextValue, nextSelection } = deleteTextAtSelection(
+      target.currentValue,
+      target.selection,
+    );
+    applyMathNotationEdit(target, nextValue, nextSelection);
   }
 
   useEffect(() => {
@@ -1577,6 +1617,7 @@ export default function App() {
             onEditingValueChange={setEditingValue}
             onEditingSelectionChange={setEditingSelection}
             onCompleteEdit={handleCompleteEdit}
+            onDeleteMathNotation={handleDeleteMathNotation}
             onInsertMathNotation={handleInsertMathNotation}
             onLeafSwipe={handleLeafSwipe}
             isDeleteHoldActive={isDeleteHoldActive}

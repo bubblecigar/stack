@@ -418,7 +418,7 @@ export function ensureTreasureCard(legacyArchivedRootIds = []) {
 }
 
 export function updateAt(index, value) {
-  const nextValue = value.trim();
+  const nextValue = String(value ?? '');
 
   if (index < 0 || index >= stack.length || isSystemCard(stack[index])) {
     return;

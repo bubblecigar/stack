@@ -204,6 +204,7 @@ export function LeafDeck({
   onEditingValueChange,
   onEditingSelectionChange,
   onCompleteEdit,
+  onDeleteMathNotation,
   onInsertMathNotation,
   editingSelection,
   onLeafSwipe,
@@ -1055,6 +1056,7 @@ export function LeafDeck({
       <MathNotationPalette
         disabled={!canUseMathNotationPalette}
         keys={mathKeyboardKeys}
+        onDeleteNotation={onDeleteMathNotation}
         onInsertNotation={onInsertMathNotation}
         onTouchStart={() => {
           inputTouchRef.current = true;

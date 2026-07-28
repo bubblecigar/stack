@@ -6,13 +6,39 @@ import {
 } from 'react-native';
 import { styles } from '../styles/appStyles';
 
+const SYSTEM_MATH_KEYS = [
+  {
+    action: 'insert',
+    id: 'system-math-key-space',
+    insert: ' ',
+    label: 'space',
+  },
+  {
+    action: 'insert',
+    id: 'system-math-key-newline',
+    insert: '\n',
+    label: 'enter',
+  },
+  {
+    action: 'delete',
+    id: 'system-math-key-delete',
+    label: 'delete',
+  },
+];
+
 export function MathNotationPalette({
   disabled = false,
   keys = [],
   onTouchStart,
+  onDeleteNotation,
   onInsertNotation,
 }) {
-  if (!Array.isArray(keys) || keys.length === 0) {
+  const visibleKeys = [
+    ...SYSTEM_MATH_KEYS,
+    ...(Array.isArray(keys) ? keys : []),
+  ];
+
+  if (visibleKeys.length === 0) {
     return null;
   }
 
@@ -32,13 +58,20 @@ export function MathNotationPalette({
         contentContainerStyle={styles.mathNotationPaletteScroll}
       >
         <View style={styles.mathNotationGroup}>
-          {keys.map((key) => (
+          {visibleKeys.map((key) => (
             <Pressable
-              accessibilityLabel={`Insert ${key.label}`}
+              accessibilityLabel={key.action === 'delete'
+                ? 'Delete previous character'
+                : `Insert ${key.label}`}
               accessibilityRole="button"
               disabled={disabled}
               key={key.id}
               onPress={() => {
+                if (key.action === 'delete') {
+                  onDeleteNotation?.();
+                  return;
+                }
+
                 onInsertNotation?.(key.insert);
               }}
               style={({ pressed }) => [
