@@ -1190,8 +1190,11 @@ export default function App() {
       return;
     }
 
-    restoreRootTree(rootId);
-    setFocusedCardIndex(rootCard.index);
+    if (!restoreRootTree(rootId)) {
+      return;
+    }
+    const restoredIndex = getSnapshot().findIndex((card) => card.id === rootId);
+    setFocusedCardIndex(restoredIndex >= 0 ? restoredIndex : rootCard.index);
     setEditingIndex(null);
     setEditingValue('');
     setEditingSelection(null);

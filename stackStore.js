@@ -61,6 +61,18 @@ function emitChange() {
   listeners.forEach((listener) => listener());
 }
 
+function moveCardToStackEnd(cards, cardId) {
+  const movingCard = cards.find((card) => card.id === cardId);
+  if (!movingCard) {
+    return cards;
+  }
+
+  return [
+    ...cards.filter((card) => card.id !== cardId),
+    movingCard,
+  ];
+}
+
 export function subscribe(listener) {
   listeners.add(listener);
 
@@ -596,7 +608,7 @@ export function archiveRootTree(rootId) {
     return false;
   }
 
-  stack = stack.map((card) => {
+  const nextStack = stack.map((card) => {
     if (isTreasureCard(card)) {
       return {
         ...card,
@@ -613,6 +625,7 @@ export function archiveRootTree(rootId) {
 
     return card;
   });
+  stack = moveCardToStackEnd(nextStack, rootId);
   emitChange();
   return true;
 }
@@ -628,7 +641,7 @@ export function restoreRootTree(rootId) {
     return false;
   }
 
-  stack = stack.map((card) => {
+  const nextStack = stack.map((card) => {
     if (isTreasureCard(card)) {
       return {
         ...card,
@@ -645,6 +658,7 @@ export function restoreRootTree(rootId) {
 
     return card;
   });
+  stack = moveCardToStackEnd(nextStack, rootId);
   emitChange();
   return true;
 }

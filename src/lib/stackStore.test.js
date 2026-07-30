@@ -98,6 +98,51 @@ describe('system cards', () => {
     expect(getSnapshot().find((card) => card.id === rootId).parentIds).toEqual([]);
   });
 
+  it('moves archived roots to the bottom of the treasure tree', () => {
+    const firstRootIndex = push('First root');
+    const firstRootId = getSnapshot()[firstRootIndex].id;
+    const secondRootIndex = push('Second root');
+    const secondRootId = getSnapshot()[secondRootIndex].id;
+
+    expect(archiveRootTree(secondRootId)).toBe(true);
+    expect(archiveRootTree(firstRootId)).toBe(true);
+
+    const cards = getSnapshot();
+    expect(cards.find((card) => card.id === TREASURE_CARD_ID).childIds).toEqual([
+      secondRootId,
+      firstRootId,
+    ]);
+    expect(cards.map((card) => card.id).slice(-2)).toEqual([
+      secondRootId,
+      firstRootId,
+    ]);
+  });
+
+  it('moves restored roots to the bottom of the active root list', () => {
+    const firstRootIndex = push('First root');
+    const firstRootId = getSnapshot()[firstRootIndex].id;
+    const secondRootIndex = push('Second root');
+    const secondRootId = getSnapshot()[secondRootIndex].id;
+    const thirdRootIndex = push('Third root');
+    const thirdRootId = getSnapshot()[thirdRootIndex].id;
+
+    expect(archiveRootTree(firstRootId)).toBe(true);
+    expect(restoreRootTree(firstRootId)).toBe(true);
+
+    const userRootIds = getSnapshot()
+      .filter((card) => (
+        card.id !== MISSION_CARD_ID
+        && card.id !== TREASURE_CARD_ID
+        && (!Array.isArray(card.parentIds) || card.parentIds.length === 0)
+      ))
+      .map((card) => card.id);
+    expect(userRootIds).toEqual([
+      secondRootId,
+      thirdRootId,
+      firstRootId,
+    ]);
+  });
+
   it('preserves whitespace when editing an existing card', () => {
     const cardIndex = push('Formula');
 
