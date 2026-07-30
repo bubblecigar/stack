@@ -420,6 +420,13 @@ export default function App() {
       return null;
     }
 
+    if (leafFocusedCardId === TREASURE_CARD_ID) {
+      const treasurePosition = leafCards.findIndex((card) => card.id === TREASURE_CARD_ID);
+      if (treasurePosition >= 0) {
+        return treasurePosition;
+      }
+    }
+
     const defaultLeafPosition = Math.max(
       -1,
       ...leafCards.map((card, position) => (isSystemCard(card) ? -1 : position)),
@@ -436,7 +443,7 @@ export default function App() {
     return matchingPosition >= 0
       ? matchingPosition
       : fallbackPosition;
-  }, [leafCards, leafTopIndex]);
+  }, [leafCards, leafFocusedCardId, leafTopIndex]);
 
   const visibleCards = useMemo(() => {
     if (leafCards.length === 0) {
@@ -1544,10 +1551,9 @@ export default function App() {
         setLeafTopIndex(nextFocusedCardIndex);
         setLeafFocusedCardId(cards[nextFocusedCardIndex]?.id ?? null);
       } else {
-        const fallbackIndex = cards.length > 0 ? cards.length - 1 : null;
-        setFocusedCardIndex(fallbackIndex);
-        setLeafTopIndex(fallbackIndex);
-        setLeafFocusedCardId(fallbackIndex === null ? null : cards[fallbackIndex]?.id ?? null);
+        setFocusedCardIndex(-1);
+        setLeafTopIndex(-1);
+        setLeafFocusedCardId(TREASURE_CARD_ID);
       }
     }
 
