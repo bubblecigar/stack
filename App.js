@@ -82,11 +82,44 @@ const LEAF_VISIBLE_COUNT = 5;
 const TREE_COMPLETION_CANVAS_KEY = 'treeCompletionCanvas';
 const UI_STATE_KEY = 'uiState';
 const DAY_START_OFFSET_MS = ((4 * 60) + 30) * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
 const EMPTY_TREE_COMPLETION_CANVAS = {
   entries: [],
   nodes: [],
   updatedAt: null,
 };
+
+function getCompletionDayKey(timestamp = Date.now()) {
+  const date = new Date(Number(timestamp) - DAY_START_OFFSET_MS);
+  if (Number.isNaN(date.getTime())) {
+    return getCompletionDayKey(Date.now());
+  }
+
+  return date.toISOString().slice(0, 10);
+}
+
+function getTreeCompletionCanvasKey(timestamp = Date.now()) {
+  return `${TREE_COMPLETION_CANVAS_KEY}:${getCompletionDayKey(timestamp)}`;
+}
+
+function getNextCompletionDayBoundary(timestamp = Date.now()) {
+  const current = new Date(timestamp);
+  const boundary = new Date(
+    current.getFullYear(),
+    current.getMonth(),
+    current.getDate(),
+    4,
+    30,
+    0,
+    0,
+  );
+
+  if (timestamp >= boundary.getTime()) {
+    boundary.setDate(boundary.getDate() + 1);
+  }
+
+  return boundary.getTime();
+}
 
 function isPreviousDayTimestamp(timestamp) {
   const date = new Date(Number(timestamp) - DAY_START_OFFSET_MS);
@@ -360,6 +393,9 @@ export default function App() {
   const [mathKeyboardKeys, setMathKeyboardKeys] = useState(() => normalizeMathKeyboardKeys([]));
   const [currentDayReference, setCurrentDayReference] = useState(() => Date.now());
   const [treeCompletionCanvas, setTreeCompletionCanvas] = useState(EMPTY_TREE_COMPLETION_CANVAS);
+  const [previousDayTreeCompletionCanvas, setPreviousDayTreeCompletionCanvas] = useState(
+    EMPTY_TREE_COMPLETION_CANVAS,
+  );
 
   const stack = useSyncExternalStore(subscribe, getSnapshot);
   const cards = useMemo(() => stack.map((card, index) => ({ ...card, index })), [stack]);
@@ -376,8 +412,16 @@ export default function App() {
   );
   const shouldRenderLeaf = layoutMode === 'leaf';
   const previousDayCompletedTaskCount = useMemo(
-    () => countPreviousDayCompletedTasks(treeCompletionCanvas),
-    [treeCompletionCanvas],
+    () => countPreviousDayCompletedTasks(previousDayTreeCompletionCanvas),
+    [previousDayTreeCompletionCanvas],
+  );
+  const currentTreeCompletionCanvasKey = useMemo(
+    () => getTreeCompletionCanvasKey(currentDayReference),
+    [currentDayReference],
+  );
+  const previousTreeCompletionCanvasKey = useMemo(
+    () => getTreeCompletionCanvasKey(currentDayReference - DAY_MS),
+    [currentDayReference],
   );
   const focusedCardId = focusedCardIndex === null
     ? null
@@ -496,15 +540,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const now = new Date();
-    const nextDay = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate() + 1,
-    );
+    const now = Date.now();
     const timeoutId = setTimeout(() => {
       setCurrentDayReference(Date.now());
-    }, Math.max(nextDay.getTime() - now.getTime(), 1));
+    }, Math.max(getNextCompletionDayBoundary(now) - now, 1));
 
     return () => clearTimeout(timeoutId);
   }, [currentDayReference]);
@@ -629,6 +668,7 @@ export default function App() {
     setIsDeleteHoldActive(false);
     setCollapsedNodeIds(new Set());
     setTreeCompletionCanvas(EMPTY_TREE_COMPLETION_CANVAS);
+    setPreviousDayTreeCompletionCanvas(EMPTY_TREE_COMPLETION_CANVAS);
     hasLoadedDefaultStack.current = false;
     hasLoadedRemoteCards.current = false;
     restoredUiStateUserIdRef.current = null;
@@ -713,9 +753,16 @@ export default function App() {
 
     async function loadCardsForUser() {
       try {
-        const [cardsResult, canvasResult, uiStateResult, localUiState] = await Promise.all([
+        const [
+          cardsResult,
+          todayCanvasResult,
+          previousDayCanvasResult,
+          uiStateResult,
+          localUiState,
+        ] = await Promise.all([
           loadRemoteCards(authToken),
-          loadRemoteUserData(authToken, TREE_COMPLETION_CANVAS_KEY),
+          loadRemoteUserData(authToken, currentTreeCompletionCanvasKey),
+          loadRemoteUserData(authToken, previousTreeCompletionCanvasKey),
           loadRemoteUserData(authToken, UI_STATE_KEY),
           getStoredUiState(userId),
         ]);
@@ -733,7 +780,10 @@ export default function App() {
         ensureSystemCards(restoredUiState?.archivedRootIds || []);
         isApplyingRemoteCards.current = false;
         const loadedCards = getSnapshot();
-        setTreeCompletionCanvas(canvasResult.value || EMPTY_TREE_COMPLETION_CANVAS);
+        setTreeCompletionCanvas(todayCanvasResult.value || EMPTY_TREE_COMPLETION_CANVAS);
+        setPreviousDayTreeCompletionCanvas(
+          previousDayCanvasResult.value || EMPTY_TREE_COMPLETION_CANVAS,
+        );
         restoredUiStateUserIdRef.current = userId;
 
         if (restoredUiState) {
@@ -755,10 +805,10 @@ export default function App() {
 
         hasLoadedRemoteCards.current = true;
 
-        if (!canvasResult.value) {
+        if (!todayCanvasResult.value) {
           saveRemoteUserData(
             authToken,
-            TREE_COMPLETION_CANVAS_KEY,
+            currentTreeCompletionCanvasKey,
             EMPTY_TREE_COMPLETION_CANVAS,
           ).catch(() => {});
         }
@@ -794,7 +844,12 @@ export default function App() {
     return () => {
       isMounted = false;
     };
-  }, [authToken, authUser?.id]);
+  }, [
+    authToken,
+    authUser?.id,
+    currentTreeCompletionCanvasKey,
+    previousTreeCompletionCanvasKey,
+  ]);
 
   useEffect(() => {
     if (!authToken || !hasLoadedRemoteCards.current || isApplyingRemoteCards.current) {
@@ -899,9 +954,12 @@ export default function App() {
       return;
     }
 
-    const currentCanvas = treeCompletionCanvas || EMPTY_TREE_COMPLETION_CANVAS;
-    const { imagePng: _unusedImagePng, ...currentComputedCanvas } = currentCanvas;
     const completedAt = Date.now();
+    const completionCanvasKey = getTreeCompletionCanvasKey(completedAt);
+    const currentCanvas = completionCanvasKey === currentTreeCompletionCanvasKey
+      ? (treeCompletionCanvas || EMPTY_TREE_COMPLETION_CANVAS)
+      : EMPTY_TREE_COMPLETION_CANVAS;
+    const { imagePng: _unusedImagePng, ...currentComputedCanvas } = currentCanvas;
     const completionGroupId = `completion-${completedAt}`;
     const nodeIdByCardId = new Map([...removedCardIds].map((cardId) => [
       cardId,
@@ -937,11 +995,17 @@ export default function App() {
       updatedAt: completedAt,
     };
 
-    setTreeCompletionCanvas(nextCanvas);
+    if (completionCanvasKey === currentTreeCompletionCanvasKey) {
+      setTreeCompletionCanvas(nextCanvas);
+    } else {
+      setCurrentDayReference(completedAt);
+      setTreeCompletionCanvas(nextCanvas);
+    }
+
     if (authToken) {
       saveRemoteUserData(
         authToken,
-        TREE_COMPLETION_CANVAS_KEY,
+        completionCanvasKey,
         nextCanvas,
       ).catch(() => {});
     }
