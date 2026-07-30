@@ -3,26 +3,12 @@ import { useEffect, useRef, useState } from 'react';
 import { styles } from '../styles/appStyles';
 
 const DELETE_HOLD_MS = 500;
-const DELETE_LOADER_SEGMENTS = 48;
 
-export function DeleteHoldIndicator({ active, onComplete }) {
+export function DeleteHoldIndicator({ active, onComplete, variant = 'cardFill' }) {
   const progress = useRef(new Animated.Value(0)).current;
   const animationRef = useRef(null);
   const completedRef = useRef(false);
-  const [progressSnapshot, setProgressSnapshot] = useState(0);
   const [isVisualActive, setIsVisualActive] = useState(false);
-
-  useEffect(() => {
-    const listenerId = progress.addListener(({ value }) => {
-      setProgressSnapshot(value);
-    });
-
-    return () => {
-      progress.removeListener(listenerId);
-    };
-  }, [
-    progress,
-  ]);
 
   useEffect(() => () => {
     if (animationRef.current) {
@@ -75,33 +61,29 @@ export function DeleteHoldIndicator({ active, onComplete }) {
     return null;
   }
 
-  const completedSegments = Math.min(
-    DELETE_LOADER_SEGMENTS,
-    Math.floor(progressSnapshot * DELETE_LOADER_SEGMENTS),
-  );
+  const fillTranslateX = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['-100%', '0%'],
+  });
 
   return (
-    <View pointerEvents="none" style={styles.leafDeleteProgressOverlay}>
-      <View style={styles.leafDeleteProgressCircleLoader}>
-        {Array.from({ length: DELETE_LOADER_SEGMENTS }, (_, segmentIndex) => (
-          <View
-            key={`delete-progress-loader-${segmentIndex}`}
-            style={[
-              styles.leafDeleteProgressLoaderSlot,
-              {
-                transform: [{ rotate: `${(360 / DELETE_LOADER_SEGMENTS) * segmentIndex}deg` }],
-              },
-            ]}
-          >
-            <View
-              style={[
-                styles.leafDeleteProgressLoaderTick,
-                segmentIndex < completedSegments && styles.leafDeleteProgressLoaderTickActive,
-              ]}
-            />
-          </View>
-        ))}
-      </View>
+    <View
+      pointerEvents="none"
+      style={[
+        styles.deleteProgressCardFillOverlay,
+        variant === 'treeCardFill' && styles.deleteProgressTreeCardFillOverlay,
+      ]}
+    >
+      <Animated.View
+        style={[
+          styles.deleteProgressCardFill,
+          {
+            transform: [{ translateX: fillTranslateX }],
+          },
+        ]}
+      >
+        <View style={styles.deleteProgressCardFillSurface} />
+      </Animated.View>
     </View>
   );
 }

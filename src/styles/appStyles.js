@@ -233,41 +233,33 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 2,
     textAlign: 'center',
   },
-  leafDeleteProgressOverlay: {
+  deleteProgressCardFillOverlay: {
     position: 'absolute',
     left: 0,
     right: 0,
     top: 0,
     bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 2500,
-    elevation: 30,
+    borderRadius: 8,
+    overflow: 'hidden',
+    zIndex: 0,
   },
-  leafDeleteProgressCircleLoader: {
-    width: 118,
-    height: 118,
-    borderRadius: 59,
-    alignItems: 'center',
-    justifyContent: 'center',
+  deleteProgressTreeCardFillOverlay: {
+    borderRadius: 8,
   },
-  leafDeleteProgressLoaderSlot: {
+  deleteProgressCardFill: {
     position: 'absolute',
-    top: 0,
     left: 0,
-    width: 118,
-    height: 118,
-    alignItems: 'center',
+    right: 0,
+    top: 0,
+    bottom: 0,
   },
-  leafDeleteProgressLoaderTick: {
-    width: 3,
-    height: 9,
-    borderRadius: 2,
-    backgroundColor: 'rgba(220, 38, 38, 0.2)',
-    marginTop: 0,
-  },
-  leafDeleteProgressLoaderTickActive: {
-    backgroundColor: '#DC2626',
+  deleteProgressCardFillSurface: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(220, 38, 38, 0.16)',
   },
   leafAddPreviewOverlay: {
     position: 'absolute',
@@ -719,6 +711,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     paddingHorizontal: 6,
     paddingTop: 10,
+    zIndex: 1,
   },
   leafContentLayer: {
     position: 'absolute',
@@ -895,6 +888,7 @@ export const styles = StyleSheet.create({
   cardInputWrap: {
     width: '100%',
     alignSelf: 'stretch',
+    zIndex: 1,
   },
   cardInput: {
     width: '100%',

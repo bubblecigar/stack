@@ -7,7 +7,6 @@ import {
   View,
 } from 'react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { DeleteHoldIndicator } from '../components/DeleteHoldIndicator';
 import { MathNotationPalette } from '../components/MathNotationPalette';
 import { StackCard } from '../components/StackCard';
 import { styles } from '../styles/appStyles';
@@ -894,6 +893,11 @@ export function LeafDeck({
                 focusedCardId={effectiveFocusedCardId}
                 hideControls
                 isLeafTopCard={isTopSlot}
+                isDeleteHoldActive={
+                  shouldRenderActiveTopSlot
+                  && isDeleteHoldActive
+                  && activeCard?.index >= 0
+                }
                 layout="leaf"
                 visibleIndex={slot}
                 onPress={() => {}}
@@ -902,6 +906,7 @@ export function LeafDeck({
                 onEditingValueChange={onEditingValueChange}
                 onEditingSelectionChange={onEditingSelectionChange}
                 onCompleteEdit={onCompleteEdit}
+                onDeleteHoldComplete={animateDeleteSwipeAway}
                 editingSelection={shouldRenderActiveTopSlot ? editingSelection : undefined}
                 onPressIn={() => {
                   if (shouldRenderActiveTopSlot && editingIndex === activeCard.index) {
@@ -915,12 +920,6 @@ export function LeafDeck({
                     : 'placeholder'
                 }
               />
-              {shouldRenderActiveTopSlot ? (
-                <DeleteHoldIndicator
-                  active={isDeleteHoldActive && activeCard?.index >= 0}
-                  onComplete={animateDeleteSwipeAway}
-                />
-              ) : null}
               {shouldRenderActiveTopSlot && isAddHoldActive && animatedAddPreviewRelation ? (
                 <Animated.View
                   pointerEvents="none"

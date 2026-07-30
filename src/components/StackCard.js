@@ -258,6 +258,16 @@ export function StackCard({
         />
       ) : null}
 
+      {(isTreeCard || isLeafCard) && isFocusedCard ? (
+        <DeleteHoldIndicator
+          active={isDeleteHoldActive}
+          variant={isTreeCard ? 'treeCardFill' : 'cardFill'}
+          onComplete={() => {
+            onDeleteHoldComplete?.(index);
+          }}
+        />
+      ) : null}
+
       <View style={[
         styles.cardControls,
         isTreeCard && styles.treeCardControls,
@@ -359,15 +369,6 @@ export function StackCard({
         )}
 
       </View>
-
-      {isTreeCard && isFocusedCard ? (
-        <DeleteHoldIndicator
-          active={isDeleteHoldActive}
-          onComplete={() => {
-            onDeleteHoldComplete?.(index);
-          }}
-        />
-      ) : null}
 
       {isEditing ? (
         isLeafCard ? (
