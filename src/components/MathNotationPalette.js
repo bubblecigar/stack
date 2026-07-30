@@ -3,13 +3,26 @@ import {
   Text,
   View,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { styles } from '../styles/appStyles';
 
 const SYSTEM_KEY_ICONS = {
-  delete: 'backspace-outline',
-  newline: 'keyboard-return',
-  space: 'keyboard-space',
+  delete: {
+    Icon: MaterialCommunityIcons,
+    name: 'backspace-outline',
+  },
+  keyboard: {
+    Icon: Ionicons,
+    name: 'keypad-outline',
+  },
+  newline: {
+    Icon: MaterialCommunityIcons,
+    name: 'keyboard-return',
+  },
+  space: {
+    Icon: MaterialCommunityIcons,
+    name: 'keyboard-space',
+  },
 };
 
 export function MathNotationPalette({
@@ -18,6 +31,7 @@ export function MathNotationPalette({
   onTouchStart,
   onDeleteNotation,
   onInsertNotation,
+  onOpenSystemKeyboard,
 }) {
   const customKeys = Array.isArray(keys) ? keys : [];
 
@@ -56,6 +70,11 @@ export function MathNotationPalette({
                   return;
                 }
 
+                if (key.action === 'openKeyboard') {
+                  onOpenSystemKeyboard?.();
+                  return;
+                }
+
                 onInsertNotation?.(key.insert);
               }}
               style={({ pressed }) => [
@@ -64,13 +83,19 @@ export function MathNotationPalette({
                 pressed && styles.mathNotationKeyPressed,
               ]}
             >
-              {key.isSystem ? (
-                <MaterialCommunityIcons
-                  color="#94A3B8"
-                  name={SYSTEM_KEY_ICONS[key.systemKeyId]}
-                  size={16}
-                />
-              ) : (
+              {key.isSystem ? (() => {
+                const SystemIcon = SYSTEM_KEY_ICONS[key.systemKeyId]?.Icon
+                  ?? MaterialCommunityIcons;
+                const systemIconName = SYSTEM_KEY_ICONS[key.systemKeyId]?.name;
+
+                return (
+                  <SystemIcon
+                    color="#94A3B8"
+                    name={systemIconName}
+                    size={16}
+                  />
+                );
+              })() : (
                 <Text
                   numberOfLines={1}
                   adjustsFontSizeToFit

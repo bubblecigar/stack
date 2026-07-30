@@ -381,6 +381,7 @@ export default function App() {
   const [editingValue, setEditingValue] = useState('');
   const [editingSelection, setEditingSelection] = useState(null);
   const [suppressEditingKeyboard, setSuppressEditingKeyboard] = useState(false);
+  const [editingKeyboardOpenRequest, setEditingKeyboardOpenRequest] = useState(0);
   const [focusedCardIndex, setFocusedCardIndex] = useState(null);
   const [layoutMode, setLayoutMode] = useState('leaf');
   const [collapsedNodeIds, setCollapsedNodeIds] = useState(() => new Set());
@@ -1520,6 +1521,26 @@ export default function App() {
     applyMathNotationEdit(target, nextValue, nextSelection);
   }
 
+  function handleOpenSystemKeyboard() {
+    if (!shouldRenderLeaf) {
+      return;
+    }
+
+    const target = getMathNotationTarget();
+    if (!target) {
+      return;
+    }
+
+    setEditingIndex(target.targetIndex);
+    setSuppressEditingKeyboard(false);
+    setEditingValue(target.currentValue);
+    setEditingSelection(target.selection);
+    setFocusedCardIndex(target.targetIndex);
+    setLeafTopIndex(target.targetIndex);
+    setLeafFocusedCardId(target.targetCard.id);
+    setEditingKeyboardOpenRequest((currentRequest) => currentRequest + 1);
+  }
+
   useEffect(() => {
     if (!shouldRenderLeaf) {
       return;
@@ -1679,6 +1700,7 @@ export default function App() {
             editingValue={editingValue}
             editingSelection={editingSelection}
             suppressEditingKeyboard={suppressEditingKeyboard}
+            editingKeyboardOpenRequest={editingKeyboardOpenRequest}
             mathKeyboardKeys={mathKeyboardKeys}
             focusedCardIndex={effectiveLeafFocusedIndex}
             focusedCardId={leafFocusedCardId}
@@ -1690,6 +1712,7 @@ export default function App() {
             onCompleteEdit={handleCompleteEdit}
             onDeleteMathNotation={handleDeleteMathNotation}
             onInsertMathNotation={handleInsertMathNotation}
+            onOpenSystemKeyboard={handleOpenSystemKeyboard}
             onLeafSwipe={handleLeafSwipe}
             isDeleteHoldActive={isDeleteHoldActive}
             isAddHoldActive={isAddHoldActive}

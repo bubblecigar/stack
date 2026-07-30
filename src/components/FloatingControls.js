@@ -10,7 +10,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   useEffect, useMemo, useRef, useState,
 } from 'react';
@@ -51,9 +51,22 @@ const SYSTEM_CARD_EXPLANATIONS = {
   },
 };
 const SYSTEM_MATH_KEY_ICONS = {
-  delete: 'backspace-outline',
-  newline: 'keyboard-return',
-  space: 'keyboard-space',
+  delete: {
+    Icon: MaterialCommunityIcons,
+    name: 'backspace-outline',
+  },
+  keyboard: {
+    Icon: Ionicons,
+    name: 'keypad-outline',
+  },
+  newline: {
+    Icon: MaterialCommunityIcons,
+    name: 'keyboard-return',
+  },
+  space: {
+    Icon: MaterialCommunityIcons,
+    name: 'keyboard-space',
+  },
 };
 
 function clamp(value, min, max) {
@@ -697,13 +710,19 @@ export function FloatingControls({
               }}
               onStartShouldSetResponder={() => canDragMathKeyboardKey(key)}
             >
-              {key.isReserved ? null : key.isSystem ? (
-                <MaterialCommunityIcons
-                  color="#94A3B8"
-                  name={SYSTEM_MATH_KEY_ICONS[key.systemKeyId]}
-                  size={16}
-                />
-              ) : (
+              {key.isReserved ? null : key.isSystem ? (() => {
+                const SystemIcon = SYSTEM_MATH_KEY_ICONS[key.systemKeyId]?.Icon
+                  ?? MaterialCommunityIcons;
+                const systemIconName = SYSTEM_MATH_KEY_ICONS[key.systemKeyId]?.name;
+
+                return (
+                  <SystemIcon
+                    color="#94A3B8"
+                    name={systemIconName}
+                    size={16}
+                  />
+                );
+              })() : (
                 <TextInput
                   autoCapitalize="none"
                   autoCorrect={false}

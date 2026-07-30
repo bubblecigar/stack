@@ -22,6 +22,7 @@ export function StackCard({
   editingIndex,
   editingValue,
   suppressEditingKeyboard = false,
+  editingKeyboardOpenRequest = 0,
   focusedCardIndex,
   focusedCardId = null,
   isLeafTopCard = false,
@@ -119,6 +120,7 @@ export function StackCard({
     : null;
 
   const dependencyText = '';
+  const editingInputRef = useRef(null);
   const placeholderPulse = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -157,6 +159,19 @@ export function StackCard({
     inputRange: [0, 1],
     outputRange: [0.18, 1],
   });
+
+  useEffect(() => {
+    if (!isEditing || suppressEditingKeyboard) {
+      return;
+    }
+
+    editingInputRef.current?.focus?.();
+  }, [
+    editingKeyboardOpenRequest,
+    isEditing,
+    suppressEditingKeyboard,
+  ]);
+
   function handleControlPressIn(event) {
     event?.stopPropagation?.();
     onPressIn?.();
@@ -169,6 +184,7 @@ export function StackCard({
 
   const editingInput = (
     <TextInput
+      ref={editingInputRef}
       onFocus={() => {
         onFocusCard?.(index);
         onPressIn?.();

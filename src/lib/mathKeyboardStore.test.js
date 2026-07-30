@@ -14,8 +14,15 @@ describe('math keyboard store', () => {
     const keys = normalizeMathKeyboardKeys(null);
 
     expect(keys).toHaveLength(MATH_KEYBOARD_GRID_SIZE);
-    expect(keys.slice(0, MATH_KEYBOARD_GRID_SIZE - 5).every((key) => key.isEmpty)).toBe(true);
-    expect(keys.slice(-5)).toEqual([
+    expect(keys.slice(0, MATH_KEYBOARD_GRID_SIZE - 6).every((key) => key.isEmpty)).toBe(true);
+    expect(keys.slice(-6)).toEqual([
+      expect.objectContaining({
+        action: 'openKeyboard',
+        isSystem: true,
+        label: 'keyboard',
+        slotIndex: MATH_KEYBOARD_GRID_SIZE - 6,
+        systemKeyId: 'keyboard',
+      }),
       expect.objectContaining({
         insert: ' ',
         isSystem: true,
@@ -46,7 +53,7 @@ describe('math keyboard store', () => {
         slotIndex: MATH_KEYBOARD_GRID_SIZE - 1,
       }),
     ]);
-    expect(getActiveMathKeyboardKeys(keys)).toHaveLength(3);
+    expect(getActiveMathKeyboardKeys(keys)).toHaveLength(4);
   });
 
   it('migrates existing string keys into the first grid slots', () => {
@@ -70,7 +77,7 @@ describe('math keyboard store', () => {
       },
     ]);
     expect(keys[2].isEmpty).toBe(true);
-    expect(keys.slice(-5, -2).every((key) => key.isSystem)).toBe(true);
+    expect(keys.slice(-6, -2).every((key) => key.isSystem)).toBe(true);
     expect(keys.slice(-2).every((key) => key.isReserved)).toBe(true);
   });
 
@@ -153,6 +160,10 @@ describe('math keyboard store', () => {
         insert: '≡',
         label: '≡',
         slotIndex: 24,
+      },
+      {
+        slotIndex: MATH_KEYBOARD_GRID_SIZE - 6,
+        systemKeyId: 'keyboard',
       },
       {
         slotIndex: MATH_KEYBOARD_GRID_SIZE - 5,

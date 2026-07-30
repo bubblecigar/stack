@@ -10,6 +10,13 @@ export const RESERVED_MATH_KEYBOARD_SLOT_INDICES = [
 const RESERVED_MATH_KEYBOARD_SLOT_SET = new Set(RESERVED_MATH_KEYBOARD_SLOT_INDICES);
 export const SYSTEM_MATH_KEY_DEFINITIONS = [
   {
+    action: 'openKeyboard',
+    defaultSlotIndex: MATH_KEYBOARD_GRID_SIZE - 6,
+    insert: '',
+    label: 'keyboard',
+    systemKeyId: 'keyboard',
+  },
+  {
     action: 'insert',
     defaultSlotIndex: MATH_KEYBOARD_GRID_SIZE - 5,
     insert: ' ',

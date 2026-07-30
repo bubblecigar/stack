@@ -195,6 +195,7 @@ export function LeafDeck({
   editingIndex,
   editingValue,
   suppressEditingKeyboard = false,
+  editingKeyboardOpenRequest = 0,
   focusedCardIndex,
   focusedCardId: controlledFocusedCardId,
   mathKeyboardKeys = [],
@@ -206,6 +207,7 @@ export function LeafDeck({
   onCompleteEdit,
   onDeleteMathNotation,
   onInsertMathNotation,
+  onOpenSystemKeyboard,
   editingSelection,
   onLeafSwipe,
   isDeleteHoldActive = false,
@@ -887,6 +889,7 @@ export function LeafDeck({
                 editingIndex={shouldRenderActiveTopSlot ? editingIndex : null}
                 editingValue={shouldRenderActiveTopSlot ? editingValue : ''}
                 suppressEditingKeyboard={shouldRenderActiveTopSlot && suppressEditingKeyboard}
+                editingKeyboardOpenRequest={shouldRenderActiveTopSlot ? editingKeyboardOpenRequest : 0}
                 focusedCardIndex={focusedCardIndex}
                 focusedCardId={effectiveFocusedCardId}
                 hideControls
@@ -1084,6 +1087,7 @@ export function LeafDeck({
         keys={mathKeyboardKeys}
         onDeleteNotation={onDeleteMathNotation}
         onInsertNotation={onInsertMathNotation}
+        onOpenSystemKeyboard={onOpenSystemKeyboard}
         onTouchStart={() => {
           inputTouchRef.current = true;
         }}
