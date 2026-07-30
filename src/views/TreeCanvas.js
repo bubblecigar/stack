@@ -2,7 +2,7 @@ import {
   useEffect, useMemo, useRef, useState,
 } from 'react';
 import {
-  PanResponder, Pressable, ScrollView, Text, View,
+  PanResponder, ScrollView, View,
 } from 'react-native';
 import { styles } from '../styles/appStyles';
 import { buildTreeLayout, TREE_CANVAS_PADDING } from '../lib/treeLayout';
@@ -18,7 +18,6 @@ export function TreeCanvas({
   editingValue,
   onCardPress,
   onCardFocus,
-  onCreateRootCard,
   onCreateEdit,
   onToggleCollapse,
   onDeleteCard,
@@ -217,35 +216,9 @@ export function TreeCanvas({
           >
             {paddedPositionedCards.map((entry) => {
               const { card, left, top, depth, placementOrder, isCollapsedStacked } = entry;
-              const isEmptyUserCard = Boolean(card.isEmptyUserCard);
               const isPreviewCard = card.id === PREVIEW_CARD_ID;
               const isRootCard = !Array.isArray(card.parentIds) || card.parentIds.length === 0;
               const isSystemCard = Boolean(card.isMissionCard || card.isTreasureCard);
-
-              if (isEmptyUserCard) {
-                return (
-                  <Pressable
-                    accessibilityLabel="Create card"
-                    accessibilityRole="button"
-                    key={`card-${card.id}`}
-                    onPressIn={handleCardPressIn}
-                    onPress={onCreateRootCard}
-                    style={({ pressed }) => [
-                      styles.card,
-                      styles.treeCard,
-                      styles.treeEmptyCreateCard,
-                      pressed && styles.treeEmptyCreateCardPressed,
-                      {
-                        left,
-                        top,
-                        position: 'absolute',
-                      },
-                    ]}
-                  >
-                    <Text style={styles.treeEmptyCreateCardText}>+</Text>
-                  </Pressable>
-                );
-              }
 
               return (
                 <StackCard
