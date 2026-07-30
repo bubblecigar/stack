@@ -1101,6 +1101,7 @@ export default function App() {
       ? getCollapsibleDescendantIds(systemTreeCards, cardId)
       : [];
 
+    playModeFlipSound();
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
 
     setCollapsedNodeIds((currentCollapsed) => {
