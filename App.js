@@ -184,8 +184,15 @@ function countPreviousDayCompletedTasks(treeCompletionCanvas) {
   const completionNodes = Array.isArray(treeCompletionCanvas?.nodes)
     ? treeCompletionCanvas.nodes
     : [];
+  if (completionNodes.length > 0) {
+    return completionNodes.length;
+  }
 
-  return completionNodes.filter((node) => isPreviousDayTimestamp(node?.completedAt)).length;
+  const completionEntries = Array.isArray(treeCompletionCanvas?.entries)
+    ? treeCompletionCanvas.entries
+    : [];
+
+  return completionEntries.filter((entry) => isPreviousDayTimestamp(entry?.completedAt)).length;
 }
 
 function getLeafRootScopedCards(cards, currentCardId) {
