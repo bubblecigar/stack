@@ -48,6 +48,7 @@ export function StackCard({
   onFocusCard,
   editingSelection,
   isDeleteHoldActive = false,
+  doneCleanupPreviewCardIds = new Set(),
   isPreviewCard = false,
   leafContentMode = 'text',
   collapsedNodeIds = new Set(),
@@ -90,13 +91,20 @@ export function StackCard({
     && !isSystem
     && !isEditing
   );
-  const isTreeDeleteHoldActive = isTreeCard && isDeleteHoldActive;
-  const isDeleteProgressVisible = isTreeDeleteHoldActive && isFocusedCard;
+  const isPrimaryDeleteHoldCard = isDeleteHoldActive && isFocusedCard;
+  const isTreeDeleteHoldActive = isTreeCard && isPrimaryDeleteHoldCard;
+  const isDoneCleanupPreviewCard = (
+    done
+    && doneCleanupPreviewCardIds?.has?.(id)
+  );
+  const isDoneCleanupProgressVisible = isDoneCleanupPreviewCard;
+  const isDoneCleanupChromeVisible = isDoneCleanupPreviewCard && isPrimaryDeleteHoldCard;
+  const isDeleteProgressVisible = isTreeDeleteHoldActive && !isDoneCleanupProgressVisible;
   const editButtonColor = isTreeDeleteHoldActive
-    ? '#DC2626'
+    ? (done ? '#0EA5E9' : '#DC2626')
     : (isTreeCard ? '#0EA5E9' : '#0F172A');
   const editButtonPressedColor = isTreeDeleteHoldActive
-    ? '#B91C1C'
+    ? (done ? '#0284C7' : '#B91C1C')
     : (isTreeCard ? '#0284C7' : '#2563EB');
   const treasureIconSize = isLeafCard ? 40 : 30;
   const canShowDoneStamp = done && !isSystem;
@@ -242,6 +250,7 @@ export function StackCard({
         isFocusedCard && !isLeafCard && styles.focusedCard,
         isFocusedCard && isSystem && styles.focusedTreasureCard,
         isDeleteProgressVisible && styles.deleteFocusedCard,
+        isDoneCleanupChromeVisible && styles.doneCleanupFocusedCard,
         zLayer != null ? { zIndex: zLayer } : null,
       ]}
     >
@@ -254,17 +263,19 @@ export function StackCard({
             isFocusedCard && styles.focusedTreeCollapsedCornerLine,
             isFocusedCard && isSystem && styles.focusedTreasureTreeCollapsedCornerLine,
             isDeleteProgressVisible && styles.deleteTreeCollapsedCornerLine,
+            isDoneCleanupChromeVisible && styles.doneCleanupTreeCollapsedCornerLine,
           ]}
         />
       ) : null}
 
-      {(isTreeCard || isLeafCard) && isFocusedCard ? (
+      {(isTreeCard || isLeafCard) && (isPrimaryDeleteHoldCard || isDoneCleanupPreviewCard) ? (
         <DeleteHoldIndicator
-          active={isDeleteHoldActive}
+          active={isPrimaryDeleteHoldCard || isDoneCleanupPreviewCard}
+          tone={isDoneCleanupPreviewCard ? 'done' : 'delete'}
           variant={isTreeCard ? 'treeCardFill' : 'cardFill'}
-          onComplete={() => {
+          onComplete={isPrimaryDeleteHoldCard ? () => {
             onDeleteHoldComplete?.(index);
-          }}
+          } : undefined}
         />
       ) : null}
 

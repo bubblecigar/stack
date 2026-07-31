@@ -14,6 +14,7 @@ export function TreeCanvas({
   collapsedNodeIds,
   focusedCardIndex,
   focusedCardId,
+  doneCleanupPreviewCardIds = new Set(),
   editingIndex,
   editingValue,
   onCardPress,
@@ -248,6 +249,7 @@ export function TreeCanvas({
                   }}
                   isCollapsedStacked={isCollapsedStacked}
                   isDeleteHoldActive={isDeleteHoldActive}
+                  doneCleanupPreviewCardIds={doneCleanupPreviewCardIds}
                   onPress={() => {
                     if (!isPreviewCard) {
                       onCardPress(card.index);

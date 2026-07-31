@@ -261,6 +261,9 @@ export const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: 'rgba(220, 38, 38, 0.16)',
   },
+  doneProgressCardFillSurface: {
+    backgroundColor: 'rgba(37, 99, 235, 0.14)',
+  },
   leafAddPreviewOverlay: {
     position: 'absolute',
     left: 0,
@@ -612,6 +615,10 @@ export const styles = StyleSheet.create({
     borderBottomColor: '#DC2626',
     opacity: 1,
   },
+  doneCleanupTreeCollapsedCornerLine: {
+    borderRightColor: '#0EA5E9',
+    borderBottomColor: '#0EA5E9',
+  },
   treasureCard: {
     height: 112,
     minHeight: 112,
@@ -828,6 +835,10 @@ export const styles = StyleSheet.create({
     borderColor: '#DC2626',
     shadowColor: '#DC2626',
     shadowOpacity: 0.38,
+  },
+  doneCleanupFocusedCard: {
+    borderColor: '#0EA5E9',
+    shadowColor: '#0EA5E9',
   },
   leafEditingCard: {
     borderColor: '#E2E8F0',

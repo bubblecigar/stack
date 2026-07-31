@@ -4,7 +4,12 @@ import { styles } from '../styles/appStyles';
 
 const DELETE_HOLD_MS = 500;
 
-export function DeleteHoldIndicator({ active, onComplete, variant = 'cardFill' }) {
+export function DeleteHoldIndicator({
+  active,
+  onComplete,
+  tone = 'delete',
+  variant = 'cardFill',
+}) {
   const progress = useRef(new Animated.Value(0)).current;
   const animationRef = useRef(null);
   const completedRef = useRef(false);
@@ -82,7 +87,12 @@ export function DeleteHoldIndicator({ active, onComplete, variant = 'cardFill' }
           },
         ]}
       >
-        <View style={styles.deleteProgressCardFillSurface} />
+        <View
+          style={[
+            styles.deleteProgressCardFillSurface,
+            tone === 'done' && styles.doneProgressCardFillSurface,
+          ]}
+        />
       </Animated.View>
     </View>
   );

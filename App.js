@@ -100,6 +100,40 @@ const EMPTY_TREE_COMPLETION_CANVAS = {
   updatedAt: null,
 };
 
+function getDoneCleanupCardIds(cards, rootCardId) {
+  const rootCard = cards.find((card) => card.id === rootCardId);
+  if (!rootCard?.done) {
+    return new Set();
+  }
+
+  const candidateIds = new Set();
+  const visitedIds = new Set();
+
+  function collectCandidateIds(cardId) {
+    if (visitedIds.has(cardId)) {
+      return;
+    }
+
+    visitedIds.add(cardId);
+    candidateIds.add(cardId);
+
+    const candidateCard = cards.find((card) => card.id === cardId);
+    if (!candidateCard) {
+      return;
+    }
+
+    (candidateCard.childIds || []).forEach(collectCandidateIds);
+  }
+
+  collectCandidateIds(rootCard.id);
+
+  return new Set(
+    cards
+      .filter((card) => candidateIds.has(card.id) && card.done)
+      .map((card) => card.id),
+  );
+}
+
 function getCompletionDayKey(timestamp = Date.now()) {
   const date = new Date(Number(timestamp) - DAY_START_OFFSET_MS);
   if (Number.isNaN(date.getTime())) {
@@ -454,6 +488,17 @@ export default function App() {
   const focusedSystemCardType = focusedControlCard?.isMissionCard
     ? 'mission'
     : (focusedControlCard?.isTreasureCard ? 'treasure' : null);
+  const doneCleanupPreviewCardIds = useMemo(() => {
+    if (!isDeleteHoldActive || !focusedControlCardId) {
+      return new Set();
+    }
+
+    return getDoneCleanupCardIds(cards, focusedControlCardId);
+  }, [
+    cards,
+    focusedControlCardId,
+    isDeleteHoldActive,
+  ]);
 
   const leafCards = useMemo(
     () => {
@@ -1032,33 +1077,11 @@ export default function App() {
 
     playTrashSound();
 
-    const candidateIds = new Set();
-    const visitedIds = new Set();
-
-    function collectCandidateIds(cardId) {
-      if (visitedIds.has(cardId)) {
-        return;
-      }
-
-      visitedIds.add(cardId);
-      candidateIds.add(cardId);
-
-      const candidateCard = cards.find((card) => card.id === cardId);
-      if (!candidateCard) {
-        return;
-      }
-
-      (candidateCard.childIds || []).forEach(collectCandidateIds);
-    }
-
-    if (removedCard.done) {
-      collectCandidateIds(removedCard.id);
-    } else {
-      candidateIds.add(removedCard.id);
-    }
-
+    const doneCleanupCardIds = removedCard.done
+      ? getDoneCleanupCardIds(cards, removedCard.id)
+      : new Set([removedCard.id]);
     const removedCards = removedCard.done
-      ? cards.filter((card) => candidateIds.has(card.id) && card.done)
+      ? cards.filter((card) => doneCleanupCardIds.has(card.id))
       : [removedCard];
     const removedCardIds = new Set(removedCards.map((card) => card.id));
     const removedIndexes = removedCards
@@ -1899,6 +1922,7 @@ export default function App() {
             suppressEditingKeyboard={suppressEditingKeyboard}
             editingKeyboardOpenRequest={editingKeyboardOpenRequest}
             mathKeyboardKeys={mathKeyboardKeys}
+            doneCleanupPreviewCardIds={doneCleanupPreviewCardIds}
             focusedCardIndex={effectiveLeafFocusedIndex}
             focusedCardId={leafFocusedCardId}
             collapsedNodeIds={collapsedNodeIds}
@@ -1927,6 +1951,7 @@ export default function App() {
             focusedCardId={focusedCardId}
             editingIndex={editingIndex}
             editingValue={editingValue}
+            doneCleanupPreviewCardIds={doneCleanupPreviewCardIds}
             onCardPress={handleTreeCardPress}
             onCardFocus={handleTreeCardFocus}
             onCreateEdit={handleToggleEdit}

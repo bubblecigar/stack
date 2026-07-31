@@ -199,6 +199,7 @@ export function LeafDeck({
   focusedCardId: controlledFocusedCardId,
   mathKeyboardKeys = [],
   collapsedNodeIds,
+  doneCleanupPreviewCardIds = new Set(),
   onCreateEdit,
   onDeleteCard,
   onEditingValueChange,
@@ -898,6 +899,7 @@ export function LeafDeck({
                   && isDeleteHoldActive
                   && activeCard?.index >= 0
                 }
+                doneCleanupPreviewCardIds={doneCleanupPreviewCardIds}
                 layout="leaf"
                 visibleIndex={slot}
                 onPress={() => {}}
