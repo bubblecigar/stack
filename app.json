@@ -13,6 +13,8 @@
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
         },
+        "NSCameraUsageDescription": "Allow Papers to scan photos into cards.",
+        "NSPhotoLibraryUsageDescription": "Allow Papers to scan selected images into cards.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -31,7 +33,8 @@
       "expo-secure-store",
       "expo-font",
       "expo-asset",
-      "expo-notifications"
+      "expo-notifications",
+      "expo-image-picker"
     ],
     "extra": {
       "eas": {
