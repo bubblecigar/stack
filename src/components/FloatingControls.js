@@ -188,7 +188,6 @@ export function FloatingControls({
   onDeleteHoldChange,
   onLogout,
   onMoveMathKeyboardKey,
-  onScanCards,
   onUpdateMathKeyboardKey,
   settingsPanelCloseRequest = 0,
   canDeleteCurrentCard = false,
@@ -989,21 +988,6 @@ export function FloatingControls({
               </Text>
 
               <View style={styles.settingsPanelAudioRow}>
-                <Pressable
-                  accessibilityLabel="Scan cards from image"
-                  accessibilityRole="button"
-                  onPress={onScanCards}
-                  style={({ pressed }) => [
-                    styles.settingsIconButton,
-                    pressed && styles.settingsIconButtonPressed,
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    color="#CBD5E1"
-                    name="image-search-outline"
-                    size={24}
-                  />
-                </Pressable>
                 <Pressable
                   accessibilityLabel={audioEnabled ? 'Turn audio off' : 'Turn audio on'}
                   accessibilityRole="button"
