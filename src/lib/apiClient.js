@@ -26,8 +26,34 @@ export const AUTH_BASE_URL = process.env.EXPO_PUBLIC_AUTH_SERVER_URL
 export const API_BASE_URL = process.env.EXPO_PUBLIC_API_SERVER_URL
   || DEFAULT_API_BASE_URL;
 
+const shouldLogApiRequests = typeof __DEV__ !== 'undefined' && __DEV__;
+let hasLoggedApiConfig = false;
+
+function logApiConfig() {
+  if (!shouldLogApiRequests || hasLoggedApiConfig) {
+    return;
+  }
+
+  hasLoggedApiConfig = true;
+  console.log('[api] resolved endpoints', {
+    apiBaseUrl: API_BASE_URL,
+    authBaseUrl: AUTH_BASE_URL,
+    defaultApiBaseUrl: DEFAULT_API_BASE_URL,
+    defaultAuthBaseUrl: DEFAULT_AUTH_BASE_URL,
+    envApiBaseUrl: process.env.EXPO_PUBLIC_API_SERVER_URL || null,
+    envAuthBaseUrl: process.env.EXPO_PUBLIC_AUTH_SERVER_URL || null,
+    expoHost: fallbackHost,
+  });
+}
+
 async function requestJson(url, options = {}) {
   let response;
+  const method = options.method || 'GET';
+
+  logApiConfig();
+  if (shouldLogApiRequests) {
+    console.log(`[api] ${method} ${url}`);
+  }
 
   try {
     response = await fetch(url, {
@@ -39,12 +65,20 @@ async function requestJson(url, options = {}) {
       },
     });
   } catch (error) {
+    if (shouldLogApiRequests) {
+      console.log(`[api] ${method} ${url} network error`, error?.message || error);
+    }
+
     const networkError = new Error(`Network request failed: ${url}`);
     networkError.cause = error;
     throw networkError;
   }
 
   const body = await response.json().catch(() => ({}));
+
+  if (shouldLogApiRequests) {
+    console.log(`[api] ${method} ${url} -> ${response.status}`);
+  }
 
   if (!response.ok) {
     const error = new Error(body.error || 'Request failed.');
