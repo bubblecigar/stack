@@ -190,7 +190,6 @@ export function FloatingControls({
   onMoveMathKeyboardKey,
   onScanCards,
   onUpdateMathKeyboardKey,
-  scanningCards = false,
   settingsPanelCloseRequest = 0,
   canDeleteCurrentCard = false,
   childInsertionOnly = false,
@@ -993,11 +992,10 @@ export function FloatingControls({
                 <Pressable
                   accessibilityLabel="Scan cards from image"
                   accessibilityRole="button"
-                  disabled={scanningCards}
                   onPress={onScanCards}
                   style={({ pressed }) => [
                     styles.settingsIconButton,
-                    (pressed || scanningCards) && styles.settingsIconButtonPressed,
+                    pressed && styles.settingsIconButtonPressed,
                   ]}
                 >
                   <MaterialCommunityIcons

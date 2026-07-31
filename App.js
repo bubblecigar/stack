@@ -402,7 +402,6 @@ export default function App() {
   const [addPreviewRelation, setAddPreviewRelation] = useState(null);
   const [isAddHoldActive, setIsAddHoldActive] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
-  const [isScanningCards, setIsScanningCards] = useState(false);
   const [settingsPanelCloseRequest, setSettingsPanelCloseRequest] = useState(0);
   const [mathKeyboardKeys, setMathKeyboardKeys] = useState(() => normalizeMathKeyboardKeys([]));
   const [currentDayReference, setCurrentDayReference] = useState(() => Date.now());
@@ -1467,6 +1466,23 @@ export default function App() {
     setLeafFocusedCardId(card?.id ?? null);
   }
 
+  function findScanPlaceholderIndex(placeholderId) {
+    return getSnapshot().findIndex((card) => card.id === placeholderId);
+  }
+
+  function updateScanPlaceholderTextIfPending(placeholderId, value) {
+    const placeholderIndex = findScanPlaceholderIndex(placeholderId);
+    const placeholderCard = placeholderIndex === -1
+      ? null
+      : getSnapshot()[placeholderIndex];
+    if (!placeholderCard || placeholderCard.text !== SCAN_PLACEHOLDER_TEXT) {
+      return placeholderIndex;
+    }
+
+    updateAt(placeholderIndex, value);
+    return placeholderIndex;
+  }
+
   function getScanImageName(asset) {
     if (asset?.fileName) {
       return asset.fileName;
@@ -1489,14 +1505,30 @@ export default function App() {
     return `Scan result: for img ${imageName} at ${scannedAt}`;
   }
 
-  function replaceScanPlaceholder(placeholderIndex, asset, scannedCards) {
-    updateAt(placeholderIndex, formatScanResultTitle(asset));
+  function appendScannedCardsToPlaceholder(placeholderId, asset, scannedCards) {
+    let placeholderIndex = updateScanPlaceholderTextIfPending(
+      placeholderId,
+      formatScanResultTitle(asset),
+    );
+    if (placeholderIndex === -1) {
+      return false;
+    }
 
     scannedCards.forEach((card) => {
+      placeholderIndex = findScanPlaceholderIndex(placeholderId);
+      if (placeholderIndex === -1) {
+        return;
+      }
+
       insertRelativeTo(placeholderIndex, 'child', card.text);
     });
 
-    focusScanRoot(placeholderIndex);
+    placeholderIndex = findScanPlaceholderIndex(placeholderId);
+    if (placeholderIndex !== -1) {
+      focusScanRoot(placeholderIndex);
+    }
+
+    return true;
   }
 
   async function pickScanImage(source) {
@@ -1530,16 +1562,14 @@ export default function App() {
   }
 
   async function scanCardsFromImageSource(source) {
-    if (!authToken || isScanningCards) {
+    if (!authToken) {
       return;
     }
 
-    let placeholderIndex = null;
+    let placeholderId = null;
     let placeholderAsset = null;
 
     try {
-      setIsScanningCards(true);
-
       const result = await pickScanImage(source);
 
       if (!result || result.canceled) {
@@ -1554,7 +1584,8 @@ export default function App() {
 
       setSettingsPanelCloseRequest((currentRequest) => currentRequest + 1);
       placeholderAsset = asset;
-      placeholderIndex = push(SCAN_PLACEHOLDER_TEXT);
+      const placeholderIndex = push(SCAN_PLACEHOLDER_TEXT);
+      placeholderId = getSnapshot()[placeholderIndex]?.id ?? null;
       focusScanRoot(placeholderIndex);
 
       const scanResult = await scanImageToCards(authToken, {
@@ -1565,32 +1596,34 @@ export default function App() {
       const scannedCards = Array.isArray(scanResult.cards) ? scanResult.cards : [];
 
       if (scannedCards.length === 0) {
-        updateAt(placeholderIndex, `${formatScanResultTitle(asset)}\nNo readable cards found.`);
-        focusScanRoot(placeholderIndex);
+        const currentIndex = updateScanPlaceholderTextIfPending(
+          placeholderId,
+          `${formatScanResultTitle(asset)}\nNo readable cards found.`,
+        );
+        if (currentIndex !== -1) {
+          focusScanRoot(currentIndex);
+        }
         return;
       }
 
-      replaceScanPlaceholder(placeholderIndex, asset, scannedCards);
+      appendScannedCardsToPlaceholder(placeholderId, asset, scannedCards);
     } catch (error) {
-      if (placeholderIndex !== null) {
-        updateAt(
-          placeholderIndex,
+      if (placeholderId !== null) {
+        const currentIndex = updateScanPlaceholderTextIfPending(
+          placeholderId,
           `${formatScanResultTitle(placeholderAsset)}\nScan failed: ${error.message || 'Could not scan the selected image.'}`,
         );
-        focusScanRoot(placeholderIndex);
+        if (currentIndex !== -1) {
+          focusScanRoot(currentIndex);
+          Alert.alert('Scan failed', error.message || 'Could not scan the selected image.');
+        }
+      } else {
+        Alert.alert('Scan failed', error.message || 'Could not scan the selected image.');
       }
-
-      Alert.alert('Scan failed', error.message || 'Could not scan the selected image.');
-    } finally {
-      setIsScanningCards(false);
     }
   }
 
   function handleScanCardsFromImage() {
-    if (isScanningCards) {
-      return;
-    }
-
     Alert.alert(
       'Scan cards',
       'Create cards from a photo or image.',
@@ -1937,7 +1970,6 @@ export default function App() {
         onMoveMathKeyboardKey={handleMoveMathKeyboardKey}
         onScanCards={handleScanCardsFromImage}
         onUpdateMathKeyboardKey={handleUpdateMathKeyboardKey}
-        scanningCards={isScanningCards}
         settingsPanelCloseRequest={settingsPanelCloseRequest}
         onToggleMode={handleToggleLayout}
         onCreateCard={handleCreateCard}
