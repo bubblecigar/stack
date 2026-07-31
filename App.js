@@ -1,8 +1,10 @@
 import { Kalam_400Regular } from '@expo-google-fonts/kalam';
 import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
+import * as ImagePicker from 'expo-image-picker';
 import {
   ActivityIndicator,
+  Alert,
   LayoutAnimation,
   Platform,
   Text,
@@ -43,6 +45,7 @@ import {
   loadRemoteUserData,
   saveRemoteCards,
   saveRemoteUserData,
+  scanImageToCards,
 } from './src/lib/apiClient';
 import { clearStoredAuthToken, getStoredAuthToken, setStoredAuthToken } from './src/lib/authTokenStore';
 import {
@@ -83,6 +86,14 @@ const TREE_COMPLETION_CANVAS_KEY = 'treeCompletionCanvas';
 const UI_STATE_KEY = 'uiState';
 const DAY_START_OFFSET_MS = ((4 * 60) + 30) * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
+const SCAN_CARDS_PROMPT = [
+  'Extract the visible written content from this image and convert it into task cards.',
+  'Each card should be concise, preserving math notation and line breaks when useful.',
+  'Return only JSON in this exact shape: {"cards":[{"text":"..."}]}.',
+  'Return at most 24 cards.',
+  'If no useful text is visible, return {"cards":[]}.',
+].join('\n');
+const SCAN_PLACEHOLDER_TEXT = 'Generating scan result...';
 const EMPTY_TREE_COMPLETION_CANVAS = {
   entries: [],
   nodes: [],
@@ -391,6 +402,8 @@ export default function App() {
   const [addPreviewRelation, setAddPreviewRelation] = useState(null);
   const [isAddHoldActive, setIsAddHoldActive] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+  const [isScanningCards, setIsScanningCards] = useState(false);
+  const [settingsPanelCloseRequest, setSettingsPanelCloseRequest] = useState(0);
   const [mathKeyboardKeys, setMathKeyboardKeys] = useState(() => normalizeMathKeyboardKeys([]));
   const [currentDayReference, setCurrentDayReference] = useState(() => Date.now());
   const [treeCompletionCanvas, setTreeCompletionCanvas] = useState(EMPTY_TREE_COMPLETION_CANVAS);
@@ -1447,6 +1460,157 @@ export default function App() {
     persistMathKeyboardKeys(moveMathKeyboardKey(mathKeyboardKeys, sourceIndex, targetIndex));
   }
 
+  function focusScanRoot(index) {
+    const card = getSnapshot()[index];
+    setFocusedCardIndex(index);
+    setLeafTopIndex(index);
+    setLeafFocusedCardId(card?.id ?? null);
+  }
+
+  function getScanImageName(asset) {
+    if (asset?.fileName) {
+      return asset.fileName;
+    }
+
+    const uriName = String(asset?.uri || '').split('/').filter(Boolean).pop();
+    return uriName || 'image';
+  }
+
+  function formatScanResultTitle(asset, timestamp = Date.now()) {
+    const imageName = getScanImageName(asset);
+    const scannedAt = new Date(timestamp).toLocaleString(undefined, {
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+
+    return `Scan result: for img ${imageName} at ${scannedAt}`;
+  }
+
+  function replaceScanPlaceholder(placeholderIndex, asset, scannedCards) {
+    updateAt(placeholderIndex, formatScanResultTitle(asset));
+
+    scannedCards.forEach((card) => {
+      insertRelativeTo(placeholderIndex, 'child', card.text);
+    });
+
+    focusScanRoot(placeholderIndex);
+  }
+
+  async function pickScanImage(source) {
+    if (source === 'camera') {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Camera access needed', 'Allow camera access to scan a photo into cards.');
+        return null;
+      }
+
+      return ImagePicker.launchCameraAsync({
+        allowsEditing: false,
+        base64: true,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.72,
+      });
+    }
+
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Photo access needed', 'Allow photo access to scan an image into cards.');
+      return null;
+    }
+
+    return ImagePicker.launchImageLibraryAsync({
+      allowsEditing: false,
+      base64: true,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.72,
+    });
+  }
+
+  async function scanCardsFromImageSource(source) {
+    if (!authToken || isScanningCards) {
+      return;
+    }
+
+    let placeholderIndex = null;
+    let placeholderAsset = null;
+
+    try {
+      setIsScanningCards(true);
+
+      const result = await pickScanImage(source);
+
+      if (!result || result.canceled) {
+        return;
+      }
+
+      const asset = result.assets?.[0];
+      if (!asset?.base64) {
+        Alert.alert('Scan failed', 'Could not read the selected image.');
+        return;
+      }
+
+      setSettingsPanelCloseRequest((currentRequest) => currentRequest + 1);
+      placeholderAsset = asset;
+      placeholderIndex = push(SCAN_PLACEHOLDER_TEXT);
+      focusScanRoot(placeholderIndex);
+
+      const scanResult = await scanImageToCards(authToken, {
+        imageBase64: asset.base64,
+        mimeType: asset.mimeType || 'image/jpeg',
+        prompt: SCAN_CARDS_PROMPT,
+      });
+      const scannedCards = Array.isArray(scanResult.cards) ? scanResult.cards : [];
+
+      if (scannedCards.length === 0) {
+        updateAt(placeholderIndex, `${formatScanResultTitle(asset)}\nNo readable cards found.`);
+        focusScanRoot(placeholderIndex);
+        return;
+      }
+
+      replaceScanPlaceholder(placeholderIndex, asset, scannedCards);
+    } catch (error) {
+      if (placeholderIndex !== null) {
+        updateAt(
+          placeholderIndex,
+          `${formatScanResultTitle(placeholderAsset)}\nScan failed: ${error.message || 'Could not scan the selected image.'}`,
+        );
+        focusScanRoot(placeholderIndex);
+      }
+
+      Alert.alert('Scan failed', error.message || 'Could not scan the selected image.');
+    } finally {
+      setIsScanningCards(false);
+    }
+  }
+
+  function handleScanCardsFromImage() {
+    if (isScanningCards) {
+      return;
+    }
+
+    Alert.alert(
+      'Scan cards',
+      'Create cards from a photo or image.',
+      [
+        {
+          text: 'Take Photo',
+          onPress: () => scanCardsFromImageSource('camera'),
+        },
+        {
+          text: 'Choose Photo',
+          onPress: () => scanCardsFromImageSource('library'),
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ],
+    );
+  }
+
   function getMathNotationTarget() {
     const targetIndex = visibleTopCardIndex;
     if (targetIndex === null || targetIndex < 0) {
@@ -1771,7 +1935,10 @@ export default function App() {
         onAddPreviewChange={setAddPreviewRelation}
         onLogout={resetSession}
         onMoveMathKeyboardKey={handleMoveMathKeyboardKey}
+        onScanCards={handleScanCardsFromImage}
         onUpdateMathKeyboardKey={handleUpdateMathKeyboardKey}
+        scanningCards={isScanningCards}
+        settingsPanelCloseRequest={settingsPanelCloseRequest}
         onToggleMode={handleToggleLayout}
         onCreateCard={handleCreateCard}
         disableCardInsertion={insertionTargetCard === null}

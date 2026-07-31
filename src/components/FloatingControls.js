@@ -188,7 +188,10 @@ export function FloatingControls({
   onDeleteHoldChange,
   onLogout,
   onMoveMathKeyboardKey,
+  onScanCards,
   onUpdateMathKeyboardKey,
+  scanningCards = false,
+  settingsPanelCloseRequest = 0,
   canDeleteCurrentCard = false,
   childInsertionOnly = false,
   disableCardInsertion = false,
@@ -285,6 +288,12 @@ export function FloatingControls({
     isSettingsPanelOpen,
     settingsPanelProgress,
   ]);
+
+  useEffect(() => {
+    if (settingsPanelCloseRequest > 0) {
+      setIsSettingsPanelOpen(false);
+    }
+  }, [settingsPanelCloseRequest]);
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -397,6 +406,28 @@ export function FloatingControls({
   const controlTimeLabel = formatControlTime(currentTime);
   const calendarDays = getCalendarDays(currentTime);
   const currentDay = currentTime.getDate();
+
+  function renderSystemCardMainContent() {
+    if (!systemCardExplanation) {
+      return null;
+    }
+
+    return (
+      <>
+        <View
+          pointerEvents="none"
+          style={styles.addCardSystemExplanation}
+        >
+          <Text style={styles.addCardSystemExplanationTitle}>
+            {systemCardExplanation.title}
+          </Text>
+          <Text style={styles.addCardSystemExplanationBody}>
+            {systemCardExplanation.body}
+          </Text>
+        </View>
+      </>
+    );
+  }
 
   const addPanResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => !isSettingsPanelOpen,
@@ -879,17 +910,7 @@ export function FloatingControls({
                 </View>
               </View>
               {systemCardExplanation ? (
-                <View
-                  pointerEvents="none"
-                  style={styles.addCardSystemExplanation}
-                >
-                  <Text style={styles.addCardSystemExplanationTitle}>
-                    {systemCardExplanation.title}
-                  </Text>
-                  <Text style={styles.addCardSystemExplanationBody}>
-                    {systemCardExplanation.body}
-                  </Text>
-                </View>
+                renderSystemCardMainContent()
               ) : (
                 <>
                   <View style={styles.addCardButtonChrono}>
@@ -930,17 +951,7 @@ export function FloatingControls({
                 </View>
               </View>
               {systemCardExplanation ? (
-                <View
-                  pointerEvents="none"
-                  style={styles.addCardSystemExplanation}
-                >
-                  <Text style={styles.addCardSystemExplanationTitle}>
-                    {systemCardExplanation.title}
-                  </Text>
-                  <Text style={styles.addCardSystemExplanationBody}>
-                    {systemCardExplanation.body}
-                  </Text>
-                </View>
+                renderSystemCardMainContent()
               ) : (
                 <>
                   <View style={styles.addCardButtonChrono}>
@@ -979,6 +990,22 @@ export function FloatingControls({
               </Text>
 
               <View style={styles.settingsPanelAudioRow}>
+                <Pressable
+                  accessibilityLabel="Scan cards from image"
+                  accessibilityRole="button"
+                  disabled={scanningCards}
+                  onPress={onScanCards}
+                  style={({ pressed }) => [
+                    styles.settingsIconButton,
+                    (pressed || scanningCards) && styles.settingsIconButtonPressed,
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    color="#CBD5E1"
+                    name="image-search-outline"
+                    size={24}
+                  />
+                </Pressable>
                 <Pressable
                   accessibilityLabel={audioEnabled ? 'Turn audio off' : 'Turn audio on'}
                   accessibilityRole="button"

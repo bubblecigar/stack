@@ -156,3 +156,11 @@ export function saveRemoteUserData(token, key, value) {
     body: JSON.stringify({ key, value }),
   });
 }
+
+export function scanImageToCards(token, image) {
+  return requestJson(`${API_BASE_URL}/api/scan-cards`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify(image),
+  });
+}

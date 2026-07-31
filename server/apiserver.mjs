@@ -15,6 +15,7 @@ import {
   sendNoContent,
   withRequestLogging,
 } from './http.mjs';
+import { scanImageToCards } from './openaiVision.mjs';
 
 const port = Number(process.env.API_PORT || 4101);
 const host = process.env.API_HOST || '0.0.0.0';
@@ -124,6 +125,21 @@ async function handleRequest(request, response) {
       sendJson(response, 405, {
         error: 'Method not allowed.',
       });
+      return;
+    }
+
+    if (url.pathname === '/api/scan-cards') {
+      const user = getAuthenticatedUser(request, response);
+      if (!user) {
+        return;
+      }
+
+      if (!requireMethod(request, response, ['POST'])) {
+        return;
+      }
+
+      const body = await readJson(request);
+      sendJson(response, 200, await scanImageToCards(body));
       return;
     }
 
