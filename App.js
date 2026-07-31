@@ -89,7 +89,11 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const SCAN_CARDS_PROMPT = [
   'Extract the visible written content from this image and convert it into task cards.',
   'Each card should be concise, preserving math notation and line breaks when useful.',
+  'Return only JSON in this exact shape: {"cards":[{"text":"..."}]}.',
+  'Return at most 24 cards.',
+  'If no useful text is visible, return {"cards":[]}.',
 ].join('\n');
+const SCAN_PLACEHOLDER_TEXT = 'Generating scan result...';
 const EMPTY_TREE_COMPLETION_CANVAS = {
   entries: [],
   nodes: [],
@@ -399,6 +403,7 @@ export default function App() {
   const [isAddHoldActive, setIsAddHoldActive] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isScanningCards, setIsScanningCards] = useState(false);
+  const [settingsPanelCloseRequest, setSettingsPanelCloseRequest] = useState(0);
   const [mathKeyboardKeys, setMathKeyboardKeys] = useState(() => normalizeMathKeyboardKeys([]));
   const [currentDayReference, setCurrentDayReference] = useState(() => Date.now());
   const [treeCompletionCanvas, setTreeCompletionCanvas] = useState(EMPTY_TREE_COMPLETION_CANVAS);
@@ -1455,19 +1460,43 @@ export default function App() {
     persistMathKeyboardKeys(moveMathKeyboardKey(mathKeyboardKeys, sourceIndex, targetIndex));
   }
 
-  function insertScannedCards(scannedCards) {
-    let lastInsertedIndex = null;
+  function focusScanRoot(index) {
+    const card = getSnapshot()[index];
+    setFocusedCardIndex(index);
+    setLeafTopIndex(index);
+    setLeafFocusedCardId(card?.id ?? null);
+  }
 
-    scannedCards.forEach((card) => {
-      lastInsertedIndex = push(card.text);
+  function getScanImageName(asset) {
+    if (asset?.fileName) {
+      return asset.fileName;
+    }
+
+    const uriName = String(asset?.uri || '').split('/').filter(Boolean).pop();
+    return uriName || 'image';
+  }
+
+  function formatScanResultTitle(asset, timestamp = Date.now()) {
+    const imageName = getScanImageName(asset);
+    const scannedAt = new Date(timestamp).toLocaleString(undefined, {
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      month: 'short',
+      year: 'numeric',
     });
 
-    if (lastInsertedIndex !== null) {
-      const insertedCard = getSnapshot()[lastInsertedIndex];
-      setFocusedCardIndex(lastInsertedIndex);
-      setLeafTopIndex(lastInsertedIndex);
-      setLeafFocusedCardId(insertedCard?.id ?? null);
-    }
+    return `Scan result: for img ${imageName} at ${scannedAt}`;
+  }
+
+  function replaceScanPlaceholder(placeholderIndex, asset, scannedCards) {
+    updateAt(placeholderIndex, formatScanResultTitle(asset));
+
+    scannedCards.forEach((card) => {
+      insertRelativeTo(placeholderIndex, 'child', card.text);
+    });
+
+    focusScanRoot(placeholderIndex);
   }
 
   async function pickScanImage(source) {
@@ -1505,6 +1534,9 @@ export default function App() {
       return;
     }
 
+    let placeholderIndex = null;
+    let placeholderAsset = null;
+
     try {
       setIsScanningCards(true);
 
@@ -1520,6 +1552,11 @@ export default function App() {
         return;
       }
 
+      setSettingsPanelCloseRequest((currentRequest) => currentRequest + 1);
+      placeholderAsset = asset;
+      placeholderIndex = push(SCAN_PLACEHOLDER_TEXT);
+      focusScanRoot(placeholderIndex);
+
       const scanResult = await scanImageToCards(authToken, {
         imageBase64: asset.base64,
         mimeType: asset.mimeType || 'image/jpeg',
@@ -1528,31 +1565,21 @@ export default function App() {
       const scannedCards = Array.isArray(scanResult.cards) ? scanResult.cards : [];
 
       if (scannedCards.length === 0) {
-        Alert.alert('No cards found', 'No readable card text was found in the image.');
+        updateAt(placeholderIndex, `${formatScanResultTitle(asset)}\nNo readable cards found.`);
+        focusScanRoot(placeholderIndex);
         return;
       }
 
-      const previewText = scannedCards
-        .slice(0, 4)
-        .map((card, index) => `${index + 1}. ${card.text}`)
-        .join('\n\n');
-      const extraCount = Math.max(scannedCards.length - 4, 0);
-
-      Alert.alert(
-        `Create ${scannedCards.length} card${scannedCards.length === 1 ? '' : 's'}?`,
-        extraCount > 0 ? `${previewText}\n\n+${extraCount} more` : previewText,
-        [
-          {
-            text: 'Cancel',
-            style: 'cancel',
-          },
-          {
-            text: 'Create',
-            onPress: () => insertScannedCards(scannedCards),
-          },
-        ],
-      );
+      replaceScanPlaceholder(placeholderIndex, asset, scannedCards);
     } catch (error) {
+      if (placeholderIndex !== null) {
+        updateAt(
+          placeholderIndex,
+          `${formatScanResultTitle(placeholderAsset)}\nScan failed: ${error.message || 'Could not scan the selected image.'}`,
+        );
+        focusScanRoot(placeholderIndex);
+      }
+
       Alert.alert('Scan failed', error.message || 'Could not scan the selected image.');
     } finally {
       setIsScanningCards(false);
@@ -1911,6 +1938,7 @@ export default function App() {
         onScanCards={handleScanCardsFromImage}
         onUpdateMathKeyboardKey={handleUpdateMathKeyboardKey}
         scanningCards={isScanningCards}
+        settingsPanelCloseRequest={settingsPanelCloseRequest}
         onToggleMode={handleToggleLayout}
         onCreateCard={handleCreateCard}
         disableCardInsertion={insertionTargetCard === null}

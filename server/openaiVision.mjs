@@ -2,10 +2,6 @@ const DEFAULT_SCAN_MODEL = 'gpt-5.6-luna';
 const MAX_SCAN_CARDS = 24;
 const MAX_IMAGE_BASE64_LENGTH = 8_000_000;
 const MAX_SCAN_PROMPT_LENGTH = 4_000;
-const DEFAULT_SCAN_PROMPT = [
-  'Extract the visible written content from this image and convert it into task cards.',
-  'Each card should be concise, preserving math notation and line breaks when useful.',
-].join('\n');
 
 function createHttpError(status, message) {
   const error = new Error(message);
@@ -39,22 +35,14 @@ function normalizeImageInput(body) {
 }
 
 function normalizePrompt(value) {
-  if (value === null || value === undefined) {
-    return DEFAULT_SCAN_PROMPT;
+  const prompt = value == null
+    ? ''
+    : String(value).trim().slice(0, MAX_SCAN_PROMPT_LENGTH);
+  if (!prompt) {
+    throw createHttpError(400, 'Prompt is required.');
   }
 
-  const prompt = String(value).trim().slice(0, MAX_SCAN_PROMPT_LENGTH);
-  return prompt || DEFAULT_SCAN_PROMPT;
-}
-
-function buildScanPrompt(clientPrompt) {
-  return [
-    clientPrompt,
-    '',
-    'Return only JSON in this exact shape: {"cards":[{"text":"..."}]}.',
-    `Return at most ${MAX_SCAN_CARDS} cards.`,
-    'If no useful text is visible, return {"cards":[]}.',
-  ].join('\n');
+  return prompt;
 }
 
 function parseJsonObject(text) {
@@ -102,7 +90,7 @@ export async function scanImageToCards(body) {
   }
 
   const { imageUrl } = normalizeImageInput(body);
-  const prompt = buildScanPrompt(normalizePrompt(body?.prompt));
+  const prompt = normalizePrompt(body?.prompt);
   const model = process.env.OPENAI_SCAN_MODEL || DEFAULT_SCAN_MODEL;
 
   const response = await fetch('https://api.openai.com/v1/responses', {
