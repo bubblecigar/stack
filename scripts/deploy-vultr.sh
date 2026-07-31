@@ -19,6 +19,7 @@ PUBLIC_ORIGIN="${PUBLIC_ORIGIN:-http://$APP_DOMAIN}"
 REMOTE_APP_DIR="${REMOTE_APP_DIR:-/opt/stack}"
 WEB_ROOT="${WEB_ROOT:-/var/www/stack}"
 DATA_DIR="${DATA_DIR:-/var/lib/stack}"
+API_ENV_FILE="${API_ENV_FILE:-/etc/stack-api.env}"
 AUTH_PORT="${AUTH_PORT:-4100}"
 API_PORT="${API_PORT:-4101}"
 NGINX_HTTP_PORT="${NGINX_HTTP_PORT:-80}"
@@ -66,6 +67,7 @@ render_template() {
     -e "s/__WEB_ROOT__/$(escape_sed "$WEB_ROOT")/g" \
     -e "s/__REMOTE_APP_DIR__/$(escape_sed "$REMOTE_APP_DIR")/g" \
     -e "s/__DATA_DIR__/$(escape_sed "$DATA_DIR")/g" \
+    -e "s/__API_ENV_FILE__/$(escape_sed "$API_ENV_FILE")/g" \
     -e "s/__AUTH_PORT__/$(escape_sed "$AUTH_PORT")/g" \
     -e "s/__API_PORT__/$(escape_sed "$API_PORT")/g" \
     -e "s/__NGINX_HTTP_PORT__/$(escape_sed "$NGINX_HTTP_PORT")/g" \
@@ -109,10 +111,25 @@ render_template deploy/nginx/stack.conf.template "$tmp_dir/stack.conf"
 render_template deploy/systemd/stack-auth.service.template "$tmp_dir/stack-auth.service"
 render_template deploy/systemd/stack-api.service.template "$tmp_dir/stack-api.service"
 
+if [[ -n "${OPENAI_API_KEY:-}" ]]; then
+  {
+    printf 'OPENAI_API_KEY=%s\n' "$OPENAI_API_KEY"
+    if [[ -n "${OPENAI_SCAN_MODEL:-}" ]]; then
+      printf 'OPENAI_SCAN_MODEL=%s\n' "$OPENAI_SCAN_MODEL"
+    fi
+  } > "$tmp_dir/stack-api.env"
+else
+  echo "OPENAI_API_KEY is not set locally; production image scanning will be disabled." >&2
+fi
+
 echo "Installing nginx and systemd config"
 "${SCP_CMD[@]}" "$tmp_dir/stack.conf" "$SSH_TARGET:/etc/nginx/sites-available/stack"
 "${SCP_CMD[@]}" "$tmp_dir/stack-auth.service" "$SSH_TARGET:/etc/systemd/system/stack-auth.service"
 "${SCP_CMD[@]}" "$tmp_dir/stack-api.service" "$SSH_TARGET:/etc/systemd/system/stack-api.service"
+if [[ -f "$tmp_dir/stack-api.env" ]]; then
+  "${SCP_CMD[@]}" "$tmp_dir/stack-api.env" "$SSH_TARGET:$API_ENV_FILE"
+  "${SSH_CMD[@]}" "$SSH_TARGET" "chmod 600 '$API_ENV_FILE'"
+fi
 
 "${SSH_CMD[@]}" "$SSH_TARGET" "
   set -e
