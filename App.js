@@ -86,6 +86,10 @@ const TREE_COMPLETION_CANVAS_KEY = 'treeCompletionCanvas';
 const UI_STATE_KEY = 'uiState';
 const DAY_START_OFFSET_MS = ((4 * 60) + 30) * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
+const SCAN_CARDS_PROMPT = [
+  'Extract the visible written content from this image and convert it into task cards.',
+  'Each card should be concise, preserving math notation and line breaks when useful.',
+].join('\n');
 const EMPTY_TREE_COMPLETION_CANVAS = {
   entries: [],
   nodes: [],
@@ -1519,6 +1523,7 @@ export default function App() {
       const scanResult = await scanImageToCards(authToken, {
         imageBase64: asset.base64,
         mimeType: asset.mimeType || 'image/jpeg',
+        prompt: SCAN_CARDS_PROMPT,
       });
       const scannedCards = Array.isArray(scanResult.cards) ? scanResult.cards : [];
 
