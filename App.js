@@ -79,6 +79,12 @@ import {
   getStoredMathKeyboardKeys,
   setStoredMathKeyboardKeys,
 } from './src/lib/mathKeyboardStore';
+import {
+  appendFlatScanResultToPlaceholder,
+  formatScanResultTitle,
+  SCAN_PLACEHOLDER_TEXT,
+  updatePendingScanPlaceholder,
+} from './src/lib/scanPlaceholder';
 import { styles } from './src/styles/appStyles';
 
 const LEAF_VISIBLE_COUNT = 5;
@@ -93,7 +99,6 @@ const SCAN_CARDS_PROMPT = [
   'Return at most 24 cards.',
   'If no useful text is visible, return {"cards":[]}.',
 ].join('\n');
-const SCAN_PLACEHOLDER_TEXT = 'Generating scan result...';
 const EMPTY_TREE_COMPLETION_CANVAS = {
   entries: [],
   nodes: [],
@@ -1496,69 +1501,30 @@ export default function App() {
     setLeafFocusedCardId(card?.id ?? null);
   }
 
-  function findScanPlaceholderIndex(placeholderId) {
-    return getSnapshot().findIndex((card) => card.id === placeholderId);
-  }
-
   function updateScanPlaceholderTextIfPending(placeholderId, value) {
-    const placeholderIndex = findScanPlaceholderIndex(placeholderId);
-    const placeholderCard = placeholderIndex === -1
-      ? null
-      : getSnapshot()[placeholderIndex];
-    if (!placeholderCard || placeholderCard.text !== SCAN_PLACEHOLDER_TEXT) {
-      return placeholderIndex;
-    }
-
-    updateAt(placeholderIndex, value);
-    return placeholderIndex;
-  }
-
-  function getScanImageName(asset) {
-    if (asset?.fileName) {
-      return asset.fileName;
-    }
-
-    const uriName = String(asset?.uri || '').split('/').filter(Boolean).pop();
-    return uriName || 'image';
-  }
-
-  function formatScanResultTitle(asset, timestamp = Date.now()) {
-    const imageName = getScanImageName(asset);
-    const scannedAt = new Date(timestamp).toLocaleString(undefined, {
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      month: 'short',
-      year: 'numeric',
+    return updatePendingScanPlaceholder({
+      getCards: getSnapshot,
+      placeholderId,
+      text: value,
+      updateCardAt: updateAt,
     });
-
-    return `Scan result: for img ${imageName} at ${scannedAt}`;
   }
 
   function appendScannedCardsToPlaceholder(placeholderId, asset, scannedCards) {
-    let placeholderIndex = updateScanPlaceholderTextIfPending(
+    const placeholderIndex = appendFlatScanResultToPlaceholder({
+      getCards: getSnapshot,
+      insertChildAt: (index, text) => insertRelativeTo(index, 'child', text),
       placeholderId,
-      formatScanResultTitle(asset),
-    );
-    if (placeholderIndex === -1) {
-      return false;
-    }
-
-    scannedCards.forEach((card) => {
-      placeholderIndex = findScanPlaceholderIndex(placeholderId);
-      if (placeholderIndex === -1) {
-        return;
-      }
-
-      insertRelativeTo(placeholderIndex, 'child', card.text);
+      scannedCards,
+      title: formatScanResultTitle(asset),
+      updateCardAt: updateAt,
     });
 
-    placeholderIndex = findScanPlaceholderIndex(placeholderId);
     if (placeholderIndex !== -1) {
       focusScanRoot(placeholderIndex);
     }
 
-    return true;
+    return placeholderIndex !== -1;
   }
 
   async function pickScanImage(source) {
