@@ -25,6 +25,7 @@
     "web": "expo start --web",
     "test": "jest",
     "test:unit": "jest src/lib",
+    "evaluate:scan": "node scripts/evaluate-scan-quality.mjs",
     "export:web": "expo export --platform web --output-dir dist --clear",
     "build-internal": "npx eas-cli build --profile internal --platform ios",
     "deploy:vultr": "bash scripts/deploy-vultr.sh",

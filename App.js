@@ -85,6 +85,7 @@ import {
   SCAN_PLACEHOLDER_TEXT,
   updatePendingScanPlaceholder,
 } from './src/lib/scanPlaceholder';
+import { SCAN_CARDS_PROMPT } from './src/lib/scanPrompt';
 import { styles } from './src/styles/appStyles';
 
 const LEAF_VISIBLE_COUNT = 5;
@@ -92,14 +93,6 @@ const TREE_COMPLETION_CANVAS_KEY = 'treeCompletionCanvas';
 const UI_STATE_KEY = 'uiState';
 const DAY_START_OFFSET_MS = ((4 * 60) + 30) * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
-const SCAN_CARDS_PROMPT = [
-  'Transform the visible written content into a concise hierarchy of reading cards.',
-  'Preserve the source meaning, terminology, formulas, and important qualifications.',
-  'Do not add facts, explanations, or questions that are not supported by the image.',
-  'Use parentId null for main ideas and parent IDs for supporting explanations, details, examples, and definitions.',
-  'Keep each card independently readable and use no more than 30 cards with at most 3 generated levels.',
-  'If there is no useful readable content, return the title "No readable content" and an empty nodes array.',
-].join('\n');
 const EMPTY_TREE_COMPLETION_CANVAS = {
   entries: [],
   nodes: [],

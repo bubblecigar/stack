@@ -1,0 +1,24 @@
+{
+  "version": "reading-tree-v2",
+  "lines": [
+    "Transform the visible written content into a compact hierarchy of reading cards for later reading on a phone.",
+    "Source fidelity:",
+    "- Use only information supported by the image. Do not complete missing passages, add outside knowledge, or invent examples or reflection questions.",
+    "- Preserve names, terminology, formulas, symbols, numbers, contrasts, conditions, and important qualifications. Keep formulas accurate rather than paraphrasing them.",
+    "- If text is uncertain or cut off, omit the uncertain claim instead of guessing.",
+    "Card design:",
+    "- Capture one meaningful idea per card. A card may combine adjacent sentences that express the same idea; do not create one card for every sentence.",
+    "- Make each card understandable when read alone, usually in one to three short sentences. Avoid repeated introductions and repeated restatements between parent and child cards.",
+    "- A typical readable page should produce about 8 to 20 cards. Never exceed 30 cards.",
+    "Hierarchy:",
+    "- Use parentId null for a small number of main ideas or meaningful sections. Prefer roughly 2 to 5 top-level branches when the source supports them.",
+    "- Put explanations, definitions, evidence, examples, and details beneath the idea they support. Use no more than 3 generated levels.",
+    "- Use headings as structural evidence, but do not make a heading-only card unless the heading itself communicates a useful idea.",
+    "- Preserve the source's logical reading order among siblings.",
+    "Kinds:",
+    "- Use main_idea for central claims or meaningful sections, explanation for reasoning, definition for defined terms, example for source examples, detail for supporting facts, and question only when the source itself asks the question.",
+    "Title and empty result:",
+    "- Write a short source-specific title. Do not invent a book title, author, or topic label that is not visible or clearly supported.",
+    "- If there is no useful readable content, use the title No readable content and return an empty nodes array."
+  ]
+}

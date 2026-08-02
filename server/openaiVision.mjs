@@ -65,17 +65,18 @@ function readResponseRefusal(result) {
     ?.refusal;
 }
 
-export async function scanImageToCards(body) {
-  const apiKey = process.env.OPENAI_API_KEY;
+export async function scanImageToCards(body, options = {}) {
+  const apiKey = options.apiKey || process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw createHttpError(503, 'OpenAI API key is not configured.');
   }
 
   const { imageUrl } = normalizeImageInput(body);
   const prompt = normalizePrompt(body?.prompt);
-  const model = process.env.OPENAI_SCAN_MODEL || DEFAULT_SCAN_MODEL;
+  const model = options.model || process.env.OPENAI_SCAN_MODEL || DEFAULT_SCAN_MODEL;
+  const request = options.fetchImpl || fetch;
 
-  const response = await fetch('https://api.openai.com/v1/responses', {
+  const response = await request('https://api.openai.com/v1/responses', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,
