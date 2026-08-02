@@ -26,18 +26,62 @@ export function updatePendingScanPlaceholder({
   return placeholderIndex;
 }
 
-export function appendFlatScanResultToPlaceholder({
+export function orderScanTreeNodesForInsertion(scanTree) {
+  if (!scanTree || typeof scanTree !== 'object' || !Array.isArray(scanTree.nodes)) {
+    throw new Error('Scan result does not contain a card tree.');
+  }
+
+  const nodeById = new Map();
+  scanTree.nodes.forEach((node) => {
+    if (!node || typeof node.id !== 'string' || !node.id || nodeById.has(node.id)) {
+      throw new Error('Scan result contains an invalid node ID.');
+    }
+    nodeById.set(node.id, node);
+  });
+
+  scanTree.nodes.forEach((node) => {
+    if (node.parentId !== null && !nodeById.has(node.parentId)) {
+      throw new Error('Scan result contains a missing parent.');
+    }
+  });
+
+  const orderedNodes = [];
+  const visitedIds = new Set();
+  const visitingIds = new Set();
+
+  function visit(node) {
+    if (visitedIds.has(node.id)) {
+      return;
+    }
+    if (visitingIds.has(node.id)) {
+      throw new Error('Scan result contains a cycle.');
+    }
+
+    visitingIds.add(node.id);
+    if (node.parentId !== null) {
+      visit(nodeById.get(node.parentId));
+    }
+    visitingIds.delete(node.id);
+    visitedIds.add(node.id);
+    orderedNodes.push(node);
+  }
+
+  scanTree.nodes.forEach(visit);
+  return orderedNodes;
+}
+
+export function appendScanTreeResultToPlaceholder({
   getCards,
   insertChildAt,
   placeholderId,
-  scannedCards,
-  title,
+  scanTree,
   updateCardAt,
 }) {
+  const orderedNodes = orderScanTreeNodesForInsertion(scanTree);
   let placeholderIndex = updatePendingScanPlaceholder({
     getCards,
     placeholderId,
-    text: title,
+    text: scanTree.title,
     updateCardAt,
   });
 
@@ -45,11 +89,22 @@ export function appendFlatScanResultToPlaceholder({
     return -1;
   }
 
-  (Array.isArray(scannedCards) ? scannedCards : []).forEach((card) => {
-    placeholderIndex = findScanPlaceholderIndex(getCards(), placeholderId);
-    if (placeholderIndex !== -1) {
-      insertChildAt(placeholderIndex, card.text);
+  const cardIdByNodeId = new Map();
+  orderedNodes.forEach((node) => {
+    const parentCardId = node.parentId === null
+      ? placeholderId
+      : cardIdByNodeId.get(node.parentId);
+    const parentIndex = findScanPlaceholderIndex(getCards(), parentCardId);
+    if (parentIndex === -1) {
+      throw new Error('Scan insertion target no longer exists.');
     }
+
+    const insertedIndex = insertChildAt(parentIndex, node.text);
+    const insertedCard = getCards()[insertedIndex];
+    if (!insertedCard) {
+      throw new Error('Could not insert a generated scan card.');
+    }
+    cardIdByNodeId.set(node.id, insertedCard.id);
   });
 
   return findScanPlaceholderIndex(getCards(), placeholderId);

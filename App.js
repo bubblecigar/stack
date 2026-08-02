@@ -80,7 +80,7 @@ import {
   setStoredMathKeyboardKeys,
 } from './src/lib/mathKeyboardStore';
 import {
-  appendFlatScanResultToPlaceholder,
+  appendScanTreeResultToPlaceholder,
   formatScanResultTitle,
   SCAN_PLACEHOLDER_TEXT,
   updatePendingScanPlaceholder,
@@ -93,11 +93,12 @@ const UI_STATE_KEY = 'uiState';
 const DAY_START_OFFSET_MS = ((4 * 60) + 30) * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const SCAN_CARDS_PROMPT = [
-  'Extract the visible written content from this image and convert it into task cards.',
-  'Each card should be concise, preserving math notation and line breaks when useful.',
-  'Return only JSON in this exact shape: {"cards":[{"text":"..."}]}.',
-  'Return at most 24 cards.',
-  'If no useful text is visible, return {"cards":[]}.',
+  'Transform the visible written content into a concise hierarchy of reading cards.',
+  'Preserve the source meaning, terminology, formulas, and important qualifications.',
+  'Do not add facts, explanations, or questions that are not supported by the image.',
+  'Use parentId null for main ideas and parent IDs for supporting explanations, details, examples, and definitions.',
+  'Keep each card independently readable and use no more than 30 cards with at most 3 generated levels.',
+  'If there is no useful readable content, return the title "No readable content" and an empty nodes array.',
 ].join('\n');
 const EMPTY_TREE_COMPLETION_CANVAS = {
   entries: [],
@@ -1510,13 +1511,12 @@ export default function App() {
     });
   }
 
-  function appendScannedCardsToPlaceholder(placeholderId, asset, scannedCards) {
-    const placeholderIndex = appendFlatScanResultToPlaceholder({
+  function appendScannedTreeToPlaceholder(placeholderId, scanTree) {
+    const placeholderIndex = appendScanTreeResultToPlaceholder({
       getCards: getSnapshot,
       insertChildAt: (index, text) => insertRelativeTo(index, 'child', text),
       placeholderId,
-      scannedCards,
-      title: formatScanResultTitle(asset),
+      scanTree,
       updateCardAt: updateAt,
     });
 
@@ -1589,12 +1589,12 @@ export default function App() {
         mimeType: asset.mimeType || 'image/jpeg',
         prompt: SCAN_CARDS_PROMPT,
       });
-      const scannedCards = Array.isArray(scanResult.cards) ? scanResult.cards : [];
+      const scannedNodes = Array.isArray(scanResult.nodes) ? scanResult.nodes : [];
 
-      if (scannedCards.length === 0) {
+      if (scannedNodes.length === 0) {
         const currentIndex = updateScanPlaceholderTextIfPending(
           placeholderId,
-          `${formatScanResultTitle(asset)}\nNo readable cards found.`,
+          `${scanResult.title || formatScanResultTitle(asset)}\nNo readable cards found.`,
         );
         if (currentIndex !== -1) {
           focusScanRoot(currentIndex);
@@ -1602,7 +1602,10 @@ export default function App() {
         return;
       }
 
-      appendScannedCardsToPlaceholder(placeholderId, asset, scannedCards);
+      appendScannedTreeToPlaceholder(placeholderId, {
+        title: scanResult.title,
+        nodes: scannedNodes,
+      });
     } catch (error) {
       if (placeholderId !== null) {
         const currentIndex = updateScanPlaceholderTextIfPending(

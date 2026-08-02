@@ -7,7 +7,7 @@ import {
   updateAt,
 } from '../../stackStore';
 import {
-  appendFlatScanResultToPlaceholder,
+  appendScanTreeResultToPlaceholder,
   findScanPlaceholderIndex,
   SCAN_PLACEHOLDER_TEXT,
   updatePendingScanPlaceholder,
@@ -28,12 +28,19 @@ function updatePlaceholder(placeholderId, text) {
 }
 
 function appendResult(placeholderId, title, texts) {
-  return appendFlatScanResultToPlaceholder({
+  return appendScanTreeResultToPlaceholder({
     getCards: getSnapshot,
     insertChildAt: (index, text) => insertRelativeTo(index, 'child', text),
     placeholderId,
-    scannedCards: texts.map((text) => ({ text })),
-    title,
+    scanTree: {
+      title,
+      nodes: texts.map((text, index) => ({
+        id: `n${index}`,
+        kind: 'detail',
+        parentId: null,
+        text,
+      })),
+    },
     updateCardAt: updateAt,
   });
 }
@@ -117,5 +124,54 @@ describe('scan placeholder coordination', () => {
     const placeholder = getSnapshot().find((card) => card.id === placeholderId);
     expect(placeholder.text).toBe('My book notes');
     expect(placeholder.childIds).toHaveLength(1);
+  });
+
+  it('inserts generated descendants beneath their generated parents', () => {
+    const placeholderId = createPlaceholder();
+
+    appendScanTreeResultToPlaceholder({
+      getCards: getSnapshot,
+      insertChildAt: (index, text) => insertRelativeTo(index, 'child', text),
+      placeholderId,
+      scanTree: {
+        title: 'Structured notes',
+        nodes: [
+          { id: 'detail', kind: 'detail', parentId: 'idea', text: 'Supporting detail' },
+          { id: 'idea', kind: 'main_idea', parentId: null, text: 'Main idea' },
+          { id: 'example', kind: 'example', parentId: 'detail', text: 'Example' },
+        ],
+      },
+      updateCardAt: updateAt,
+    });
+
+    const cards = getSnapshot();
+    const placeholder = cards.find((card) => card.id === placeholderId);
+    const idea = cards.find((card) => card.text === 'Main idea');
+    const detail = cards.find((card) => card.text === 'Supporting detail');
+    const example = cards.find((card) => card.text === 'Example');
+    expect(placeholder.childIds).toEqual([idea.id]);
+    expect(idea.childIds).toEqual([detail.id]);
+    expect(detail.childIds).toEqual([example.id]);
+  });
+
+  it('rejects an invalid tree before changing the placeholder', () => {
+    const placeholderId = createPlaceholder();
+
+    expect(() => appendScanTreeResultToPlaceholder({
+      getCards: getSnapshot,
+      insertChildAt: (index, text) => insertRelativeTo(index, 'child', text),
+      placeholderId,
+      scanTree: {
+        title: 'Invalid tree',
+        nodes: [
+          { id: 'child', kind: 'detail', parentId: 'missing', text: 'Orphan' },
+        ],
+      },
+      updateCardAt: updateAt,
+    })).toThrow('missing parent');
+
+    const placeholder = getSnapshot().find((card) => card.id === placeholderId);
+    expect(placeholder.text).toBe(SCAN_PLACEHOLDER_TEXT);
+    expect(placeholder.childIds).toEqual([]);
   });
 });
