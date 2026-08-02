@@ -2000,6 +2000,7 @@ export default function App() {
         onAddPreviewChange={setAddPreviewRelation}
         onLogout={resetSession}
         onMoveMathKeyboardKey={handleMoveMathKeyboardKey}
+        onScanCards={handleScanCardsFromImage}
         onUpdateMathKeyboardKey={handleUpdateMathKeyboardKey}
         settingsPanelCloseRequest={settingsPanelCloseRequest}
         onToggleMode={handleToggleLayout}
