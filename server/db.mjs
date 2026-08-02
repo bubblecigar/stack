@@ -6,7 +6,8 @@ import { DatabaseSync } from 'node:sqlite';
 
 const serverDir = dirname(fileURLToPath(import.meta.url));
 const defaultDataDir = join(serverDir, '..', 'data');
-const dataDir = process.env.STACK_DATA_DIR || defaultDataDir;
+const dataDir = process.env.STACK_DATA_DIR
+  || (process.env.STACK_DATABASE_PATH ? dirname(process.env.STACK_DATABASE_PATH) : defaultDataDir);
 const databasePath = process.env.STACK_DATABASE_PATH || join(dataDir, 'stack.sqlite');
 
 mkdirSync(dataDir, { recursive: true });
@@ -58,9 +59,12 @@ db.exec(`
     user_id INTEGER NOT NULL,
     client_request_id TEXT NOT NULL,
     placeholder_id_json TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'queued'
-      CHECK (status IN ('queued', 'processing', 'completed', 'failed')),
+    status TEXT NOT NULL DEFAULT 'uploading'
+      CHECK (status IN ('uploading', 'queued', 'processing', 'completed', 'failed')),
     request_json TEXT,
+    image_path TEXT,
+    image_mime_type TEXT,
+    image_bytes INTEGER,
     result_json TEXT,
     error_text TEXT,
     attempt_count INTEGER NOT NULL DEFAULT 0,
@@ -77,6 +81,83 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS scan_jobs_queue_idx
   ON scan_jobs (status, created_at);
 `);
+
+const scanJobColumns = new Set(
+  db.prepare('PRAGMA table_info(scan_jobs)').all().map((column) => column.name),
+);
+const scanJobSchema = db.prepare(`
+  SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'scan_jobs'
+`).get()?.sql || '';
+
+if (!scanJobColumns.has('image_path') || !scanJobSchema.includes("'uploading'")) {
+  db.exec(`
+    BEGIN IMMEDIATE;
+
+    DROP INDEX IF EXISTS scan_jobs_user_pending_idx;
+    DROP INDEX IF EXISTS scan_jobs_queue_idx;
+
+    CREATE TABLE scan_jobs_next (
+      id TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      client_request_id TEXT NOT NULL,
+      placeholder_id_json TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'uploading'
+        CHECK (status IN ('uploading', 'queued', 'processing', 'completed', 'failed')),
+      request_json TEXT,
+      image_path TEXT,
+      image_mime_type TEXT,
+      image_bytes INTEGER,
+      result_json TEXT,
+      error_text TEXT,
+      attempt_count INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      acknowledged_at TEXT,
+      UNIQUE (user_id, client_request_id),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    INSERT INTO scan_jobs_next (
+      id,
+      user_id,
+      client_request_id,
+      placeholder_id_json,
+      status,
+      request_json,
+      result_json,
+      error_text,
+      attempt_count,
+      created_at,
+      updated_at,
+      acknowledged_at
+    )
+    SELECT
+      id,
+      user_id,
+      client_request_id,
+      placeholder_id_json,
+      status,
+      request_json,
+      result_json,
+      error_text,
+      attempt_count,
+      created_at,
+      updated_at,
+      acknowledged_at
+    FROM scan_jobs;
+
+    DROP TABLE scan_jobs;
+    ALTER TABLE scan_jobs_next RENAME TO scan_jobs;
+
+    CREATE INDEX scan_jobs_user_pending_idx
+    ON scan_jobs (user_id, acknowledged_at, created_at);
+
+    CREATE INDEX scan_jobs_queue_idx
+    ON scan_jobs (status, created_at);
+
+    COMMIT;
+  `);
+}
 
 const PASSWORD_ITERATIONS = 310000;
 const PASSWORD_KEY_LENGTH = 32;
@@ -369,6 +450,8 @@ function scanJobView(row) {
     createdAt: row.created_at,
     error: row.error_text,
     id: row.id,
+    imageBytes: row.image_bytes,
+    hasImage: Boolean(row.image_path),
     placeholderId: JSON.parse(row.placeholder_id_json),
     result: row.result_json ? JSON.parse(row.result_json) : null,
     status: row.status,
@@ -416,19 +499,22 @@ export function createScanJob(userId, {
   }
 
   const jobId = randomBytes(18).toString('base64url');
+  const initialStatus = request?.imageBase64 ? 'queued' : 'uploading';
   db.prepare(`
     INSERT INTO scan_jobs (
       id,
       user_id,
       client_request_id,
       placeholder_id_json,
+      status,
       request_json
-    ) VALUES (?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?)
   `).run(
     jobId,
     userId,
     normalizedRequestId,
     JSON.stringify(placeholderId),
+    initialStatus,
     JSON.stringify(request || {}),
   );
 
@@ -487,6 +573,8 @@ export function claimNextScanJob() {
     return {
       ...scanJobView(claimed),
       request: claimed.request_json ? JSON.parse(claimed.request_json) : null,
+      imagePath: claimed.image_path,
+      imageMimeType: claimed.image_mime_type,
       userId: claimed.user_id,
     };
   } catch (error) {
@@ -506,6 +594,73 @@ export function completeScanJob(jobId, result) {
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ? AND status = 'processing'
   `).run(JSON.stringify(result), jobId);
+}
+
+export function completeScanJobUpload(userId, jobId, {
+  imageBytes,
+  imageMimeType,
+  imagePath,
+}) {
+  db.prepare(`
+    UPDATE scan_jobs
+    SET
+      status = 'queued',
+      image_path = ?,
+      image_mime_type = ?,
+      image_bytes = ?,
+      error_text = NULL,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE user_id = ? AND id = ? AND status = 'uploading'
+  `).run(imagePath, imageMimeType, imageBytes, userId, jobId);
+
+  return getScanJob(userId, jobId);
+}
+
+export function failScanJobUpload(userId, jobId, message) {
+  db.prepare(`
+    UPDATE scan_jobs
+    SET
+      status = 'failed',
+      request_json = NULL,
+      error_text = ?,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE user_id = ? AND id = ? AND status = 'uploading'
+  `).run(String(message || 'Image upload failed.').slice(0, 500), userId, jobId);
+
+  return getScanJob(userId, jobId);
+}
+
+export function failStaleScanJobUploads(maxAgeSeconds) {
+  const cutoff = `-${Math.max(Number(maxAgeSeconds) || 0, 1)} seconds`;
+  return db.prepare(`
+    UPDATE scan_jobs
+    SET
+      status = 'failed',
+      request_json = NULL,
+      error_text = 'Image upload did not finish in time.',
+      updated_at = CURRENT_TIMESTAMP
+    WHERE status = 'uploading' AND updated_at < datetime('now', ?)
+  `).run(cutoff).changes;
+}
+
+export function clearScanJobImage(jobId) {
+  db.prepare(`
+    UPDATE scan_jobs
+    SET image_path = NULL, image_mime_type = NULL, image_bytes = NULL
+    WHERE id = ?
+  `).run(jobId);
+}
+
+export function listScanJobImagePaths() {
+  return db.prepare(`
+    SELECT id, image_path, status
+    FROM scan_jobs
+    WHERE image_path IS NOT NULL
+  `).all().map((row) => ({
+    id: row.id,
+    imagePath: row.image_path,
+    status: row.status,
+  }));
 }
 
 export function failScanJob(jobId, message) {
@@ -547,4 +702,8 @@ export function acknowledgeScanJob(userId, jobId) {
 
 export function getDatabasePath() {
   return databasePath;
+}
+
+export function getDataDirectory() {
+  return dataDir;
 }

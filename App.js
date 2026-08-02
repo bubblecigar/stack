@@ -43,12 +43,15 @@ import { TreeCanvas } from './src/views/TreeCanvas';
 import {
   acknowledgeScanJob,
   createScanJob,
+  failScanJobImageUpload,
   getMe,
   loadRemoteCards,
+  loadScanJob,
   loadScanJobs,
   loadRemoteUserData,
   saveRemoteCards,
   saveRemoteUserData,
+  uploadScanJobImage,
 } from './src/lib/apiClient';
 import { clearStoredAuthToken, getStoredAuthToken, setStoredAuthToken } from './src/lib/authTokenStore';
 import {
@@ -1626,7 +1629,7 @@ export default function App() {
 
       return ImagePicker.launchCameraAsync({
         allowsEditing: false,
-        base64: true,
+        base64: false,
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         quality: 0.72,
       });
@@ -1640,7 +1643,7 @@ export default function App() {
 
     return ImagePicker.launchImageLibraryAsync({
       allowsEditing: false,
-      base64: true,
+      base64: false,
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.72,
     });
@@ -1663,7 +1666,7 @@ export default function App() {
       }
 
       const asset = result.assets?.[0];
-      if (!asset?.base64) {
+      if (!asset?.uri) {
         Alert.alert('Scan failed', 'Could not read the selected image.');
         return;
       }
@@ -1677,13 +1680,44 @@ export default function App() {
       focusScanRoot(placeholderIndex);
 
       await saveRemoteCards(authToken, getSnapshot());
-      await createScanJob(authToken, {
+      const { job } = await createScanJob(authToken, {
         clientRequestId: scanRequestId,
-        imageBase64: asset.base64,
         mimeType: asset.mimeType || 'image/jpeg',
         placeholderId,
         prompt: SCAN_CARDS_PROMPT,
       });
+
+      let uploadError = null;
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          await uploadScanJobImage(
+            authToken,
+            job.id,
+            asset.uri,
+            asset.mimeType || 'image/jpeg',
+          );
+          uploadError = null;
+          break;
+        } catch (error) {
+          uploadError = error;
+          const currentJob = await loadScanJob(authToken, job.id).catch(() => null);
+          if (currentJob?.job?.status !== 'uploading') {
+            uploadError = null;
+            break;
+          }
+        }
+      }
+
+      if (uploadError) {
+        const failureResult = await failScanJobImageUpload(
+          authToken,
+          job.id,
+          uploadError.message || 'Image upload failed.',
+        );
+        if (failureResult.job?.status === 'failed') {
+          throw uploadError;
+        }
+      }
     } catch (error) {
       if (placeholderId !== null) {
         const currentIndex = updateScanPlaceholderTextIfPending(

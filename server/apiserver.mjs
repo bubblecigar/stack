@@ -7,6 +7,7 @@ import {
   getScanJob,
   getSessionUser,
   getUserData,
+  failScanJobUpload,
   listUnacknowledgedScanJobs,
   setUserData,
 } from './db.mjs';
@@ -21,6 +22,7 @@ import {
 } from './http.mjs';
 import { scanImageToCards } from './openaiVision.mjs';
 import { scheduleScanJobWorker, startScanJobWorker } from './scanJobWorker.mjs';
+import { storeScanJobUpload } from './scanUpload.mjs';
 
 const port = Number(process.env.API_PORT || 4101);
 const host = process.env.API_HOST || '0.0.0.0';
@@ -167,9 +169,9 @@ async function handleRequest(request, response) {
           clientRequestId: body.clientRequestId,
           placeholderId: body.placeholderId,
           request: {
-            imageBase64: body.imageBase64,
             mimeType: body.mimeType,
             prompt: body.prompt,
+            ...(body.imageBase64 ? { imageBase64: body.imageBase64 } : {}),
           },
         });
         scheduleScanJobWorker();
@@ -190,11 +192,47 @@ async function handleRequest(request, response) {
         return;
       }
 
-      if (!requireMethod(request, response, ['GET'])) {
+      const job = getScanJob(user.id, decodeURIComponent(scanJobMatch[1]));
+      if (!job) {
+        sendJson(response, 404, { error: 'Scan job not found.' });
         return;
       }
 
-      const job = getScanJob(user.id, decodeURIComponent(scanJobMatch[1]));
+      if (request.method === 'GET') {
+        sendJson(response, 200, { job });
+        return;
+      }
+
+      if (request.method === 'PUT') {
+        const uploadedJob = await storeScanJobUpload(request, user.id, job);
+        scheduleScanJobWorker();
+        sendJson(response, 200, { job: uploadedJob });
+        return;
+      }
+
+      sendJson(response, 405, { error: 'Method not allowed.' });
+      return;
+    }
+
+    const scanJobUploadFailureMatch = url.pathname.match(
+      /^\/api\/scan-jobs\/([^/]+)\/upload-failed$/,
+    );
+    if (scanJobUploadFailureMatch) {
+      const user = getAuthenticatedUser(request, response);
+      if (!user) {
+        return;
+      }
+
+      if (!requireMethod(request, response, ['POST'])) {
+        return;
+      }
+
+      const body = await readJson(request);
+      const job = failScanJobUpload(
+        user.id,
+        decodeURIComponent(scanJobUploadFailureMatch[1]),
+        body.error,
+      );
       if (!job) {
         sendJson(response, 404, { error: 'Scan job not found.' });
         return;

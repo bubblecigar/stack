@@ -2,16 +2,24 @@ import {
   claimNextScanJob,
   completeScanJob,
   failScanJob,
+  failStaleScanJobUploads,
   requeueInterruptedScanJobs,
   requeueScanJob,
 } from './db.mjs';
 import { scanImageToCards } from './openaiVision.mjs';
+import {
+  cleanScanUploadDirectory,
+  removeScanJobImage,
+} from './scanUpload.mjs';
 
 const MAX_ATTEMPTS = 2;
 const RETRY_DELAY_MS = 1_000;
+const UPLOAD_EXPIRY_SECONDS = 15 * 60;
+const UPLOAD_SWEEP_INTERVAL_MS = 60_000;
 
 let workerRunning = false;
 let workerScheduled = false;
+let uploadSweepTimer = null;
 
 function isRetryable(error) {
   const status = Number(error?.status);
@@ -31,8 +39,16 @@ async function drainQueue() {
     while (job) {
       let pauseForRetry = false;
       try {
-        const result = await scanImageToCards(job.request);
+        const request = job.imagePath
+          ? {
+            ...job.request,
+            imageBase64: (await readFile(job.imagePath)).toString('base64'),
+            mimeType: job.imageMimeType,
+          }
+          : job.request;
+        const result = await scanImageToCards(request);
         completeScanJob(job.id, result);
+        await removeScanJobImage(job);
       } catch (error) {
         const message = error?.message || 'Could not scan the selected image.';
         if (job.attemptCount < MAX_ATTEMPTS && isRetryable(error)) {
@@ -41,6 +57,7 @@ async function drainQueue() {
           pauseForRetry = true;
         } else {
           failScanJob(job.id, message);
+          await removeScanJobImage(job);
         }
       }
 
@@ -70,5 +87,21 @@ export function scheduleScanJobWorker() {
 
 export function startScanJobWorker() {
   requeueInterruptedScanJobs();
-  scheduleScanJobWorker();
+  failStaleScanJobUploads(UPLOAD_EXPIRY_SECONDS);
+  cleanScanUploadDirectory()
+    .catch((error) => {
+      console.error('[scan-upload] startup cleanup failed', error);
+    })
+    .finally(scheduleScanJobWorker);
+
+  if (!uploadSweepTimer) {
+    uploadSweepTimer = setInterval(() => {
+      failStaleScanJobUploads(UPLOAD_EXPIRY_SECONDS);
+      cleanScanUploadDirectory().catch((error) => {
+        console.error('[scan-upload] cleanup failed', error);
+      });
+    }, UPLOAD_SWEEP_INTERVAL_MS);
+    uploadSweepTimer.unref();
+  }
 }
+import { readFile } from 'node:fs/promises';

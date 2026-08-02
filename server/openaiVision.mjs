@@ -3,6 +3,7 @@ import scanTree from './scanTree.cjs';
 const DEFAULT_SCAN_MODEL = 'gpt-5.6-luna';
 const MAX_IMAGE_BASE64_LENGTH = 8_000_000;
 const MAX_SCAN_PROMPT_LENGTH = 4_000;
+const DEFAULT_SCAN_TIMEOUT_MS = 120_000;
 const { SCAN_TREE_SCHEMA, normalizeScanTreeResult } = scanTree;
 
 function createHttpError(status, message) {
@@ -75,41 +76,53 @@ export async function scanImageToCards(body, options = {}) {
   const prompt = normalizePrompt(body?.prompt);
   const model = options.model || process.env.OPENAI_SCAN_MODEL || DEFAULT_SCAN_MODEL;
   const request = options.fetchImpl || fetch;
+  const timeoutMs = Number(options.timeoutMs || process.env.OPENAI_SCAN_TIMEOUT_MS)
+    || DEFAULT_SCAN_TIMEOUT_MS;
+  const signal = options.signal || AbortSignal.timeout(timeoutMs);
 
-  const response = await request('https://api.openai.com/v1/responses', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model,
-      input: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'input_text',
-              text: prompt,
-            },
-            {
-              type: 'input_image',
-              image_url: imageUrl,
-              detail: 'original',
-            },
-          ],
-        },
-      ],
-      text: {
-        format: {
-          type: 'json_schema',
-          name: 'scan_card_tree',
-          schema: SCAN_TREE_SCHEMA,
-          strict: true,
-        },
+  let response;
+  try {
+    response = await request('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
       },
-    }),
-  });
+      signal,
+      body: JSON.stringify({
+        model,
+        input: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'input_text',
+                text: prompt,
+              },
+              {
+                type: 'input_image',
+                image_url: imageUrl,
+                detail: 'original',
+              },
+            ],
+          },
+        ],
+        text: {
+          format: {
+            type: 'json_schema',
+            name: 'scan_card_tree',
+            schema: SCAN_TREE_SCHEMA,
+            strict: true,
+          },
+        },
+      }),
+    });
+  } catch (error) {
+    if (signal.aborted) {
+      throw createHttpError(504, 'OpenAI scan timed out.');
+    }
+    throw error;
+  }
 
   const result = await response.json().catch(() => ({}));
   if (!response.ok) {
