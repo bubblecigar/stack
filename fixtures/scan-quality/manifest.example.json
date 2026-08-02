@@ -1,0 +1,16 @@
+[
+  {
+    "id": "clean-prose",
+    "image": "images/clean-prose.jpg",
+    "description": "A clear page of prose with one heading and several related paragraphs.",
+    "requiredTerms": [
+      "replace with an important visible term"
+    ]
+  },
+  {
+    "id": "formula-page",
+    "image": "images/formula-page.jpg",
+    "description": "A page containing prose, symbols, and at least one formula.",
+    "requiredTerms": []
+  }
+]

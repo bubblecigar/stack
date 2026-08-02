@@ -8,6 +8,7 @@ import {
   MISSION_CARD_ID,
   push,
   restoreRootTree,
+  setScanStateAt,
   TREASURE_CARD_ID,
   updateAt,
 } from '../../stackStore';
@@ -149,5 +150,15 @@ describe('system cards', () => {
     updateAt(cardIndex, 'a + b \n ');
 
     expect(getSnapshot()[cardIndex].text).toBe('a + b \n ');
+  });
+
+  it('persists scan coordination metadata across reloads', () => {
+    const cardIndex = push('Generating scan result...');
+    setScanStateAt(cardIndex, 'scan-request-1', 'pending');
+
+    loadCards(getSnapshot());
+
+    const card = getSnapshot().find((candidate) => candidate.scanRequestId === 'scan-request-1');
+    expect(card.scanStatus).toBe('pending');
   });
 });

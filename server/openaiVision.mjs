@@ -1,7 +1,10 @@
+import scanTree from './scanTree.cjs';
+
 const DEFAULT_SCAN_MODEL = 'gpt-5.6-luna';
-const MAX_SCAN_CARDS = 24;
 const MAX_IMAGE_BASE64_LENGTH = 8_000_000;
 const MAX_SCAN_PROMPT_LENGTH = 4_000;
+const DEFAULT_SCAN_TIMEOUT_MS = 120_000;
+const { SCAN_TREE_SCHEMA, normalizeScanTreeResult } = scanTree;
 
 function createHttpError(status, message) {
   const error = new Error(message);
@@ -45,20 +48,6 @@ function normalizePrompt(value) {
   return prompt;
 }
 
-function parseJsonObject(text) {
-  const trimmedText = String(text || '').trim();
-  if (!trimmedText) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(trimmedText);
-  } catch {
-    const match = trimmedText.match(/\{[\s\S]*\}/);
-    return match ? JSON.parse(match[0]) : null;
-  }
-}
-
 function readResponseText(result) {
   if (typeof result?.output_text === 'string') {
     return result.output_text;
@@ -70,55 +59,70 @@ function readResponseText(result) {
     .join('\n');
 }
 
-function normalizeScannedCards(value) {
-  const rawCards = Array.isArray(value?.cards) ? value.cards : [];
-
-  return rawCards
-    .map((card) => {
-      const text = typeof card === 'string' ? card : card?.text;
-      return String(text || '').trim();
-    })
-    .filter(Boolean)
-    .slice(0, MAX_SCAN_CARDS)
-    .map((text) => ({ text }));
+function readResponseRefusal(result) {
+  return (Array.isArray(result?.output) ? result.output : [])
+    .flatMap((item) => (Array.isArray(item?.content) ? item.content : []))
+    .find((content) => content?.type === 'refusal')
+    ?.refusal;
 }
 
-export async function scanImageToCards(body) {
-  const apiKey = process.env.OPENAI_API_KEY;
+export async function scanImageToCards(body, options = {}) {
+  const apiKey = options.apiKey || process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw createHttpError(503, 'OpenAI API key is not configured.');
   }
 
   const { imageUrl } = normalizeImageInput(body);
   const prompt = normalizePrompt(body?.prompt);
-  const model = process.env.OPENAI_SCAN_MODEL || DEFAULT_SCAN_MODEL;
+  const model = options.model || process.env.OPENAI_SCAN_MODEL || DEFAULT_SCAN_MODEL;
+  const request = options.fetchImpl || fetch;
+  const timeoutMs = Number(options.timeoutMs || process.env.OPENAI_SCAN_TIMEOUT_MS)
+    || DEFAULT_SCAN_TIMEOUT_MS;
+  const signal = options.signal || AbortSignal.timeout(timeoutMs);
 
-  const response = await fetch('https://api.openai.com/v1/responses', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model,
-      input: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'input_text',
-              text: prompt,
-            },
-            {
-              type: 'input_image',
-              image_url: imageUrl,
-              detail: 'high',
-            },
-          ],
+  let response;
+  try {
+    response = await request('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      signal,
+      body: JSON.stringify({
+        model,
+        input: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'input_text',
+                text: prompt,
+              },
+              {
+                type: 'input_image',
+                image_url: imageUrl,
+                detail: 'original',
+              },
+            ],
+          },
+        ],
+        text: {
+          format: {
+            type: 'json_schema',
+            name: 'scan_card_tree',
+            schema: SCAN_TREE_SCHEMA,
+            strict: true,
+          },
         },
-      ],
-    }),
-  });
+      }),
+    });
+  } catch (error) {
+    if (signal.aborted) {
+      throw createHttpError(504, 'OpenAI scan timed out.');
+    }
+    throw error;
+  }
 
   const result = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -128,9 +132,31 @@ export async function scanImageToCards(body) {
     );
   }
 
-  const parsed = parseJsonObject(readResponseText(result));
+  if (result?.status === 'incomplete') {
+    throw createHttpError(502, 'OpenAI returned an incomplete scan result.');
+  }
+
+  if (readResponseRefusal(result)) {
+    throw createHttpError(422, 'OpenAI could not process this image.');
+  }
+
+  const responseText = readResponseText(result);
+  let parsed;
+  try {
+    parsed = JSON.parse(responseText);
+  } catch {
+    throw createHttpError(502, 'OpenAI returned an invalid scan result.');
+  }
+
+  let scanTreeResult;
+  try {
+    scanTreeResult = normalizeScanTreeResult(parsed);
+  } catch (error) {
+    throw createHttpError(502, `OpenAI returned an invalid card tree: ${error.message}`);
+  }
+
   return {
-    cards: normalizeScannedCards(parsed),
+    ...scanTreeResult,
     model,
   };
 }

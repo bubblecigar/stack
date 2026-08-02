@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import * as FileSystem from 'expo-file-system/legacy';
 
 function getExpoHost() {
   const hostUri = Constants.expoConfig?.hostUri
@@ -163,4 +164,75 @@ export function scanImageToCards(token, image) {
     headers: authHeaders(token),
     body: JSON.stringify(image),
   });
+}
+
+export function createScanJob(token, request) {
+  return requestJson(`${API_BASE_URL}/api/scan-jobs`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify(request),
+  });
+}
+
+export function loadScanJobs(token) {
+  return requestJson(`${API_BASE_URL}/api/scan-jobs`, {
+    headers: authHeaders(token),
+  });
+}
+
+export function loadScanJob(token, jobId) {
+  return requestJson(`${API_BASE_URL}/api/scan-jobs/${encodeURIComponent(jobId)}`, {
+    headers: authHeaders(token),
+  });
+}
+
+export function acknowledgeScanJob(token, jobId) {
+  return requestJson(
+    `${API_BASE_URL}/api/scan-jobs/${encodeURIComponent(jobId)}/acknowledge`,
+    {
+      method: 'POST',
+      headers: authHeaders(token),
+    },
+  );
+}
+
+export async function uploadScanJobImage(token, jobId, fileUri, mimeType) {
+  const url = `${API_BASE_URL}/api/scan-jobs/${encodeURIComponent(jobId)}`;
+  logApiConfig();
+  if (shouldLogApiRequests) {
+    console.log(`[api] PUT ${url}`);
+  }
+
+  const response = await FileSystem.uploadAsync(url, fileUri, {
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+      'Content-Type': mimeType,
+    },
+    httpMethod: 'PUT',
+    uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+  });
+  const body = JSON.parse(response.body || '{}');
+
+  if (shouldLogApiRequests) {
+    console.log(`[api] PUT ${url} -> ${response.status}`);
+  }
+  if (response.status < 200 || response.status >= 300) {
+    const error = new Error(body.error || 'Image upload failed.');
+    error.status = response.status;
+    throw error;
+  }
+
+  return body;
+}
+
+export function failScanJobImageUpload(token, jobId, error) {
+  return requestJson(
+    `${API_BASE_URL}/api/scan-jobs/${encodeURIComponent(jobId)}/upload-failed`,
+    {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: JSON.stringify({ error }),
+    },
+  );
 }

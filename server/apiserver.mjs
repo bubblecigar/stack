@@ -1,9 +1,14 @@
 import { createServer } from 'node:http';
 import {
+  acknowledgeScanJob,
+  createScanJob,
   deleteUserData,
   getDatabasePath,
+  getScanJob,
   getSessionUser,
   getUserData,
+  failScanJobUpload,
+  listUnacknowledgedScanJobs,
   setUserData,
 } from './db.mjs';
 import {
@@ -16,6 +21,8 @@ import {
   withRequestLogging,
 } from './http.mjs';
 import { scanImageToCards } from './openaiVision.mjs';
+import { scheduleScanJobWorker, startScanJobWorker } from './scanJobWorker.mjs';
+import { storeScanJobUpload } from './scanUpload.mjs';
 
 const port = Number(process.env.API_PORT || 4101);
 const host = process.env.API_HOST || '0.0.0.0';
@@ -143,6 +150,129 @@ async function handleRequest(request, response) {
       return;
     }
 
+    if (url.pathname === '/api/scan-jobs') {
+      const user = getAuthenticatedUser(request, response);
+      if (!user) {
+        return;
+      }
+
+      if (request.method === 'GET') {
+        sendJson(response, 200, {
+          jobs: listUnacknowledgedScanJobs(user.id),
+        });
+        return;
+      }
+
+      if (request.method === 'POST') {
+        const body = await readJson(request);
+        const job = createScanJob(user.id, {
+          clientRequestId: body.clientRequestId,
+          placeholderId: body.placeholderId,
+          request: {
+            mimeType: body.mimeType,
+            prompt: body.prompt,
+            ...(body.imageBase64 ? { imageBase64: body.imageBase64 } : {}),
+          },
+        });
+        scheduleScanJobWorker();
+        sendJson(response, 202, { job });
+        return;
+      }
+
+      sendJson(response, 405, {
+        error: 'Method not allowed.',
+      });
+      return;
+    }
+
+    const scanJobMatch = url.pathname.match(/^\/api\/scan-jobs\/([^/]+)$/);
+    if (scanJobMatch) {
+      const user = getAuthenticatedUser(request, response);
+      if (!user) {
+        return;
+      }
+
+      const job = getScanJob(user.id, decodeURIComponent(scanJobMatch[1]));
+      if (!job) {
+        sendJson(response, 404, { error: 'Scan job not found.' });
+        return;
+      }
+
+      if (request.method === 'GET') {
+        sendJson(response, 200, { job });
+        return;
+      }
+
+      if (request.method === 'PUT') {
+        const uploadedJob = await storeScanJobUpload(request, user.id, job);
+        scheduleScanJobWorker();
+        sendJson(response, 200, { job: uploadedJob });
+        return;
+      }
+
+      sendJson(response, 405, { error: 'Method not allowed.' });
+      return;
+    }
+
+    const scanJobUploadFailureMatch = url.pathname.match(
+      /^\/api\/scan-jobs\/([^/]+)\/upload-failed$/,
+    );
+    if (scanJobUploadFailureMatch) {
+      const user = getAuthenticatedUser(request, response);
+      if (!user) {
+        return;
+      }
+
+      if (!requireMethod(request, response, ['POST'])) {
+        return;
+      }
+
+      const body = await readJson(request);
+      const job = failScanJobUpload(
+        user.id,
+        decodeURIComponent(scanJobUploadFailureMatch[1]),
+        body.error,
+      );
+      if (!job) {
+        sendJson(response, 404, { error: 'Scan job not found.' });
+        return;
+      }
+
+      sendJson(response, 200, { job });
+      return;
+    }
+
+    const scanJobAcknowledgeMatch = url.pathname.match(
+      /^\/api\/scan-jobs\/([^/]+)\/acknowledge$/,
+    );
+    if (scanJobAcknowledgeMatch) {
+      const user = getAuthenticatedUser(request, response);
+      if (!user) {
+        return;
+      }
+
+      if (!requireMethod(request, response, ['POST'])) {
+        return;
+      }
+
+      const job = acknowledgeScanJob(
+        user.id,
+        decodeURIComponent(scanJobAcknowledgeMatch[1]),
+      );
+      if (!job) {
+        sendJson(response, 404, { error: 'Scan job not found.' });
+        return;
+      }
+
+      if (!job.acknowledgedAt) {
+        sendJson(response, 409, { error: 'Scan job is not finished.' });
+        return;
+      }
+
+      sendJson(response, 200, { job });
+      return;
+    }
+
     sendJson(response, 404, {
       error: 'Not found.',
     });
@@ -154,6 +284,7 @@ async function handleRequest(request, response) {
 const server = createServer(withRequestLogging('apiserver', handleRequest));
 
 server.listen(port, host, () => {
+  startScanJobWorker();
   console.log(`apiserver listening on http://${host}:${port}`);
   console.log(`set EXPO_PUBLIC_API_SERVER_URL=http://YOUR_LAN_IP:${port} if auto-detection fails`);
   console.log(`sqlite database: ${getDatabasePath()}`);

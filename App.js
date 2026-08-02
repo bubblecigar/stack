@@ -27,6 +27,7 @@ import {
   removeAt,
   removeDoneCascadeAt,
   restoreRootTree,
+  setScanStateAt,
   setDoneAt,
   subscribe,
   TREASURE_CARD_ID,
@@ -40,12 +41,17 @@ import { LeafDeck } from './src/views/LeafDeck';
 import { NodeStructureView } from './src/views/NodeStructureView';
 import { TreeCanvas } from './src/views/TreeCanvas';
 import {
+  acknowledgeScanJob,
+  createScanJob,
+  failScanJobImageUpload,
   getMe,
   loadRemoteCards,
+  loadScanJob,
+  loadScanJobs,
   loadRemoteUserData,
   saveRemoteCards,
   saveRemoteUserData,
-  scanImageToCards,
+  uploadScanJobImage,
 } from './src/lib/apiClient';
 import { clearStoredAuthToken, getStoredAuthToken, setStoredAuthToken } from './src/lib/authTokenStore';
 import {
@@ -79,6 +85,18 @@ import {
   getStoredMathKeyboardKeys,
   setStoredMathKeyboardKeys,
 } from './src/lib/mathKeyboardStore';
+import {
+  appendScanTreeResultToPlaceholder,
+  formatScanResultTitle,
+  SCAN_PLACEHOLDER_TEXT,
+  updatePendingScanPlaceholder,
+} from './src/lib/scanPlaceholder';
+import { SCAN_CARDS_PROMPT } from './src/lib/scanPrompt';
+import {
+  createScanRequestId,
+  findScanJobPlaceholderIndex,
+  isScanJobApplied,
+} from './src/lib/scanJobs';
 import { styles } from './src/styles/appStyles';
 
 const LEAF_VISIBLE_COUNT = 5;
@@ -86,14 +104,6 @@ const TREE_COMPLETION_CANVAS_KEY = 'treeCompletionCanvas';
 const UI_STATE_KEY = 'uiState';
 const DAY_START_OFFSET_MS = ((4 * 60) + 30) * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
-const SCAN_CARDS_PROMPT = [
-  'Extract the visible written content from this image and convert it into task cards.',
-  'Each card should be concise, preserving math notation and line breaks when useful.',
-  'Return only JSON in this exact shape: {"cards":[{"text":"..."}]}.',
-  'Return at most 24 cards.',
-  'If no useful text is visible, return {"cards":[]}.',
-].join('\n');
-const SCAN_PLACEHOLDER_TEXT = 'Generating scan result...';
 const EMPTY_TREE_COMPLETION_CANVAS = {
   entries: [],
   nodes: [],
@@ -580,6 +590,7 @@ export default function App() {
     index: null,
     timestamp: 0,
   });
+  const isPollingScanJobs = useRef(false);
 
   useEffect(() => {
     if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -937,6 +948,93 @@ export default function App() {
 
     return () => clearTimeout(timeoutId);
   }, [authToken, stack]);
+
+  useEffect(() => {
+    if (!authToken || !hasLoadedUserData || !hasLoadedRemoteCards.current) {
+      return undefined;
+    }
+
+    let isActive = true;
+
+    async function applyFinishedJob(job) {
+      const placeholderIndex = findScanJobPlaceholderIndex(getSnapshot(), job);
+      if (placeholderIndex === -1) {
+        await acknowledgeScanJob(authToken, job.id);
+        return;
+      }
+
+      const placeholder = getSnapshot()[placeholderIndex];
+      if (job.status === 'completed') {
+        if (!isScanJobApplied(placeholder, job)) {
+          const scannedNodes = Array.isArray(job.result?.nodes) ? job.result.nodes : [];
+          if (scannedNodes.length === 0) {
+            updateScanPlaceholderTextIfPending(
+              placeholder.id,
+              `${job.result?.title || 'Scan result'}\nNo readable cards found.`,
+            );
+          } else {
+            appendScannedTreeToPlaceholder(placeholder.id, {
+              title: job.result?.title,
+              nodes: scannedNodes,
+            });
+          }
+
+          const currentIndex = findScanJobPlaceholderIndex(getSnapshot(), job);
+          if (currentIndex !== -1) {
+            setScanStateAt(currentIndex, job.clientRequestId, 'completed');
+          }
+        }
+      } else if (job.status === 'failed') {
+        updateScanPlaceholderTextIfPending(
+          placeholder.id,
+          `Scan result\nScan failed: ${job.error || 'Could not scan the selected image.'}`,
+        );
+        const currentIndex = findScanJobPlaceholderIndex(getSnapshot(), job);
+        if (currentIndex !== -1) {
+          setScanStateAt(currentIndex, job.clientRequestId, 'failed');
+        }
+      } else {
+        return;
+      }
+
+      await saveRemoteCards(authToken, getSnapshot());
+      await acknowledgeScanJob(authToken, job.id);
+    }
+
+    async function pollScanJobs() {
+      if (!isActive || isPollingScanJobs.current) {
+        return;
+      }
+
+      isPollingScanJobs.current = true;
+      try {
+        const result = await loadScanJobs(authToken);
+        const jobs = Array.isArray(result.jobs) ? result.jobs : [];
+        for (const job of jobs) {
+          if (!isActive) {
+            break;
+          }
+          await applyFinishedJob(job);
+        }
+      } catch (error) {
+        if (error.status === 401 && isActive) {
+          handleAuthExpired();
+        } else if (isActive) {
+          setSyncError(error.message || 'Could not refresh scan results.');
+        }
+      } finally {
+        isPollingScanJobs.current = false;
+      }
+    }
+
+    pollScanJobs();
+    const intervalId = setInterval(pollScanJobs, 2_500);
+
+    return () => {
+      isActive = false;
+      clearInterval(intervalId);
+    };
+  }, [authToken, hasLoadedUserData]);
 
   function handleCreateCard(relation = 'child') {
     setAddPreviewRelation(null);
@@ -1496,69 +1594,29 @@ export default function App() {
     setLeafFocusedCardId(card?.id ?? null);
   }
 
-  function findScanPlaceholderIndex(placeholderId) {
-    return getSnapshot().findIndex((card) => card.id === placeholderId);
-  }
-
   function updateScanPlaceholderTextIfPending(placeholderId, value) {
-    const placeholderIndex = findScanPlaceholderIndex(placeholderId);
-    const placeholderCard = placeholderIndex === -1
-      ? null
-      : getSnapshot()[placeholderIndex];
-    if (!placeholderCard || placeholderCard.text !== SCAN_PLACEHOLDER_TEXT) {
-      return placeholderIndex;
-    }
-
-    updateAt(placeholderIndex, value);
-    return placeholderIndex;
-  }
-
-  function getScanImageName(asset) {
-    if (asset?.fileName) {
-      return asset.fileName;
-    }
-
-    const uriName = String(asset?.uri || '').split('/').filter(Boolean).pop();
-    return uriName || 'image';
-  }
-
-  function formatScanResultTitle(asset, timestamp = Date.now()) {
-    const imageName = getScanImageName(asset);
-    const scannedAt = new Date(timestamp).toLocaleString(undefined, {
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
-
-    return `Scan result: for img ${imageName} at ${scannedAt}`;
-  }
-
-  function appendScannedCardsToPlaceholder(placeholderId, asset, scannedCards) {
-    let placeholderIndex = updateScanPlaceholderTextIfPending(
+    return updatePendingScanPlaceholder({
+      getCards: getSnapshot,
       placeholderId,
-      formatScanResultTitle(asset),
-    );
-    if (placeholderIndex === -1) {
-      return false;
-    }
+      text: value,
+      updateCardAt: updateAt,
+    });
+  }
 
-    scannedCards.forEach((card) => {
-      placeholderIndex = findScanPlaceholderIndex(placeholderId);
-      if (placeholderIndex === -1) {
-        return;
-      }
-
-      insertRelativeTo(placeholderIndex, 'child', card.text);
+  function appendScannedTreeToPlaceholder(placeholderId, scanTree) {
+    const placeholderIndex = appendScanTreeResultToPlaceholder({
+      getCards: getSnapshot,
+      insertChildAt: (index, text) => insertRelativeTo(index, 'child', text),
+      placeholderId,
+      scanTree,
+      updateCardAt: updateAt,
     });
 
-    placeholderIndex = findScanPlaceholderIndex(placeholderId);
     if (placeholderIndex !== -1) {
       focusScanRoot(placeholderIndex);
     }
 
-    return true;
+    return placeholderIndex !== -1;
   }
 
   async function pickScanImage(source) {
@@ -1571,7 +1629,7 @@ export default function App() {
 
       return ImagePicker.launchCameraAsync({
         allowsEditing: false,
-        base64: true,
+        base64: false,
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         quality: 0.72,
       });
@@ -1585,7 +1643,7 @@ export default function App() {
 
     return ImagePicker.launchImageLibraryAsync({
       allowsEditing: false,
-      base64: true,
+      base64: false,
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.72,
     });
@@ -1598,6 +1656,7 @@ export default function App() {
 
     let placeholderId = null;
     let placeholderAsset = null;
+    let scanRequestId = null;
 
     try {
       const result = await pickScanImage(source);
@@ -1607,7 +1666,7 @@ export default function App() {
       }
 
       const asset = result.assets?.[0];
-      if (!asset?.base64) {
+      if (!asset?.uri) {
         Alert.alert('Scan failed', 'Could not read the selected image.');
         return;
       }
@@ -1616,27 +1675,49 @@ export default function App() {
       placeholderAsset = asset;
       const placeholderIndex = push(SCAN_PLACEHOLDER_TEXT);
       placeholderId = getSnapshot()[placeholderIndex]?.id ?? null;
+      scanRequestId = createScanRequestId();
+      setScanStateAt(placeholderIndex, scanRequestId, 'pending');
       focusScanRoot(placeholderIndex);
 
-      const scanResult = await scanImageToCards(authToken, {
-        imageBase64: asset.base64,
+      await saveRemoteCards(authToken, getSnapshot());
+      const { job } = await createScanJob(authToken, {
+        clientRequestId: scanRequestId,
         mimeType: asset.mimeType || 'image/jpeg',
+        placeholderId,
         prompt: SCAN_CARDS_PROMPT,
       });
-      const scannedCards = Array.isArray(scanResult.cards) ? scanResult.cards : [];
 
-      if (scannedCards.length === 0) {
-        const currentIndex = updateScanPlaceholderTextIfPending(
-          placeholderId,
-          `${formatScanResultTitle(asset)}\nNo readable cards found.`,
-        );
-        if (currentIndex !== -1) {
-          focusScanRoot(currentIndex);
+      let uploadError = null;
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          await uploadScanJobImage(
+            authToken,
+            job.id,
+            asset.uri,
+            asset.mimeType || 'image/jpeg',
+          );
+          uploadError = null;
+          break;
+        } catch (error) {
+          uploadError = error;
+          const currentJob = await loadScanJob(authToken, job.id).catch(() => null);
+          if (currentJob?.job?.status !== 'uploading') {
+            uploadError = null;
+            break;
+          }
         }
-        return;
       }
 
-      appendScannedCardsToPlaceholder(placeholderId, asset, scannedCards);
+      if (uploadError) {
+        const failureResult = await failScanJobImageUpload(
+          authToken,
+          job.id,
+          uploadError.message || 'Image upload failed.',
+        );
+        if (failureResult.job?.status === 'failed') {
+          throw uploadError;
+        }
+      }
     } catch (error) {
       if (placeholderId !== null) {
         const currentIndex = updateScanPlaceholderTextIfPending(
@@ -1644,6 +1725,9 @@ export default function App() {
           `${formatScanResultTitle(placeholderAsset)}\nScan failed: ${error.message || 'Could not scan the selected image.'}`,
         );
         if (currentIndex !== -1) {
+          if (scanRequestId) {
+            setScanStateAt(currentIndex, scanRequestId, 'failed');
+          }
           focusScanRoot(currentIndex);
           Alert.alert('Scan failed', error.message || 'Could not scan the selected image.');
         }
@@ -1654,24 +1738,7 @@ export default function App() {
   }
 
   function handleScanCardsFromImage() {
-    Alert.alert(
-      'Scan cards',
-      'Create cards from a photo or image.',
-      [
-        {
-          text: 'Take Photo',
-          onPress: () => scanCardsFromImageSource('camera'),
-        },
-        {
-          text: 'Choose Photo',
-          onPress: () => scanCardsFromImageSource('library'),
-        },
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-      ],
-    );
+    scanCardsFromImageSource('camera');
   }
 
   function getMathNotationTarget() {
@@ -2000,6 +2067,8 @@ export default function App() {
         onAddPreviewChange={setAddPreviewRelation}
         onLogout={resetSession}
         onMoveMathKeyboardKey={handleMoveMathKeyboardKey}
+        onScanCards={handleScanCardsFromImage}
+        scanOnDoubleTap={!shouldRenderLeaf && focusedCardIndex === null}
         onUpdateMathKeyboardKey={handleUpdateMathKeyboardKey}
         settingsPanelCloseRequest={settingsPanelCloseRequest}
         onToggleMode={handleToggleLayout}

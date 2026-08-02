@@ -37,6 +37,11 @@ yarn-error.*
 # local server data
 data/
 
+# local scan quality fixtures and reports
+fixtures/scan-quality/images/
+fixtures/scan-quality/manifest.json
+artifacts/scan-quality-report-*.json
+
 # typescript
 *.tsbuildinfo
 
