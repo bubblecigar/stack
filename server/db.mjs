@@ -52,6 +52,30 @@ db.exec(`
     used_at TEXT,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   );
+
+  CREATE TABLE IF NOT EXISTS scan_jobs (
+    id TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    client_request_id TEXT NOT NULL,
+    placeholder_id_json TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'queued'
+      CHECK (status IN ('queued', 'processing', 'completed', 'failed')),
+    request_json TEXT,
+    result_json TEXT,
+    error_text TEXT,
+    attempt_count INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    acknowledged_at TEXT,
+    UNIQUE (user_id, client_request_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS scan_jobs_user_pending_idx
+  ON scan_jobs (user_id, acknowledged_at, created_at);
+
+  CREATE INDEX IF NOT EXISTS scan_jobs_queue_idx
+  ON scan_jobs (status, created_at);
 `);
 
 const PASSWORD_ITERATIONS = 310000;
@@ -331,6 +355,194 @@ export function deleteUserData(userId, key) {
     DELETE FROM user_data
     WHERE user_id = ? AND data_key = ?
   `).run(userId, key);
+}
+
+function scanJobView(row) {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    acknowledgedAt: row.acknowledged_at,
+    attemptCount: row.attempt_count,
+    clientRequestId: row.client_request_id,
+    createdAt: row.created_at,
+    error: row.error_text,
+    id: row.id,
+    placeholderId: JSON.parse(row.placeholder_id_json),
+    result: row.result_json ? JSON.parse(row.result_json) : null,
+    status: row.status,
+    updatedAt: row.updated_at,
+  };
+}
+
+function getScanJobRow(userId, jobId) {
+  return db.prepare(`
+    SELECT *
+    FROM scan_jobs
+    WHERE user_id = ? AND id = ?
+  `).get(userId, jobId);
+}
+
+export function createScanJob(userId, {
+  clientRequestId,
+  placeholderId,
+  request,
+}) {
+  const normalizedRequestId = String(clientRequestId || '').trim();
+  if (!normalizedRequestId || normalizedRequestId.length > 128) {
+    const error = new Error('A valid client request ID is required.');
+    error.status = 400;
+    throw error;
+  }
+
+  if (
+    placeholderId === null
+    || placeholderId === undefined
+    || !['number', 'string'].includes(typeof placeholderId)
+  ) {
+    const error = new Error('A valid placeholder ID is required.');
+    error.status = 400;
+    throw error;
+  }
+
+  const existing = db.prepare(`
+    SELECT *
+    FROM scan_jobs
+    WHERE user_id = ? AND client_request_id = ?
+  `).get(userId, normalizedRequestId);
+  if (existing) {
+    return scanJobView(existing);
+  }
+
+  const jobId = randomBytes(18).toString('base64url');
+  db.prepare(`
+    INSERT INTO scan_jobs (
+      id,
+      user_id,
+      client_request_id,
+      placeholder_id_json,
+      request_json
+    ) VALUES (?, ?, ?, ?, ?)
+  `).run(
+    jobId,
+    userId,
+    normalizedRequestId,
+    JSON.stringify(placeholderId),
+    JSON.stringify(request || {}),
+  );
+
+  return scanJobView(getScanJobRow(userId, jobId));
+}
+
+export function getScanJob(userId, jobId) {
+  return scanJobView(getScanJobRow(userId, String(jobId || '')));
+}
+
+export function listUnacknowledgedScanJobs(userId) {
+  return db.prepare(`
+    SELECT *
+    FROM scan_jobs
+    WHERE user_id = ? AND acknowledged_at IS NULL
+    ORDER BY created_at ASC, id ASC
+  `).all(userId).map(scanJobView);
+}
+
+export function requeueInterruptedScanJobs() {
+  db.prepare(`
+    UPDATE scan_jobs
+    SET status = 'queued', updated_at = CURRENT_TIMESTAMP
+    WHERE status = 'processing'
+  `).run();
+}
+
+export function claimNextScanJob() {
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    const row = db.prepare(`
+      SELECT *
+      FROM scan_jobs
+      WHERE status = 'queued'
+      ORDER BY created_at ASC, id ASC
+      LIMIT 1
+    `).get();
+
+    if (!row) {
+      db.exec('COMMIT');
+      return null;
+    }
+
+    db.prepare(`
+      UPDATE scan_jobs
+      SET
+        status = 'processing',
+        attempt_count = attempt_count + 1,
+        error_text = NULL,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND status = 'queued'
+    `).run(row.id);
+    db.exec('COMMIT');
+
+    const claimed = db.prepare('SELECT * FROM scan_jobs WHERE id = ?').get(row.id);
+    return {
+      ...scanJobView(claimed),
+      request: claimed.request_json ? JSON.parse(claimed.request_json) : null,
+      userId: claimed.user_id,
+    };
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
+  }
+}
+
+export function completeScanJob(jobId, result) {
+  db.prepare(`
+    UPDATE scan_jobs
+    SET
+      status = 'completed',
+      request_json = NULL,
+      result_json = ?,
+      error_text = NULL,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = ? AND status = 'processing'
+  `).run(JSON.stringify(result), jobId);
+}
+
+export function failScanJob(jobId, message) {
+  db.prepare(`
+    UPDATE scan_jobs
+    SET
+      status = 'failed',
+      request_json = NULL,
+      result_json = NULL,
+      error_text = ?,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = ? AND status = 'processing'
+  `).run(String(message || 'Scan failed.').slice(0, 500), jobId);
+}
+
+export function requeueScanJob(jobId, message) {
+  db.prepare(`
+    UPDATE scan_jobs
+    SET
+      status = 'queued',
+      error_text = ?,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = ? AND status = 'processing'
+  `).run(String(message || 'Scan will be retried.').slice(0, 500), jobId);
+}
+
+export function acknowledgeScanJob(userId, jobId) {
+  db.prepare(`
+    UPDATE scan_jobs
+    SET acknowledged_at = COALESCE(acknowledged_at, CURRENT_TIMESTAMP),
+        updated_at = CURRENT_TIMESTAMP
+    WHERE user_id = ?
+      AND id = ?
+      AND status IN ('completed', 'failed')
+  `).run(userId, jobId);
+
+  return getScanJob(userId, jobId);
 }
 
 export function getDatabasePath() {

@@ -164,3 +164,27 @@ export function scanImageToCards(token, image) {
     body: JSON.stringify(image),
   });
 }
+
+export function createScanJob(token, request) {
+  return requestJson(`${API_BASE_URL}/api/scan-jobs`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify(request),
+  });
+}
+
+export function loadScanJobs(token) {
+  return requestJson(`${API_BASE_URL}/api/scan-jobs`, {
+    headers: authHeaders(token),
+  });
+}
+
+export function acknowledgeScanJob(token, jobId) {
+  return requestJson(
+    `${API_BASE_URL}/api/scan-jobs/${encodeURIComponent(jobId)}/acknowledge`,
+    {
+      method: 'POST',
+      headers: authHeaders(token),
+    },
+  );
+}

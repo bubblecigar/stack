@@ -259,6 +259,12 @@ function normalizeIncomingCard(rawCard, nextGeneratedId) {
   const rawStamps = Array.isArray(rawCard?.stamps) ? rawCard.stamps : [];
   const rawLastAdoptedAt = rawCard?.lastAdoptedAt;
   const lastAdoptedAt = Number(rawLastAdoptedAt);
+  const scanRequestId = typeof rawCard?.scanRequestId === 'string'
+    ? rawCard.scanRequestId.trim().slice(0, 128)
+    : '';
+  const scanStatus = ['pending', 'completed', 'failed'].includes(rawCard?.scanStatus)
+    ? rawCard.scanStatus
+    : null;
 
   function normalizeLinkedId(id) {
     if (typeof id === 'string') {
@@ -319,6 +325,8 @@ function normalizeIncomingCard(rawCard, nextGeneratedId) {
       ? { lastAdoptedAt }
       : {}),
     parentIds,
+    ...(scanRequestId ? { scanRequestId } : {}),
+    ...(scanStatus ? { scanStatus } : {}),
     stamps,
     ...(isSystem ? {
       ...(systemType === 'mission'
@@ -438,6 +446,34 @@ export function updateAt(index, value) {
 
   stack = stack.map((card, itemIndex) => (
     itemIndex === index ? { ...card, text: nextValue } : card
+  ));
+  emitChange();
+}
+
+export function setScanStateAt(index, requestId, status) {
+  const normalizedRequestId = String(requestId || '').trim().slice(0, 128);
+  const normalizedStatus = ['pending', 'completed', 'failed'].includes(status)
+    ? status
+    : null;
+
+  if (
+    index < 0
+    || index >= stack.length
+    || isSystemCard(stack[index])
+    || !normalizedRequestId
+    || !normalizedStatus
+  ) {
+    return;
+  }
+
+  stack = stack.map((card, itemIndex) => (
+    itemIndex === index
+      ? {
+        ...card,
+        scanRequestId: normalizedRequestId,
+        scanStatus: normalizedStatus,
+      }
+      : card
   ));
   emitChange();
 }
