@@ -195,6 +195,7 @@ export function FloatingControls({
   childInsertionOnly = false,
   disableCardInsertion = false,
   focusedSystemCardType = null,
+  scanOnDoubleTap = false,
 }) {
   const shouldShowDelete = canDeleteCurrentCard;
   const systemCardExplanation = SYSTEM_CARD_EXPLANATIONS[focusedSystemCardType] ?? null;
@@ -379,7 +380,11 @@ export function FloatingControls({
 
     if (isDoubleTap) {
       lastModeTapRef.current = 0;
-      onToggleMode?.();
+      if (scanOnDoubleTap) {
+        onScanCards?.();
+      } else {
+        onToggleMode?.();
+      }
     }
   }
 
@@ -501,7 +506,9 @@ export function FloatingControls({
     onAddHoldChange,
     onAddPreviewChange,
     onCreateCard,
+    onScanCards,
     onToggleMode,
+    scanOnDoubleTap,
   ]);
 
   function handleDeletePressIn() {
@@ -855,8 +862,12 @@ export function FloatingControls({
       >
         <View
           {...addPanResponder.panHandlers}
-          accessibilityHint="Drag to insert a card. Double tap to toggle leaf or tree view."
-          accessibilityLabel="Insert card or toggle view"
+          accessibilityHint={scanOnDoubleTap
+            ? 'Double tap to scan cards from an image.'
+            : 'Drag to insert a card. Double tap to toggle leaf or tree view.'}
+          accessibilityLabel={scanOnDoubleTap
+            ? 'Scan cards from image'
+            : 'Insert card or toggle view'}
           accessibilityRole="button"
           style={[
             styles.addCardControl,
@@ -989,21 +1000,6 @@ export function FloatingControls({
               </Text>
 
               <View style={styles.settingsPanelAudioRow}>
-                <Pressable
-                  accessibilityLabel="Scan cards from image"
-                  accessibilityRole="button"
-                  onPress={onScanCards}
-                  style={({ pressed }) => [
-                    styles.settingsIconButton,
-                    pressed && styles.settingsIconButtonPressed,
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    color="#CBD5E1"
-                    name="image-search-outline"
-                    size={24}
-                  />
-                </Pressable>
                 <Pressable
                   accessibilityLabel={audioEnabled ? 'Turn audio off' : 'Turn audio on'}
                   accessibilityRole="button"

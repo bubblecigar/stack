@@ -1738,24 +1738,7 @@ export default function App() {
   }
 
   function handleScanCardsFromImage() {
-    Alert.alert(
-      'Scan cards',
-      'Create cards from a photo or image.',
-      [
-        {
-          text: 'Take Photo',
-          onPress: () => scanCardsFromImageSource('camera'),
-        },
-        {
-          text: 'Choose Photo',
-          onPress: () => scanCardsFromImageSource('library'),
-        },
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-      ],
-    );
+    scanCardsFromImageSource('camera');
   }
 
   function getMathNotationTarget() {
@@ -2085,6 +2068,7 @@ export default function App() {
         onLogout={resetSession}
         onMoveMathKeyboardKey={handleMoveMathKeyboardKey}
         onScanCards={handleScanCardsFromImage}
+        scanOnDoubleTap={!shouldRenderLeaf && focusedCardIndex === null}
         onUpdateMathKeyboardKey={handleUpdateMathKeyboardKey}
         settingsPanelCloseRequest={settingsPanelCloseRequest}
         onToggleMode={handleToggleLayout}
