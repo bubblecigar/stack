@@ -1294,6 +1294,34 @@ export default function App() {
     });
   }
 
+  function handleToggleAllTreeCards() {
+    const collapsibleIds = systemTreeCards
+      .filter((card) => Array.isArray(card.childIds) && card.childIds.length > 0)
+      .map((card) => card.id);
+
+    if (collapsibleIds.length === 0) {
+      return;
+    }
+
+    playModeFlipSound();
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+
+    setCollapsedNodeIds((currentCollapsed) => {
+      const shouldExpandAll = collapsibleIds.every((cardId) => currentCollapsed.has(cardId));
+      const nextCollapsed = new Set(currentCollapsed);
+
+      collapsibleIds.forEach((cardId) => {
+        if (shouldExpandAll) {
+          nextCollapsed.delete(cardId);
+        } else {
+          nextCollapsed.add(cardId);
+        }
+      });
+
+      return nextCollapsed;
+    });
+  }
+
   function handleTreeCardPress(index) {
     if (editingIndex === index) {
       setFocusedCardIndex(index);
@@ -2067,8 +2095,8 @@ export default function App() {
         onAddPreviewChange={setAddPreviewRelation}
         onLogout={resetSession}
         onMoveMathKeyboardKey={handleMoveMathKeyboardKey}
-        onScanCards={handleScanCardsFromImage}
-        scanOnDoubleTap={!shouldRenderLeaf && focusedCardIndex === null}
+        onRootDoubleTap={handleToggleAllTreeCards}
+        rootDoubleTapEnabled={!shouldRenderLeaf && focusedCardIndex === null}
         onUpdateMathKeyboardKey={handleUpdateMathKeyboardKey}
         settingsPanelCloseRequest={settingsPanelCloseRequest}
         onToggleMode={handleToggleLayout}

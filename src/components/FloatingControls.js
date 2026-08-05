@@ -186,16 +186,16 @@ export function FloatingControls({
   onAddPreviewChange,
   onAddHoldChange,
   onDeleteHoldChange,
+  onRootDoubleTap,
   onLogout,
   onMoveMathKeyboardKey,
-  onScanCards,
   onUpdateMathKeyboardKey,
   settingsPanelCloseRequest = 0,
   canDeleteCurrentCard = false,
   childInsertionOnly = false,
   disableCardInsertion = false,
   focusedSystemCardType = null,
-  scanOnDoubleTap = false,
+  rootDoubleTapEnabled = false,
 }) {
   const shouldShowDelete = canDeleteCurrentCard;
   const systemCardExplanation = SYSTEM_CARD_EXPLANATIONS[focusedSystemCardType] ?? null;
@@ -380,8 +380,8 @@ export function FloatingControls({
 
     if (isDoubleTap) {
       lastModeTapRef.current = 0;
-      if (scanOnDoubleTap) {
-        onScanCards?.();
+      if (rootDoubleTapEnabled) {
+        onRootDoubleTap?.();
       } else {
         onToggleMode?.();
       }
@@ -506,9 +506,9 @@ export function FloatingControls({
     onAddHoldChange,
     onAddPreviewChange,
     onCreateCard,
-    onScanCards,
+    onRootDoubleTap,
     onToggleMode,
-    scanOnDoubleTap,
+    rootDoubleTapEnabled,
   ]);
 
   function handleDeletePressIn() {
@@ -862,11 +862,11 @@ export function FloatingControls({
       >
         <View
           {...addPanResponder.panHandlers}
-          accessibilityHint={scanOnDoubleTap
-            ? 'Double tap to scan cards from an image.'
+          accessibilityHint={rootDoubleTapEnabled
+            ? 'Double tap to expand or collapse all cards.'
             : 'Drag to insert a card. Double tap to toggle leaf or tree view.'}
-          accessibilityLabel={scanOnDoubleTap
-            ? 'Scan cards from image'
+          accessibilityLabel={rootDoubleTapEnabled
+            ? 'Expand or collapse cards'
             : 'Insert card or toggle view'}
           accessibilityRole="button"
           style={[
