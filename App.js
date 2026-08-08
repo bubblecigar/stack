@@ -452,6 +452,7 @@ export default function App() {
   const [isAddHoldActive, setIsAddHoldActive] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isUpdatingCardImage, setIsUpdatingCardImage] = useState(false);
+  const [uploadingCardImageId, setUploadingCardImageId] = useState(null);
   const [settingsPanelCloseRequest, setSettingsPanelCloseRequest] = useState(0);
   const [mathKeyboardKeys, setMathKeyboardKeys] = useState(() => normalizeMathKeyboardKeys([]));
   const [currentDayReference, setCurrentDayReference] = useState(() => Date.now());
@@ -463,9 +464,10 @@ export default function App() {
   const stack = useSyncExternalStore(subscribe, getSnapshot);
   const cards = useMemo(() => stack.map((card, index) => ({
     ...card,
+    isImageUploading: card.id === uploadingCardImageId,
     imageUri: resolveApiAssetUrl(card.imagePath),
     index,
-  })), [stack]);
+  })), [stack, uploadingCardImageId]);
   const hiddenSystemCardIds = useMemo(
     () => getHiddenSystemCardIds(cards, [MISSION_CARD_ID]),
     [cards],
@@ -1536,6 +1538,7 @@ export default function App() {
         return;
       }
 
+      setUploadingCardImageId(cardId);
       const uploadedImage = await uploadCardImage(
         authToken,
         cardId,
@@ -1563,6 +1566,7 @@ export default function App() {
       }
       Alert.alert('Could not attach image', error.message || 'Try again.');
     } finally {
+      setUploadingCardImageId(null);
       setIsUpdatingCardImage(false);
     }
   }

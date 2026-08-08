@@ -695,6 +695,10 @@ export const styles = StyleSheet.create({
     height: 76,
     borderRadius: 4,
   },
+  cardImageLoading: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   treePreviewCardText: {
     color: '#F97316',
   },

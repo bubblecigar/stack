@@ -1,4 +1,5 @@
 import {
+  ActivityIndicator,
   Animated,
   Image,
   Pressable,
@@ -57,6 +58,7 @@ export function StackCard({
     id,
     index,
     done = false,
+    isImageUploading = false,
     imageUri,
     text,
   } = card;
@@ -427,6 +429,14 @@ export function StackCard({
                   />
                 </View>
               </View>
+            ) : isImageUploading ? (
+              <View
+                accessibilityLabel="Uploading card image"
+                accessibilityRole="progressbar"
+                style={[styles.leafContentLayer, styles.cardImageLoading]}
+              >
+                <ActivityIndicator color="#64748B" size="large" />
+              </View>
             ) : imageUri ? (
               <View style={styles.leafContentLayer}>
                 <Image
@@ -518,6 +528,14 @@ export function StackCard({
                   name={systemCardIconName}
                   size={30}
                 />
+              </View>
+            ) : isImageUploading ? (
+              <View
+                accessibilityLabel="Uploading card image"
+                accessibilityRole="progressbar"
+                style={[styles.treeCardImage, styles.cardImageLoading]}
+              >
+                <ActivityIndicator color="#64748B" />
               </View>
             ) : imageUri ? (
               <Image

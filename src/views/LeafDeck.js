@@ -1088,7 +1088,7 @@ export function LeafDeck({
       ) : null}
       <MathNotationPalette
         cameraDisabled={cameraDisabled}
-        disabled={!canUseMathNotationPalette}
+        disabled={!canUseMathNotationPalette || cameraDisabled}
         hasImage={Boolean(activeCard?.imagePath)}
         keys={mathKeyboardKeys}
         onCameraPress={() => onCameraPress?.(activeCard)}
