@@ -7,6 +7,10 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { styles } from '../styles/appStyles';
 
 const SYSTEM_KEY_ICONS = {
+  camera: {
+    Icon: Ionicons,
+    name: 'camera-outline',
+  },
   delete: {
     Icon: MaterialCommunityIcons,
     name: 'backspace-outline',
@@ -38,7 +42,6 @@ export function MathNotationPalette({
   textEntryDisabled = false,
 }) {
   const customKeys = Array.isArray(keys) ? keys : [];
-  const cameraSlotIndex = customKeys.length - 2;
 
   return (
     <View
@@ -52,45 +55,40 @@ export function MathNotationPalette({
         pointerEvents="box-none"
         style={styles.mathNotationGrid}
       >
-        {customKeys.map((key, keyIndex) => (
-          key?.isReserved && keyIndex === cameraSlotIndex ? (
-            <Pressable
-              accessibilityLabel={hasImage ? 'Remove card image' : 'Take card photo'}
-              accessibilityRole="button"
-              disabled={disabled || cameraDisabled}
-              key={`math-notation-camera-${keyIndex}`}
-              onTouchStart={onTouchStart}
-              onPress={onCameraPress}
-              style={({ pressed }) => [
-                styles.mathNotationGridKey,
-                styles.mathNotationCameraKey,
-                (disabled || cameraDisabled) && styles.mathNotationCameraKeyDisabled,
-                pressed && styles.mathNotationKeyPressed,
-              ]}
-            >
-              <Ionicons
-                color={hasImage ? '#DC2626' : '#64748B'}
-                name={hasImage ? 'camera' : 'camera-outline'}
-                size={18}
+        {customKeys.map((key, keyIndex) => {
+          if (key?.isEmpty) {
+            return (
+              <View
+                key={`math-notation-slot-${key.slotIndex ?? keyIndex}`}
+                pointerEvents="none"
+                style={[
+                  styles.mathNotationGridKey,
+                  styles.mathNotationGridInvisibleKey,
+                ]}
               />
-            </Pressable>
-          ) : key?.isEmpty ? (
-            <View
-              key={`math-notation-slot-${key.slotIndex ?? keyIndex}`}
-              pointerEvents="none"
-              style={[
-                styles.mathNotationGridKey,
-                styles.mathNotationGridInvisibleKey,
-              ]}
-            />
-          ) : (
+            );
+          }
+
+          const isCameraKey = key.isSystem && key.systemKeyId === 'camera';
+          const isKeyDisabled = disabled || (isCameraKey
+            ? cameraDisabled
+            : textEntryDisabled);
+
+          return (
             <Pressable
-              accessibilityLabel={`Insert ${key.label}`}
+              accessibilityLabel={isCameraKey
+                ? (hasImage ? 'Remove card image' : 'Take card photo')
+                : `Insert ${key.label}`}
               accessibilityRole="button"
-              disabled={disabled || textEntryDisabled}
+              disabled={isKeyDisabled}
               key={`math-notation-slot-${key.slotIndex ?? keyIndex}`}
               onTouchStart={onTouchStart}
               onPress={() => {
+                if (key.action === 'camera') {
+                  onCameraPress?.();
+                  return;
+                }
+
                 if (key.action === 'delete') {
                   onDeleteNotation?.();
                   return;
@@ -106,18 +104,20 @@ export function MathNotationPalette({
               style={({ pressed }) => [
                 styles.mathNotationGridKey,
                 key.isSystem && styles.mathNotationGridSystemKey,
-                textEntryDisabled && styles.mathNotationTextKeyDisabled,
+                isKeyDisabled && styles.mathNotationTextKeyDisabled,
                 pressed && styles.mathNotationKeyPressed,
               ]}
             >
               {key.isSystem ? (() => {
                 const SystemIcon = SYSTEM_KEY_ICONS[key.systemKeyId]?.Icon
                   ?? MaterialCommunityIcons;
-                const systemIconName = SYSTEM_KEY_ICONS[key.systemKeyId]?.name;
+                const systemIconName = isCameraKey && hasImage
+                  ? 'camera'
+                  : SYSTEM_KEY_ICONS[key.systemKeyId]?.name;
 
                 return (
                   <SystemIcon
-                    color="#94A3B8"
+                    color={isCameraKey && hasImage ? '#DC2626' : '#94A3B8'}
                     name={systemIconName}
                     size={16}
                   />
@@ -132,8 +132,8 @@ export function MathNotationPalette({
                 </Text>
               )}
             </Pressable>
-          )
-        ))}
+          );
+        })}
       </View>
     </View>
   );

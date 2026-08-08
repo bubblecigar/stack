@@ -4,7 +4,6 @@ export const MATH_KEYBOARD_GRID_COLUMNS = 7;
 export const MATH_KEYBOARD_GRID_ROWS = 6;
 export const MATH_KEYBOARD_GRID_SIZE = MATH_KEYBOARD_GRID_COLUMNS * MATH_KEYBOARD_GRID_ROWS;
 export const RESERVED_MATH_KEYBOARD_SLOT_INDICES = [
-  MATH_KEYBOARD_GRID_SIZE - 2,
   MATH_KEYBOARD_GRID_SIZE - 1,
 ];
 const RESERVED_MATH_KEYBOARD_SLOT_SET = new Set(RESERVED_MATH_KEYBOARD_SLOT_INDICES);
@@ -36,6 +35,13 @@ export const SYSTEM_MATH_KEY_DEFINITIONS = [
     insert: '',
     label: 'delete',
     systemKeyId: 'delete',
+  },
+  {
+    action: 'camera',
+    defaultSlotIndex: MATH_KEYBOARD_GRID_SIZE - 2,
+    insert: '',
+    label: 'camera',
+    systemKeyId: 'camera',
   },
 ];
 

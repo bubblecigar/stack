@@ -51,6 +51,10 @@ const SYSTEM_CARD_EXPLANATIONS = {
   },
 };
 const SYSTEM_MATH_KEY_ICONS = {
+  camera: {
+    Icon: Ionicons,
+    name: 'camera-outline',
+  },
   delete: {
     Icon: MaterialCommunityIcons,
     name: 'backspace-outline',

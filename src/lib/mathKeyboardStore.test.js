@@ -45,15 +45,18 @@ describe('math keyboard store', () => {
         systemKeyId: 'delete',
       }),
       expect.objectContaining({
-        isReserved: true,
+        action: 'camera',
+        isSystem: true,
+        label: 'camera',
         slotIndex: MATH_KEYBOARD_GRID_SIZE - 2,
+        systemKeyId: 'camera',
       }),
       expect.objectContaining({
         isReserved: true,
         slotIndex: MATH_KEYBOARD_GRID_SIZE - 1,
       }),
     ]);
-    expect(getActiveMathKeyboardKeys(keys)).toHaveLength(4);
+    expect(getActiveMathKeyboardKeys(keys)).toHaveLength(5);
   });
 
   it('migrates existing string keys into the first grid slots', () => {
@@ -77,8 +80,8 @@ describe('math keyboard store', () => {
       },
     ]);
     expect(keys[2].isEmpty).toBe(true);
-    expect(keys.slice(-6, -2).every((key) => key.isSystem)).toBe(true);
-    expect(keys.slice(-2).every((key) => key.isReserved)).toBe(true);
+    expect(keys.slice(-6, -1).every((key) => key.isSystem)).toBe(true);
+    expect(keys.at(-1).isReserved).toBe(true);
   });
 
   it('keeps separate label and insert values', () => {
@@ -176,6 +179,10 @@ describe('math keyboard store', () => {
       {
         slotIndex: MATH_KEYBOARD_GRID_SIZE - 3,
         systemKeyId: 'delete',
+      },
+      {
+        slotIndex: MATH_KEYBOARD_GRID_SIZE - 2,
+        systemKeyId: 'camera',
       },
     ]);
   });

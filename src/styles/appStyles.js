@@ -221,14 +221,6 @@ export const styles = StyleSheet.create({
   mathNotationGridSystemKey: {
     backgroundColor: 'transparent',
   },
-  mathNotationCameraKey: {
-    backgroundColor: '#F1F5F9',
-    borderColor: '#CBD5E1',
-    borderWidth: 1,
-  },
-  mathNotationCameraKeyDisabled: {
-    opacity: 0.32,
-  },
   mathNotationTextKeyDisabled: {
     opacity: 0.18,
   },
