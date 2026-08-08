@@ -1,5 +1,7 @@
 import { Kalam_400Regular } from '@expo-google-fonts/kalam';
 import { useFonts } from 'expo-font';
+import * as FileSystem from 'expo-file-system/legacy';
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
 import {
@@ -35,6 +37,10 @@ import {
   TREASURE_CARD_ID,
   updateAt,
 } from './stackStore';
+import {
+  CARD_IMAGE_JPEG_QUALITY,
+  getCardImageResize,
+} from './src/lib/cardImageProcessing';
 import defaultStackData from './defaultStack.json';
 import { CompletionProgressTree } from './src/components/CompletionProgressTree';
 import { FloatingControls } from './src/components/FloatingControls';
@@ -425,6 +431,20 @@ function getOppositeSwipeDirection(direction) {
   }
 
   return direction === 'down' ? 'up' : 'down';
+}
+
+async function prepareCardImageForUpload(asset) {
+  const context = ImageManipulator.manipulate(asset.uri);
+  const resize = getCardImageResize(asset.width, asset.height);
+  if (resize) {
+    context.resize(resize);
+  }
+
+  const renderedImage = await context.renderAsync();
+  return renderedImage.saveAsync({
+    compress: CARD_IMAGE_JPEG_QUALITY,
+    format: SaveFormat.JPEG,
+  });
 }
 
 export default function App() {
@@ -1545,6 +1565,7 @@ export default function App() {
       return;
     }
 
+    let processedImage = null;
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
@@ -1556,7 +1577,7 @@ export default function App() {
         allowsEditing: false,
         base64: false,
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        quality: 0.82,
+        quality: 1,
       });
       const asset = result.assets?.[0];
       if (result.canceled || !asset?.uri) {
@@ -1564,11 +1585,12 @@ export default function App() {
       }
 
       setUploadingCardImageIds((currentIds) => new Set(currentIds).add(cardId));
+      processedImage = await prepareCardImageForUpload(asset);
       const uploadedImage = await uploadCardImage(
         authToken,
         cardId,
-        asset.uri,
-        asset.mimeType || 'image/jpeg',
+        processedImage.uri,
+        'image/jpeg',
       );
       const currentIndex = getSnapshot().findIndex((card) => card.id === cardId);
       if (currentIndex < 0) {
@@ -1591,6 +1613,9 @@ export default function App() {
       }
       Alert.alert('Could not attach image', error.message || 'Try again.');
     } finally {
+      if (processedImage?.uri) {
+        await FileSystem.deleteAsync(processedImage.uri, { idempotent: true }).catch(() => {});
+      }
       finishCardImageUpdate(cardId);
     }
   }
