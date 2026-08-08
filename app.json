@@ -13,7 +13,7 @@
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
         },
-        "NSCameraUsageDescription": "Allow Papers to scan photos into cards.",
+        "NSCameraUsageDescription": "Allow Papers to take photos for image cards.",
         "NSPhotoLibraryUsageDescription": "Allow Papers to scan selected images into cards.",
         "ITSAppUsesNonExemptEncryption": false
       }

@@ -57,6 +57,7 @@ export function StackCard({
     id,
     index,
     done = false,
+    imageUri,
     text,
   } = card;
 
@@ -77,7 +78,7 @@ export function StackCard({
         : focusedCardIndex === index)
   );
   const shouldShowControls = !hideControls && isFocusedCard;
-  const shouldShowEdit = isFocusedCard && !isSystem;
+  const shouldShowEdit = isFocusedCard && !isSystem && !imageUri;
   const shouldShowAdoptMission = (
     shouldShowControls
     && isTreeCard
@@ -426,6 +427,15 @@ export function StackCard({
                   />
                 </View>
               </View>
+            ) : imageUri ? (
+              <View style={styles.leafContentLayer}>
+                <Image
+                  accessibilityLabel="Card image"
+                  resizeMode="contain"
+                  source={{ uri: imageUri }}
+                  style={styles.leafCardImage}
+                />
+              </View>
             ) : leafContentMode === 'placeholder' ? (
               <View
                 pointerEvents="none"
@@ -509,6 +519,13 @@ export function StackCard({
                   size={30}
                 />
               </View>
+            ) : imageUri ? (
+              <Image
+                accessibilityLabel="Card image"
+                resizeMode="cover"
+                source={{ uri: imageUri }}
+                style={styles.treeCardImage}
+              />
             ) : (
               <Text style={[
                 styles.cardText,

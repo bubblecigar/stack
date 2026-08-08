@@ -265,6 +265,13 @@ function normalizeIncomingCard(rawCard, nextGeneratedId) {
   const scanStatus = ['pending', 'completed', 'failed'].includes(rawCard?.scanStatus)
     ? rawCard.scanStatus
     : null;
+  const imagePath = typeof rawCard?.imagePath === 'string'
+    && rawCard.imagePath.startsWith('/api/card-images/')
+    ? rawCard.imagePath
+    : '';
+  const imageMimeType = ['image/jpeg', 'image/png', 'image/webp'].includes(rawCard?.imageMimeType)
+    ? rawCard.imageMimeType
+    : null;
 
   function normalizeLinkedId(id) {
     if (typeof id === 'string') {
@@ -321,6 +328,10 @@ function normalizeIncomingCard(rawCard, nextGeneratedId) {
     childIds,
     done: isSystem ? false : Boolean(rawCard?.done),
     id,
+    ...(!isSystem && imagePath ? {
+      imageMimeType: imageMimeType || 'image/jpeg',
+      imagePath,
+    } : {}),
     ...(rawLastAdoptedAt != null && Number.isFinite(lastAdoptedAt)
       ? { lastAdoptedAt }
       : {}),
@@ -336,7 +347,7 @@ function normalizeIncomingCard(rawCard, nextGeneratedId) {
       parentIds: [],
       systemType,
     } : {}),
-    text: String(text),
+    text: !isSystem && imagePath ? '' : String(text),
   };
 }
 
@@ -448,6 +459,55 @@ export function updateAt(index, value) {
     itemIndex === index ? { ...card, text: nextValue } : card
   ));
   emitChange();
+}
+
+export function setCardImageAt(index, imagePath, imageMimeType = 'image/jpeg') {
+  const normalizedImagePath = String(imagePath || '');
+  if (
+    index < 0
+    || index >= stack.length
+    || isSystemCard(stack[index])
+    || !normalizedImagePath.startsWith('/api/card-images/')
+  ) {
+    return false;
+  }
+
+  stack = stack.map((card, itemIndex) => (
+    itemIndex === index
+      ? {
+        ...card,
+        imageMimeType,
+        imagePath: normalizedImagePath,
+        text: '',
+      }
+      : card
+  ));
+  emitChange();
+  return true;
+}
+
+export function clearCardImageAt(index) {
+  if (index < 0 || index >= stack.length || !stack[index]?.imagePath) {
+    return false;
+  }
+
+  stack = stack.map((card, itemIndex) => {
+    if (itemIndex !== index) {
+      return card;
+    }
+
+    const {
+      imageMimeType: _unusedImageMimeType,
+      imagePath: _unusedImagePath,
+      ...textCard
+    } = card;
+    return {
+      ...textCard,
+      text: '',
+    };
+  });
+  emitChange();
+  return true;
 }
 
 export function setScanStateAt(index, requestId, status) {

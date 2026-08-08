@@ -158,6 +158,49 @@ export function saveRemoteUserData(token, key, value) {
   });
 }
 
+export function resolveApiAssetUrl(path) {
+  if (!path || typeof path !== 'string') {
+    return null;
+  }
+
+  if (/^https?:\/\//i.test(path)) {
+    return path;
+  }
+
+  return `${API_BASE_URL.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
+}
+
+export async function uploadCardImage(token, cardId, fileUri, mimeType) {
+  const url = `${API_BASE_URL}/api/card-images/${encodeURIComponent(cardId)}`;
+  logApiConfig();
+
+  const response = await FileSystem.uploadAsync(url, fileUri, {
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+      'Content-Type': mimeType,
+    },
+    httpMethod: 'PUT',
+    uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+  });
+  const body = JSON.parse(response.body || '{}');
+
+  if (response.status < 200 || response.status >= 300) {
+    const error = new Error(body.error || 'Image upload failed.');
+    error.status = response.status;
+    throw error;
+  }
+
+  return body;
+}
+
+export function deleteCardImage(token, cardId) {
+  return requestJson(`${API_BASE_URL}/api/card-images/${encodeURIComponent(cardId)}`, {
+    method: 'DELETE',
+    headers: authHeaders(token),
+  });
+}
+
 export function scanImageToCards(token, image) {
   return requestJson(`${API_BASE_URL}/api/scan-cards`, {
     method: 'POST',

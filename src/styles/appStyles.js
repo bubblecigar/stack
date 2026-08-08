@@ -221,6 +221,17 @@ export const styles = StyleSheet.create({
   mathNotationGridSystemKey: {
     backgroundColor: 'transparent',
   },
+  mathNotationCameraKey: {
+    backgroundColor: '#F1F5F9',
+    borderColor: '#CBD5E1',
+    borderWidth: 1,
+  },
+  mathNotationCameraKeyDisabled: {
+    opacity: 0.32,
+  },
+  mathNotationTextKeyDisabled: {
+    opacity: 0.18,
+  },
   mathNotationKeyPressed: {
     opacity: 0.58,
   },
@@ -687,6 +698,11 @@ export const styles = StyleSheet.create({
     lineHeight: 22,
     textAlign: 'left',
   },
+  treeCardImage: {
+    width: '100%',
+    height: 76,
+    borderRadius: 4,
+  },
   treePreviewCardText: {
     color: '#F97316',
   },
@@ -728,6 +744,10 @@ export const styles = StyleSheet.create({
     bottom: 0,
     alignItems: 'stretch',
     justifyContent: 'flex-start',
+  },
+  leafCardImage: {
+    width: '100%',
+    height: '100%',
   },
   leafPlaceholder: {
     width: '100%',

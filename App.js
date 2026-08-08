@@ -17,6 +17,7 @@ import {
 import {
   adoptMissionRoot,
   archiveRootTree,
+  clearCardImageAt,
   ensureSystemCards,
   getSnapshot,
   insertRelativeTo,
@@ -27,6 +28,7 @@ import {
   removeAt,
   removeDoneCascadeAt,
   restoreRootTree,
+  setCardImageAt,
   setScanStateAt,
   setDoneAt,
   subscribe,
@@ -42,14 +44,17 @@ import { NodeStructureView } from './src/views/NodeStructureView';
 import { TreeCanvas } from './src/views/TreeCanvas';
 import {
   createScanJob,
+  deleteCardImage,
   failScanJobImageUpload,
   getMe,
   loadRemoteCards,
   loadScanJob,
   loadRemoteUserData,
+  resolveApiAssetUrl,
   saveRemoteCards,
   saveRemoteUserData,
   uploadScanJobImage,
+  uploadCardImage,
 } from './src/lib/apiClient';
 import { clearStoredAuthToken, getStoredAuthToken, setStoredAuthToken } from './src/lib/authTokenStore';
 import {
@@ -446,6 +451,7 @@ export default function App() {
   const [addPreviewRelation, setAddPreviewRelation] = useState(null);
   const [isAddHoldActive, setIsAddHoldActive] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+  const [isUpdatingCardImage, setIsUpdatingCardImage] = useState(false);
   const [settingsPanelCloseRequest, setSettingsPanelCloseRequest] = useState(0);
   const [mathKeyboardKeys, setMathKeyboardKeys] = useState(() => normalizeMathKeyboardKeys([]));
   const [currentDayReference, setCurrentDayReference] = useState(() => Date.now());
@@ -455,7 +461,11 @@ export default function App() {
   );
 
   const stack = useSyncExternalStore(subscribe, getSnapshot);
-  const cards = useMemo(() => stack.map((card, index) => ({ ...card, index })), [stack]);
+  const cards = useMemo(() => stack.map((card, index) => ({
+    ...card,
+    imageUri: resolveApiAssetUrl(card.imagePath),
+    index,
+  })), [stack]);
   const hiddenSystemCardIds = useMemo(
     () => getHiddenSystemCardIds(cards, [MISSION_CARD_ID]),
     [cards],
@@ -1479,6 +1489,108 @@ export default function App() {
     persistMathKeyboardKeys(moveMathKeyboardKey(mathKeyboardKeys, sourceIndex, targetIndex));
   }
 
+  async function removeImageFromCard(cardId) {
+    if (!authToken || isUpdatingCardImage) {
+      return;
+    }
+
+    setIsUpdatingCardImage(true);
+    try {
+      await deleteCardImage(authToken, cardId);
+      const currentIndex = getSnapshot().findIndex((card) => card.id === cardId);
+      if (currentIndex >= 0 && clearCardImageAt(currentIndex)) {
+        await saveRemoteCards(authToken, getSnapshot());
+      }
+    } catch (error) {
+      if (error.status === 401) {
+        handleAuthExpired();
+        return;
+      }
+      Alert.alert('Could not remove image', error.message || 'Try again.');
+    } finally {
+      setIsUpdatingCardImage(false);
+    }
+  }
+
+  async function takePhotoForCard(cardId) {
+    if (!authToken || isUpdatingCardImage) {
+      return;
+    }
+
+    setIsUpdatingCardImage(true);
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Camera access needed', 'Allow Papers to take a photo for this card.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: false,
+        base64: false,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.82,
+      });
+      const asset = result.assets?.[0];
+      if (result.canceled || !asset?.uri) {
+        return;
+      }
+
+      const uploadedImage = await uploadCardImage(
+        authToken,
+        cardId,
+        asset.uri,
+        asset.mimeType || 'image/jpeg',
+      );
+      const currentIndex = getSnapshot().findIndex((card) => card.id === cardId);
+      if (currentIndex < 0) {
+        return;
+      }
+
+      setEditingIndex(null);
+      setEditingValue('');
+      setEditingSelection(null);
+      setCardImageAt(
+        currentIndex,
+        uploadedImage.imagePath,
+        uploadedImage.imageMimeType,
+      );
+      await saveRemoteCards(authToken, getSnapshot());
+    } catch (error) {
+      if (error.status === 401) {
+        handleAuthExpired();
+        return;
+      }
+      Alert.alert('Could not attach image', error.message || 'Try again.');
+    } finally {
+      setIsUpdatingCardImage(false);
+    }
+  }
+
+  function handleCardCameraPress(card) {
+    if (!card || isSystemCard(card) || isUpdatingCardImage) {
+      return;
+    }
+
+    if (card.imagePath) {
+      Alert.alert(
+        'Remove attached image?',
+        'The card will become an empty text card.',
+        [
+          { style: 'cancel', text: 'Cancel' },
+          {
+            onPress: () => removeImageFromCard(card.id),
+            style: 'destructive',
+            text: 'Remove',
+          },
+        ],
+      );
+      return;
+    }
+
+    takePhotoForCard(card.id);
+  }
+
   function focusScanRoot(index) {
     const card = getSnapshot()[index];
     setFocusedCardIndex(index);
@@ -1640,7 +1752,7 @@ export default function App() {
     }
 
     const targetCard = cards[targetIndex];
-    if (!targetCard || isSystemCard(targetCard)) {
+    if (!targetCard || isSystemCard(targetCard) || targetCard.imagePath) {
       return null;
     }
 
@@ -1897,6 +2009,7 @@ export default function App() {
             onEditingValueChange={setEditingValue}
             onEditingSelectionChange={setEditingSelection}
             onCompleteEdit={handleCompleteEdit}
+            onCameraPress={handleCardCameraPress}
             onDeleteMathNotation={handleDeleteMathNotation}
             onInsertMathNotation={handleInsertMathNotation}
             onOpenSystemKeyboard={handleOpenSystemKeyboard}
@@ -1907,6 +2020,7 @@ export default function App() {
             onDeleteCurrentCard={handleDeleteCurrentLeafCard}
             onDoneCurrentCard={handleDoneCurrentLeafCard}
             swipeDisabled={editingIndex !== null}
+            cameraDisabled={isUpdatingCardImage}
           />
         ) : (
           <TreeCanvas

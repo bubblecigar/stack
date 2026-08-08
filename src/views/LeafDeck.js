@@ -205,6 +205,7 @@ export function LeafDeck({
   onEditingValueChange,
   onEditingSelectionChange,
   onCompleteEdit,
+  onCameraPress,
   onDeleteMathNotation,
   onInsertMathNotation,
   onOpenSystemKeyboard,
@@ -216,6 +217,7 @@ export function LeafDeck({
   onDeleteCurrentCard,
   onDoneCurrentCard,
   swipeDisabled,
+  cameraDisabled = false,
 }) {
   const dragX = useRef(new Animated.Value(0)).current;
   const dragY = useRef(new Animated.Value(0)).current;
@@ -1084,11 +1086,15 @@ export function LeafDeck({
         </>
       ) : null}
       <MathNotationPalette
+        cameraDisabled={cameraDisabled}
         disabled={!canUseMathNotationPalette}
+        hasImage={Boolean(activeCard?.imagePath)}
         keys={mathKeyboardKeys}
+        onCameraPress={() => onCameraPress?.(activeCard)}
         onDeleteNotation={onDeleteMathNotation}
         onInsertNotation={onInsertMathNotation}
         onOpenSystemKeyboard={onOpenSystemKeyboard}
+        textEntryDisabled={Boolean(activeCard?.imagePath)}
         onTouchStart={() => {
           inputTouchRef.current = true;
         }}
