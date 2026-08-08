@@ -41,6 +41,7 @@ import {
   CARD_IMAGE_JPEG_QUALITY,
   getCardImageResize,
 } from './src/lib/cardImageProcessing';
+import { prefetchCardImages } from './src/lib/cardImageCache';
 import defaultStackData from './defaultStack.json';
 import { CompletionProgressTree } from './src/components/CompletionProgressTree';
 import { FloatingControls } from './src/components/FloatingControls';
@@ -490,6 +491,9 @@ export default function App() {
     imageUri: resolveApiAssetUrl(card.imagePath),
     index,
   })), [stack, updatingCardImageIds, uploadingCardImageIds]);
+  useEffect(() => {
+    prefetchCardImages(cards);
+  }, [cards]);
   const hiddenSystemCardIds = useMemo(
     () => getHiddenSystemCardIds(cards, [MISSION_CARD_ID]),
     [cards],

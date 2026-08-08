@@ -10,8 +10,10 @@ import {
 } from 'react-native';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Image as CachedImage } from 'expo-image';
 import { useEffect, useRef } from 'react';
 import { DeleteHoldIndicator } from './DeleteHoldIndicator';
+import { getCardImageSource } from '../lib/cardImageCache';
 import { styles } from '../styles/appStyles';
 
 const doneStampImage = require('../../assets/card/done_stamp_gray.png');
@@ -439,10 +441,13 @@ export function StackCard({
               </View>
             ) : imageUri ? (
               <View style={styles.leafContentLayer}>
-                <Image
+                <CachedImage
                   accessibilityLabel="Card image"
-                  resizeMode="contain"
-                  source={{ uri: imageUri }}
+                  cachePolicy="memory-disk"
+                  contentFit="contain"
+                  priority={isLeafTopCard ? 'high' : 'normal'}
+                  recyclingKey={imageUri}
+                  source={getCardImageSource(imageUri)}
                   style={styles.leafCardImage}
                 />
               </View>
@@ -538,10 +543,12 @@ export function StackCard({
                 <ActivityIndicator color="#64748B" />
               </View>
             ) : imageUri ? (
-              <Image
+              <CachedImage
                 accessibilityLabel="Card image"
-                resizeMode="cover"
-                source={{ uri: imageUri }}
+                cachePolicy="memory-disk"
+                contentFit="cover"
+                recyclingKey={imageUri}
+                source={getCardImageSource(imageUri)}
                 style={styles.treeCardImage}
               />
             ) : (
