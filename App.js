@@ -41,13 +41,11 @@ import { LeafDeck } from './src/views/LeafDeck';
 import { NodeStructureView } from './src/views/NodeStructureView';
 import { TreeCanvas } from './src/views/TreeCanvas';
 import {
-  acknowledgeScanJob,
   createScanJob,
   failScanJobImageUpload,
   getMe,
   loadRemoteCards,
   loadScanJob,
-  loadScanJobs,
   loadRemoteUserData,
   saveRemoteCards,
   saveRemoteUserData,
@@ -92,11 +90,7 @@ import {
   updatePendingScanPlaceholder,
 } from './src/lib/scanPlaceholder';
 import { SCAN_CARDS_PROMPT } from './src/lib/scanPrompt';
-import {
-  createScanRequestId,
-  findScanJobPlaceholderIndex,
-  isScanJobApplied,
-} from './src/lib/scanJobs';
+import { createScanRequestId } from './src/lib/scanJobs';
 import { styles } from './src/styles/appStyles';
 
 const LEAF_VISIBLE_COUNT = 5;
@@ -590,8 +584,6 @@ export default function App() {
     index: null,
     timestamp: 0,
   });
-  const isPollingScanJobs = useRef(false);
-
   useEffect(() => {
     if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
       UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -949,93 +941,6 @@ export default function App() {
     return () => clearTimeout(timeoutId);
   }, [authToken, stack]);
 
-  useEffect(() => {
-    if (!authToken || !hasLoadedUserData || !hasLoadedRemoteCards.current) {
-      return undefined;
-    }
-
-    let isActive = true;
-
-    async function applyFinishedJob(job) {
-      const placeholderIndex = findScanJobPlaceholderIndex(getSnapshot(), job);
-      if (placeholderIndex === -1) {
-        await acknowledgeScanJob(authToken, job.id);
-        return;
-      }
-
-      const placeholder = getSnapshot()[placeholderIndex];
-      if (job.status === 'completed') {
-        if (!isScanJobApplied(placeholder, job)) {
-          const scannedNodes = Array.isArray(job.result?.nodes) ? job.result.nodes : [];
-          if (scannedNodes.length === 0) {
-            updateScanPlaceholderTextIfPending(
-              placeholder.id,
-              `${job.result?.title || 'Scan result'}\nNo readable cards found.`,
-            );
-          } else {
-            appendScannedTreeToPlaceholder(placeholder.id, {
-              title: job.result?.title,
-              nodes: scannedNodes,
-            });
-          }
-
-          const currentIndex = findScanJobPlaceholderIndex(getSnapshot(), job);
-          if (currentIndex !== -1) {
-            setScanStateAt(currentIndex, job.clientRequestId, 'completed');
-          }
-        }
-      } else if (job.status === 'failed') {
-        updateScanPlaceholderTextIfPending(
-          placeholder.id,
-          `Scan result\nScan failed: ${job.error || 'Could not scan the selected image.'}`,
-        );
-        const currentIndex = findScanJobPlaceholderIndex(getSnapshot(), job);
-        if (currentIndex !== -1) {
-          setScanStateAt(currentIndex, job.clientRequestId, 'failed');
-        }
-      } else {
-        return;
-      }
-
-      await saveRemoteCards(authToken, getSnapshot());
-      await acknowledgeScanJob(authToken, job.id);
-    }
-
-    async function pollScanJobs() {
-      if (!isActive || isPollingScanJobs.current) {
-        return;
-      }
-
-      isPollingScanJobs.current = true;
-      try {
-        const result = await loadScanJobs(authToken);
-        const jobs = Array.isArray(result.jobs) ? result.jobs : [];
-        for (const job of jobs) {
-          if (!isActive) {
-            break;
-          }
-          await applyFinishedJob(job);
-        }
-      } catch (error) {
-        if (error.status === 401 && isActive) {
-          handleAuthExpired();
-        } else if (isActive) {
-          setSyncError(error.message || 'Could not refresh scan results.');
-        }
-      } finally {
-        isPollingScanJobs.current = false;
-      }
-    }
-
-    pollScanJobs();
-    const intervalId = setInterval(pollScanJobs, 2_500);
-
-    return () => {
-      isActive = false;
-      clearInterval(intervalId);
-    };
-  }, [authToken, hasLoadedUserData]);
-
   function handleCreateCard(relation = 'child') {
     setAddPreviewRelation(null);
 
@@ -1295,8 +1200,15 @@ export default function App() {
   }
 
   function handleToggleAllTreeCards() {
-    const collapsibleIds = systemTreeCards
-      .filter((card) => Array.isArray(card.childIds) && card.childIds.length > 0)
+    const collapsibleCards = systemTreeCards
+      .filter((card) => Array.isArray(card.childIds) && card.childIds.length > 0);
+    const collapsibleIds = collapsibleCards.map((card) => card.id);
+    const expandableIds = collapsibleCards
+      .filter((card) => (
+        card.id !== TREASURE_CARD_ID
+        && !card.isTreasureCard
+        && !card.isArchivedRoot
+      ))
       .map((card) => card.id);
 
     if (collapsibleIds.length === 0) {
@@ -1310,13 +1222,19 @@ export default function App() {
       const shouldExpandAll = collapsibleIds.every((cardId) => currentCollapsed.has(cardId));
       const nextCollapsed = new Set(currentCollapsed);
 
-      collapsibleIds.forEach((cardId) => {
-        if (shouldExpandAll) {
+      if (shouldExpandAll) {
+        expandableIds.forEach((cardId) => {
           nextCollapsed.delete(cardId);
-        } else {
+        });
+      } else {
+        collapsibleIds.forEach((cardId) => {
           nextCollapsed.add(cardId);
-        }
-      });
+        });
+      }
+
+      if (shouldExpandAll && expandableIds.length === 0) {
+        return currentCollapsed;
+      }
 
       return nextCollapsed;
     });
