@@ -510,11 +510,22 @@ export function StackCard({
               </View>
             ) : null}
             {canShowDoneStamp ? (
-              <Image
-                pointerEvents="none"
-                source={doneStampImage}
-                style={styles.leafDoneStampOverlay}
-              />
+              <>
+                {imageUri ? (
+                  <View
+                    pointerEvents="none"
+                    style={styles.leafImageDoneStampBackground}
+                  />
+                ) : null}
+                <Image
+                  pointerEvents="none"
+                  source={doneStampImage}
+                  style={[
+                    styles.leafDoneStampOverlay,
+                    imageUri && styles.imageDoneStampArtwork,
+                  ]}
+                />
+              </>
             ) : null}
           </View>
         ) : (
@@ -569,11 +580,22 @@ export function StackCard({
               </Text>
             )}
             {done ? (
-              <Image
-                pointerEvents="none"
-                source={doneStampImage}
-                style={styles.treeDoneStampOverlay}
-              />
+              <>
+                {imageUri ? (
+                  <View
+                    pointerEvents="none"
+                    style={styles.treeImageDoneStampBackground}
+                  />
+                ) : null}
+                <Image
+                  pointerEvents="none"
+                  source={doneStampImage}
+                  style={[
+                    styles.treeDoneStampOverlay,
+                    imageUri && styles.imageDoneStampArtwork,
+                  ]}
+                />
+              </>
             ) : null}
           </Animated.View>
         )
