@@ -72,7 +72,7 @@ import {
   playTrashSound,
   setSoundEffectsEnabled,
 } from './src/lib/soundEffects';
-import { getStoredUiState, normalizeUiState, setStoredUiState } from './src/lib/uiStateStore';
+import { getStoredUiState, setStoredUiState } from './src/lib/uiStateStore';
 import { ensureDailyReminderScheduled } from './src/lib/dailyReminder';
 import {
   moveMathKeyboardKey,
@@ -95,7 +95,6 @@ import { styles } from './src/styles/appStyles';
 
 const LEAF_VISIBLE_COUNT = 5;
 const TREE_COMPLETION_CANVAS_KEY = 'treeCompletionCanvas';
-const UI_STATE_KEY = 'uiState';
 const DAY_START_OFFSET_MS = ((4 * 60) + 30) * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const EMPTY_TREE_COMPLETION_CANVAS = {
@@ -825,13 +824,11 @@ export default function App() {
           cardsResult,
           todayCanvasResult,
           previousDayCanvasResult,
-          uiStateResult,
           localUiState,
         ] = await Promise.all([
           loadRemoteCards(authToken),
           loadRemoteUserData(authToken, currentTreeCompletionCanvasKey),
           loadRemoteUserData(authToken, previousTreeCompletionCanvasKey),
-          loadRemoteUserData(authToken, UI_STATE_KEY),
           getStoredUiState(userId),
         ]);
 
@@ -840,8 +837,7 @@ export default function App() {
         }
 
         const nextCards = Array.isArray(cardsResult.cards) ? cardsResult.cards : [];
-        const remoteUiState = normalizeUiState(uiStateResult.value);
-        const restoredUiState = remoteUiState || localUiState;
+        const restoredUiState = localUiState;
 
         isApplyingRemoteCards.current = true;
         loadCards(nextCards);
@@ -878,14 +874,6 @@ export default function App() {
             authToken,
             currentTreeCompletionCanvasKey,
             EMPTY_TREE_COMPLETION_CANVAS,
-          ).catch(() => {});
-        }
-
-        if (!remoteUiState && restoredUiState) {
-          saveRemoteUserData(
-            authToken,
-            UI_STATE_KEY,
-            restoredUiState,
           ).catch(() => {});
         }
       } catch (error) {
@@ -1453,7 +1441,7 @@ export default function App() {
       return undefined;
     }
 
-    const timeoutId = setTimeout(async () => {
+    const timeoutId = setTimeout(() => {
       const nextUiState = {
         archivedRootIds: [],
         focusedCardId,
@@ -1462,26 +1450,10 @@ export default function App() {
       };
 
       setStoredUiState(userId, nextUiState).catch(() => {});
-
-      if (!authToken) {
-        return;
-      }
-
-      try {
-        await saveRemoteUserData(authToken, UI_STATE_KEY, nextUiState);
-      } catch (error) {
-        if (error.status === 401) {
-          handleAuthExpired();
-          return;
-        }
-
-        setSyncError(error.message || 'Could not save user data.');
-      }
     }, 250);
 
     return () => clearTimeout(timeoutId);
   }, [
-    authToken,
     authUser?.id,
     focusedCardId,
     layoutMode,
