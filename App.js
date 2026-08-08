@@ -1,5 +1,7 @@
 import { Kalam_400Regular } from '@expo-google-fonts/kalam';
 import { useFonts } from 'expo-font';
+import * as FileSystem from 'expo-file-system/legacy';
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
 import {
@@ -17,6 +19,7 @@ import {
 import {
   adoptMissionRoot,
   archiveRootTree,
+  clearCardImageAt,
   ensureSystemCards,
   getSnapshot,
   insertRelativeTo,
@@ -27,12 +30,18 @@ import {
   removeAt,
   removeDoneCascadeAt,
   restoreRootTree,
+  setCardImageAt,
   setScanStateAt,
   setDoneAt,
   subscribe,
   TREASURE_CARD_ID,
   updateAt,
 } from './stackStore';
+import {
+  CARD_IMAGE_JPEG_QUALITY,
+  getCardImageResize,
+} from './src/lib/cardImageProcessing';
+import { prefetchCardImages } from './src/lib/cardImageCache';
 import defaultStackData from './defaultStack.json';
 import { CompletionProgressTree } from './src/components/CompletionProgressTree';
 import { FloatingControls } from './src/components/FloatingControls';
@@ -42,14 +51,17 @@ import { NodeStructureView } from './src/views/NodeStructureView';
 import { TreeCanvas } from './src/views/TreeCanvas';
 import {
   createScanJob,
+  deleteCardImage,
   failScanJobImageUpload,
   getMe,
   loadRemoteCards,
   loadScanJob,
   loadRemoteUserData,
+  resolveApiAssetUrl,
   saveRemoteCards,
   saveRemoteUserData,
   uploadScanJobImage,
+  uploadCardImage,
 } from './src/lib/apiClient';
 import { clearStoredAuthToken, getStoredAuthToken, setStoredAuthToken } from './src/lib/authTokenStore';
 import {
@@ -422,6 +434,20 @@ function getOppositeSwipeDirection(direction) {
   return direction === 'down' ? 'up' : 'down';
 }
 
+async function prepareCardImageForUpload(asset) {
+  const context = ImageManipulator.manipulate(asset.uri);
+  const resize = getCardImageResize(asset.width, asset.height);
+  if (resize) {
+    context.resize(resize);
+  }
+
+  const renderedImage = await context.renderAsync();
+  return renderedImage.saveAsync({
+    compress: CARD_IMAGE_JPEG_QUALITY,
+    format: SaveFormat.JPEG,
+  });
+}
+
 export default function App() {
   const [fontsLoaded] = useFonts({
     Kalam_400Regular,
@@ -446,6 +472,9 @@ export default function App() {
   const [addPreviewRelation, setAddPreviewRelation] = useState(null);
   const [isAddHoldActive, setIsAddHoldActive] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+  const [updatingCardImageIds, setUpdatingCardImageIds] = useState(() => new Set());
+  const [uploadingCardImageIds, setUploadingCardImageIds] = useState(() => new Set());
+  const updatingCardImageIdsRef = useRef(new Set());
   const [settingsPanelCloseRequest, setSettingsPanelCloseRequest] = useState(0);
   const [mathKeyboardKeys, setMathKeyboardKeys] = useState(() => normalizeMathKeyboardKeys([]));
   const [currentDayReference, setCurrentDayReference] = useState(() => Date.now());
@@ -455,7 +484,16 @@ export default function App() {
   );
 
   const stack = useSyncExternalStore(subscribe, getSnapshot);
-  const cards = useMemo(() => stack.map((card, index) => ({ ...card, index })), [stack]);
+  const cards = useMemo(() => stack.map((card, index) => ({
+    ...card,
+    isImageUpdating: updatingCardImageIds.has(card.id),
+    isImageUploading: uploadingCardImageIds.has(card.id),
+    imageUri: resolveApiAssetUrl(card.imagePath),
+    index,
+  })), [stack, updatingCardImageIds, uploadingCardImageIds]);
+  useEffect(() => {
+    prefetchCardImages(cards);
+  }, [cards]);
   const hiddenSystemCardIds = useMemo(
     () => getHiddenSystemCardIds(cards, [MISSION_CARD_ID]),
     [cards],
@@ -983,7 +1021,8 @@ export default function App() {
   }
 
   function handleEditCard(index, text) {
-    if (isSystemCard(cards[index])) {
+    const card = cards[index];
+    if (!card || isSystemCard(card) || card.imagePath || card.isImageUploading) {
       return;
     }
 
@@ -1479,6 +1518,143 @@ export default function App() {
     persistMathKeyboardKeys(moveMathKeyboardKey(mathKeyboardKeys, sourceIndex, targetIndex));
   }
 
+  function beginCardImageUpdate(cardId) {
+    if (updatingCardImageIdsRef.current.has(cardId)) {
+      return false;
+    }
+
+    const nextIds = new Set(updatingCardImageIdsRef.current);
+    nextIds.add(cardId);
+    updatingCardImageIdsRef.current = nextIds;
+    setUpdatingCardImageIds(nextIds);
+    return true;
+  }
+
+  function finishCardImageUpdate(cardId) {
+    const nextIds = new Set(updatingCardImageIdsRef.current);
+    nextIds.delete(cardId);
+    updatingCardImageIdsRef.current = nextIds;
+    setUpdatingCardImageIds(nextIds);
+    setUploadingCardImageIds((currentIds) => {
+      const nextUploadingIds = new Set(currentIds);
+      nextUploadingIds.delete(cardId);
+      return nextUploadingIds;
+    });
+  }
+
+  async function removeImageFromCard(cardId) {
+    if (!authToken || !beginCardImageUpdate(cardId)) {
+      return;
+    }
+
+    try {
+      await deleteCardImage(authToken, cardId);
+      const currentIndex = getSnapshot().findIndex((card) => card.id === cardId);
+      if (currentIndex >= 0 && clearCardImageAt(currentIndex)) {
+        await saveRemoteCards(authToken, getSnapshot());
+      }
+    } catch (error) {
+      if (error.status === 401) {
+        handleAuthExpired();
+        return;
+      }
+      Alert.alert('Could not remove image', error.message || 'Try again.');
+    } finally {
+      finishCardImageUpdate(cardId);
+    }
+  }
+
+  async function takePhotoForCard(cardId) {
+    if (!authToken || !beginCardImageUpdate(cardId)) {
+      return;
+    }
+
+    let processedImage = null;
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Camera access needed', 'Allow Papers to take a photo for this card.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: false,
+        base64: false,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 1,
+      });
+      const asset = result.assets?.[0];
+      if (result.canceled || !asset?.uri) {
+        return;
+      }
+
+      setUploadingCardImageIds((currentIds) => new Set(currentIds).add(cardId));
+      processedImage = await prepareCardImageForUpload(asset);
+      const uploadedImage = await uploadCardImage(
+        authToken,
+        cardId,
+        processedImage.uri,
+        'image/jpeg',
+      );
+      const currentIndex = getSnapshot().findIndex((card) => card.id === cardId);
+      if (currentIndex < 0) {
+        return;
+      }
+
+      setEditingIndex(null);
+      setEditingValue('');
+      setEditingSelection(null);
+      setCardImageAt(
+        currentIndex,
+        uploadedImage.imagePath,
+        uploadedImage.imageMimeType,
+      );
+      await saveRemoteCards(authToken, getSnapshot());
+    } catch (error) {
+      if (error.status === 401) {
+        handleAuthExpired();
+        return;
+      }
+      Alert.alert('Could not attach image', error.message || 'Try again.');
+    } finally {
+      if (processedImage?.uri) {
+        await FileSystem.deleteAsync(processedImage.uri, { idempotent: true }).catch(() => {});
+      }
+      finishCardImageUpdate(cardId);
+    }
+  }
+
+  function handleCardCameraPress(card) {
+    if (!card || isSystemCard(card) || updatingCardImageIdsRef.current.has(card.id)) {
+      return;
+    }
+
+    takePhotoForCard(card.id);
+  }
+
+  function handleCardImageDelete(card) {
+    if (
+      !card?.imagePath
+      || isSystemCard(card)
+      || updatingCardImageIdsRef.current.has(card.id)
+    ) {
+      return;
+    }
+
+    Alert.alert(
+      'Remove attached image?',
+      'The image will be removed and the card will become an empty text card.',
+      [
+        { style: 'cancel', text: 'Cancel' },
+        {
+          onPress: () => removeImageFromCard(card.id),
+          style: 'destructive',
+          text: 'Remove',
+        },
+      ],
+    );
+  }
+
   function focusScanRoot(index) {
     const card = getSnapshot()[index];
     setFocusedCardIndex(index);
@@ -1640,7 +1816,7 @@ export default function App() {
     }
 
     const targetCard = cards[targetIndex];
-    if (!targetCard || isSystemCard(targetCard)) {
+    if (!targetCard || isSystemCard(targetCard) || targetCard.imagePath) {
       return null;
     }
 
@@ -1897,6 +2073,8 @@ export default function App() {
             onEditingValueChange={setEditingValue}
             onEditingSelectionChange={setEditingSelection}
             onCompleteEdit={handleCompleteEdit}
+            onCameraPress={handleCardCameraPress}
+            onDeleteImage={handleCardImageDelete}
             onDeleteMathNotation={handleDeleteMathNotation}
             onInsertMathNotation={handleInsertMathNotation}
             onOpenSystemKeyboard={handleOpenSystemKeyboard}

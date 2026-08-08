@@ -1,4 +1,5 @@
 import {
+  ActivityIndicator,
   Animated,
   Image,
   Pressable,
@@ -9,8 +10,10 @@ import {
 } from 'react-native';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Image as CachedImage } from 'expo-image';
 import { useEffect, useRef } from 'react';
 import { DeleteHoldIndicator } from './DeleteHoldIndicator';
+import { getCardImageSource } from '../lib/cardImageCache';
 import { styles } from '../styles/appStyles';
 
 const doneStampImage = require('../../assets/card/done_stamp_gray.png');
@@ -57,6 +60,8 @@ export function StackCard({
     id,
     index,
     done = false,
+    isImageUploading = false,
+    imageUri,
     text,
   } = card;
 
@@ -77,7 +82,7 @@ export function StackCard({
         : focusedCardIndex === index)
   );
   const shouldShowControls = !hideControls && isFocusedCard;
-  const shouldShowEdit = isFocusedCard && !isSystem;
+  const shouldShowEdit = isFocusedCard && !isSystem && !imageUri;
   const shouldShowAdoptMission = (
     shouldShowControls
     && isTreeCard
@@ -236,6 +241,7 @@ export function StackCard({
       style={[
         styles.card,
         isLeafCard && styles.leafCard,
+        isLeafCard && imageUri && styles.leafImageCard,
         isTreeCard && styles.treeCard,
         isTreeCard && isSystem && styles.treasureCard,
         isLeafCard && isSystem && styles.leafTreasureCard,
@@ -395,7 +401,11 @@ export function StackCard({
         )
       ) : (
         isLeafCard ? (
-          <View style={styles.leafContentSurface}>
+          <View style={[
+            styles.leafContentSurface,
+            imageUri && styles.leafImageContentSurface,
+          ]}
+          >
             {isSystem ? (
               <View style={[
                 styles.leafContentLayer,
@@ -425,6 +435,26 @@ export function StackCard({
                     size={treasureIconSize}
                   />
                 </View>
+              </View>
+            ) : isImageUploading ? (
+              <View
+                accessibilityLabel="Uploading card image"
+                accessibilityRole="progressbar"
+                style={[styles.leafContentLayer, styles.cardImageLoading]}
+              >
+                <ActivityIndicator color="#64748B" size="large" />
+              </View>
+            ) : imageUri ? (
+              <View style={styles.leafContentLayer}>
+                <CachedImage
+                  accessibilityLabel="Card image"
+                  cachePolicy="memory-disk"
+                  contentFit="cover"
+                  priority={isLeafTopCard ? 'high' : 'normal'}
+                  recyclingKey={imageUri}
+                  source={getCardImageSource(imageUri)}
+                  style={styles.leafCardImage}
+                />
               </View>
             ) : leafContentMode === 'placeholder' ? (
               <View
@@ -480,11 +510,22 @@ export function StackCard({
               </View>
             ) : null}
             {canShowDoneStamp ? (
-              <Image
-                pointerEvents="none"
-                source={doneStampImage}
-                style={styles.leafDoneStampOverlay}
-              />
+              <>
+                {imageUri ? (
+                  <View
+                    pointerEvents="none"
+                    style={styles.leafImageDoneStampBackground}
+                  />
+                ) : null}
+                <Image
+                  pointerEvents="none"
+                  source={doneStampImage}
+                  style={[
+                    styles.leafDoneStampOverlay,
+                    imageUri && styles.imageDoneStampArtwork,
+                  ]}
+                />
+              </>
             ) : null}
           </View>
         ) : (
@@ -509,6 +550,23 @@ export function StackCard({
                   size={30}
                 />
               </View>
+            ) : isImageUploading ? (
+              <View
+                accessibilityLabel="Uploading card image"
+                accessibilityRole="progressbar"
+                style={[styles.treeCardImage, styles.cardImageLoading]}
+              >
+                <ActivityIndicator color="#64748B" />
+              </View>
+            ) : imageUri ? (
+              <CachedImage
+                accessibilityLabel="Card image"
+                cachePolicy="memory-disk"
+                contentFit="cover"
+                recyclingKey={imageUri}
+                source={getCardImageSource(imageUri)}
+                style={styles.treeCardImage}
+              />
             ) : (
               <Text style={[
                 styles.cardText,
@@ -522,11 +580,22 @@ export function StackCard({
               </Text>
             )}
             {done ? (
-              <Image
-                pointerEvents="none"
-                source={doneStampImage}
-                style={styles.treeDoneStampOverlay}
-              />
+              <>
+                {imageUri ? (
+                  <View
+                    pointerEvents="none"
+                    style={styles.treeImageDoneStampBackground}
+                  />
+                ) : null}
+                <Image
+                  pointerEvents="none"
+                  source={doneStampImage}
+                  style={[
+                    styles.treeDoneStampOverlay,
+                    imageUri && styles.imageDoneStampArtwork,
+                  ]}
+                />
+              </>
             ) : null}
           </Animated.View>
         )

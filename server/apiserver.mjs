@@ -23,6 +23,12 @@ import {
 import { scanImageToCards } from './openaiVision.mjs';
 import { scheduleScanJobWorker, startScanJobWorker } from './scanJobWorker.mjs';
 import { storeScanJobUpload } from './scanUpload.mjs';
+import {
+  pruneCardImages,
+  removeCardImages,
+  serveCardImage,
+  storeCardImage,
+} from './cardImages.mjs';
 
 const port = Number(process.env.API_PORT || 4101);
 const host = process.env.API_HOST || '0.0.0.0';
@@ -122,6 +128,7 @@ async function handleRequest(request, response) {
         const body = await readJson(request);
         const cards = Array.isArray(body.cards) ? body.cards : [];
         const data = setUserData(user.id, 'cards', cards);
+        await pruneCardImages(user.id, cards);
         sendJson(response, 200, {
           cards: data.value,
           updatedAt: data.updatedAt,
@@ -132,6 +139,45 @@ async function handleRequest(request, response) {
       sendJson(response, 405, {
         error: 'Method not allowed.',
       });
+      return;
+    }
+
+    const cardImageDownloadMatch = url.pathname.match(
+      /^\/api\/card-images\/(\d+)\/([^/]+)$/,
+    );
+    if (cardImageDownloadMatch) {
+      if (!requireMethod(request, response, ['GET'])) {
+        return;
+      }
+
+      await serveCardImage(
+        response,
+        decodeURIComponent(cardImageDownloadMatch[1]),
+        decodeURIComponent(cardImageDownloadMatch[2]),
+      );
+      return;
+    }
+
+    const cardImageUploadMatch = url.pathname.match(/^\/api\/card-images\/([^/]+)$/);
+    if (cardImageUploadMatch) {
+      const user = getAuthenticatedUser(request, response);
+      if (!user) {
+        return;
+      }
+
+      const cardId = decodeURIComponent(cardImageUploadMatch[1]);
+      if (request.method === 'PUT') {
+        sendJson(response, 200, await storeCardImage(request, user.id, cardId));
+        return;
+      }
+
+      if (request.method === 'DELETE') {
+        await removeCardImages(user.id, cardId);
+        sendJson(response, 200, { ok: true });
+        return;
+      }
+
+      sendJson(response, 405, { error: 'Method not allowed.' });
       return;
     }
 

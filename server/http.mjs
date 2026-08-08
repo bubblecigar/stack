@@ -75,6 +75,13 @@ export function handleError(response, error) {
   const status = Number.isInteger(error.status) ? error.status : 500;
   const message = status === 500 ? 'Internal server error.' : error.message;
 
+  if (response.headersSent || response.writableEnded) {
+    if (!response.writableEnded && !response.destroyed) {
+      response.destroy();
+    }
+    return;
+  }
+
   if (status === 500) {
     console.error(error);
   }

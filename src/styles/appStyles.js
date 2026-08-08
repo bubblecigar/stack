@@ -221,6 +221,9 @@ export const styles = StyleSheet.create({
   mathNotationGridSystemKey: {
     backgroundColor: 'transparent',
   },
+  mathNotationTextKeyDisabled: {
+    opacity: 0.18,
+  },
   mathNotationKeyPressed: {
     opacity: 0.58,
   },
@@ -485,7 +488,7 @@ export const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.72)',
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
   },
   completionProgressNode: {
     position: 'absolute',
@@ -524,6 +527,10 @@ export const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
+  },
+  leafImageCard: {
+    padding: 0,
+    overflow: 'hidden',
   },
   leafCardFrame: {
     position: 'relative',
@@ -687,6 +694,15 @@ export const styles = StyleSheet.create({
     lineHeight: 22,
     textAlign: 'left',
   },
+  treeCardImage: {
+    width: '100%',
+    height: 76,
+    borderRadius: 4,
+  },
+  cardImageLoading: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   treePreviewCardText: {
     color: '#F97316',
   },
@@ -720,6 +736,10 @@ export const styles = StyleSheet.create({
     paddingTop: 10,
     zIndex: 1,
   },
+  leafImageContentSurface: {
+    paddingHorizontal: 0,
+    paddingTop: 0,
+  },
   leafContentLayer: {
     position: 'absolute',
     left: 0,
@@ -728,6 +748,45 @@ export const styles = StyleSheet.create({
     bottom: 0,
     alignItems: 'stretch',
     justifyContent: 'flex-start',
+  },
+  leafCardImage: {
+    width: '100%',
+    height: '100%',
+  },
+  leafImagePreview: {
+    flex: 1,
+    backgroundColor: '#0B0D10',
+  },
+  leafImagePreviewScroll: {
+    flex: 1,
+  },
+  leafImagePreviewContent: {
+    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  leafImagePreviewImage: {
+    flexShrink: 0,
+  },
+  leafImagePreviewSafeArea: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingBottom: 8,
+  },
+  leafImagePreviewClose: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.72)',
+  },
+  leafImagePreviewClosePressed: {
+    opacity: 0.64,
   },
   leafPlaceholder: {
     width: '100%',
@@ -797,6 +856,19 @@ export const styles = StyleSheet.create({
     zIndex: 28,
     elevation: 28,
   },
+  leafImageDoneStampBackground: {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    left: '50%',
+    top: '50%',
+    marginLeft: -110,
+    marginTop: -110,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    borderRadius: 110,
+    zIndex: 27,
+    elevation: 27,
+  },
   treeDoneStampOverlay: {
     position: 'absolute',
     width: 106,
@@ -810,6 +882,22 @@ export const styles = StyleSheet.create({
     transform: [{ rotate: '-8deg' }],
     zIndex: 28,
     elevation: 28,
+  },
+  treeImageDoneStampBackground: {
+    position: 'absolute',
+    width: 92,
+    height: 92,
+    left: '50%',
+    top: '50%',
+    marginLeft: -46,
+    marginTop: -46,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    borderRadius: 46,
+    zIndex: 27,
+    elevation: 27,
+  },
+  imageDoneStampArtwork: {
+    opacity: 1,
   },
   leafPlaceholderBar: {
     width: '88%',

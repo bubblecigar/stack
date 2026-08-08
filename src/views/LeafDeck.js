@@ -3,12 +3,20 @@ import {
   Dimensions,
   Easing,
   Image,
+  Modal,
   PanResponder,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
   View,
 } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image as CachedImage } from 'expo-image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MathNotationPalette } from '../components/MathNotationPalette';
 import { StackCard } from '../components/StackCard';
+import { getCardImageSource } from '../lib/cardImageCache';
 import { styles } from '../styles/appStyles';
 
 const doneStampImage = require('../../assets/card/done_stamp_gray.png');
@@ -29,6 +37,9 @@ const SLOT_OPACITY_STEP = 0.12;
 const SLOT_ROTATE_STEP = 1.1;
 const DOUBLE_TAP_DELAY_MS = 280;
 const TAP_MOVE_TOLERANCE = 12;
+const PREVIEW_DOUBLE_TAP_DISTANCE = 48;
+const PREVIEW_ZOOM_SCALE = 2.5;
+const PREVIEW_ZOOM_RESET_THRESHOLD = 1.05;
 const ADD_PREVIEW_DURATION = 220;
 const ADD_PREVIEW_START_X = SCREEN_WIDTH * 0.42;
 const ADD_PREVIEW_START_Y = SCREEN_HEIGHT * 0.22;
@@ -60,6 +71,33 @@ function getCircularCard(cards, topIndex, offset) {
 
 function getVisibleSlotCount(cards, visibleCount) {
   return Math.min(visibleCount, cards.length);
+}
+
+function getContainedImageBounds(viewport, source) {
+  if (
+    !viewport
+    || !source
+    || viewport.width <= 0
+    || viewport.height <= 0
+    || source.width <= 0
+    || source.height <= 0
+  ) {
+    return null;
+  }
+
+  const scale = Math.min(
+    viewport.width / source.width,
+    viewport.height / source.height,
+  );
+  const width = source.width * scale;
+  const height = source.height * scale;
+
+  return {
+    x: viewport.x + ((viewport.width - width) / 2),
+    y: viewport.y + ((viewport.height - height) / 2),
+    width,
+    height,
+  };
 }
 
 function getSlotMetrics(slot) {
@@ -205,6 +243,8 @@ export function LeafDeck({
   onEditingValueChange,
   onEditingSelectionChange,
   onCompleteEdit,
+  onCameraPress,
+  onDeleteImage,
   onDeleteMathNotation,
   onInsertMathNotation,
   onOpenSystemKeyboard,
@@ -231,6 +271,12 @@ export function LeafDeck({
   const lastTapRef = useRef({
     timestamp: 0,
   });
+  const previewLastTapRef = useRef({ timestamp: 0, x: 0, y: 0 });
+  const previewImageSizeRef = useRef(null);
+  const previewScrollRef = useRef(null);
+  const previewTouchRef = useRef(null);
+  const previewViewportRef = useRef(null);
+  const previewZoomScaleRef = useRef(1);
   const touchStartRef = useRef(null);
   const inputTouchRef = useRef(false);
   const topCardFrameRef = useRef(null);
@@ -242,6 +288,7 @@ export function LeafDeck({
   const [insertingDirection, setInsertingDirection] = useState(null);
   const [displayCard, setDisplayCard] = useState(null);
   const [animatedAddPreviewRelation, setAnimatedAddPreviewRelation] = useState(null);
+  const [previewImageUri, setPreviewImageUri] = useState(null);
 
   function reportTopCardFrame() {
     topCardFrameRef.current?.measureInWindow?.((x, y, width, height) => {
@@ -318,6 +365,23 @@ export function LeafDeck({
   }, [
     topCard,
   ]);
+
+  useEffect(() => {
+    if (!previewImageUri) {
+      return;
+    }
+
+    touchStartRef.current = null;
+    inputTouchRef.current = false;
+    lastTapRef.current = { timestamp: 0 };
+    previewImageSizeRef.current = null;
+    previewLastTapRef.current = { timestamp: 0, x: 0, y: 0 };
+    previewZoomScaleRef.current = 1;
+    dragX.setValue(0);
+    dragY.setValue(0);
+    swipeProgressValue.setValue(0);
+    setIsCardSwipeActive(false);
+  }, [dragX, dragY, previewImageUri, swipeProgressValue]);
 
   useEffect(() => {
     if (addPreviewAnimationRef.current) {
@@ -659,8 +723,119 @@ export function LeafDeck({
     };
 
     if (isDoubleTap) {
-      onCreateEdit?.(activeCard.index, activeCard.text);
+      if (activeCard.imageUri && !activeCard.isImageUploading) {
+        setPreviewImageUri(activeCard.imageUri);
+        return;
+      }
+
+      if (!activeCard.imagePath && !activeCard.isImageUploading) {
+        onCreateEdit?.(activeCard.index, activeCard.text);
+      }
     }
+  }
+
+  function handlePreviewTouchStart(event) {
+    const touches = event.nativeEvent.touches ?? [];
+
+    if (touches.length !== 1) {
+      previewTouchRef.current = null;
+      return;
+    }
+
+    const touch = touches[0];
+    previewTouchRef.current = {
+      pageX: touch.pageX ?? 0,
+      pageY: touch.pageY ?? 0,
+    };
+  }
+
+  function handlePreviewTouchMove(event) {
+    const touches = event.nativeEvent.touches ?? [];
+    const touchStart = previewTouchRef.current;
+
+    if (touches.length !== 1 || !touchStart) {
+      previewTouchRef.current = null;
+      return;
+    }
+
+    const touch = touches[0];
+    const deltaX = Math.abs((touch.pageX ?? 0) - touchStart.pageX);
+    const deltaY = Math.abs((touch.pageY ?? 0) - touchStart.pageY);
+
+    if (Math.max(deltaX, deltaY) > TAP_MOVE_TOLERANCE) {
+      previewTouchRef.current = null;
+    }
+  }
+
+  function handlePreviewTouchEnd(event) {
+    const touchStart = previewTouchRef.current;
+    previewTouchRef.current = null;
+
+    if (!touchStart) {
+      previewLastTapRef.current = { timestamp: 0, x: 0, y: 0 };
+      return;
+    }
+
+    const touch = event.nativeEvent.changedTouches?.[0] ?? event.nativeEvent;
+    const pageX = touch.pageX ?? touchStart.pageX;
+    const pageY = touch.pageY ?? touchStart.pageY;
+    const now = Date.now();
+    const lastTap = previewLastTapRef.current;
+    const tapDistance = Math.hypot(pageX - lastTap.x, pageY - lastTap.y);
+    const isDoubleTap = (
+      now - lastTap.timestamp <= DOUBLE_TAP_DELAY_MS
+      && tapDistance <= PREVIEW_DOUBLE_TAP_DISTANCE
+    );
+
+    if (!isDoubleTap) {
+      previewLastTapRef.current = { timestamp: now, x: pageX, y: pageY };
+      return;
+    }
+
+    previewLastTapRef.current = { timestamp: 0, x: 0, y: 0 };
+
+    const imageBounds = getContainedImageBounds(
+      previewViewportRef.current,
+      previewImageSizeRef.current,
+    );
+    const isOutsideImage = (
+      imageBounds
+      && previewZoomScaleRef.current <= PREVIEW_ZOOM_RESET_THRESHOLD
+      && (
+        pageX < imageBounds.x
+        || pageX > imageBounds.x + imageBounds.width
+        || pageY < imageBounds.y
+        || pageY > imageBounds.y + imageBounds.height
+      )
+    );
+
+    if (isOutsideImage) {
+      setPreviewImageUri(null);
+      return;
+    }
+
+    if (Platform.OS !== 'ios') {
+      return;
+    }
+
+    const shouldReset = previewZoomScaleRef.current > PREVIEW_ZOOM_RESET_THRESHOLD;
+    const targetScale = shouldReset ? 1 : PREVIEW_ZOOM_SCALE;
+    const width = SCREEN_WIDTH / targetScale;
+    const height = SCREEN_HEIGHT / targetScale;
+    const x = shouldReset
+      ? 0
+      : Math.max(0, Math.min(pageX - (width / 2), SCREEN_WIDTH - width));
+    const y = shouldReset
+      ? 0
+      : Math.max(0, Math.min(pageY - (height / 2), SCREEN_HEIGHT - height));
+
+    previewScrollRef.current?.scrollResponderZoomTo({
+      animated: true,
+      height,
+      width,
+      x,
+      y,
+    });
   }
 
   const panResponder = useMemo(() => PanResponder.create({
@@ -799,12 +974,14 @@ export function LeafDeck({
   });
 
   return (
-    <View
-      {...panResponder.panHandlers}
-      onTouchEnd={handleDeckTouchEnd}
-      onTouchStart={handleDeckTouchStart}
-      style={styles.deck}
-    >
+    <>
+      <View
+        {...(previewImageUri ? {} : panResponder.panHandlers)}
+        onTouchEnd={previewImageUri ? undefined : handleDeckTouchEnd}
+        onTouchStart={previewImageUri ? undefined : handleDeckTouchStart}
+        pointerEvents={previewImageUri ? 'none' : 'auto'}
+        style={styles.deck}
+      >
       {visualSlots.map((slot) => {
         const isTopSlot = slot === 0;
         const shouldRenderActiveTopSlot = isTopSlot && activeCard;
@@ -1084,15 +1261,92 @@ export function LeafDeck({
         </>
       ) : null}
       <MathNotationPalette
+        cameraDisabled={Boolean(activeCard?.isImageUpdating)}
         disabled={!canUseMathNotationPalette}
+        hasImage={Boolean(activeCard?.imagePath)}
         keys={mathKeyboardKeys}
+        locked={Boolean(activeCard?.isImageUpdating)}
+        onCameraPress={() => onCameraPress?.(activeCard)}
+        onDeleteImage={() => onDeleteImage?.(activeCard)}
         onDeleteNotation={onDeleteMathNotation}
         onInsertNotation={onInsertMathNotation}
         onOpenSystemKeyboard={onOpenSystemKeyboard}
+        textEntryDisabled={Boolean(activeCard?.imagePath)}
         onTouchStart={() => {
           inputTouchRef.current = true;
         }}
       />
-    </View>
+      </View>
+      <Modal
+        animationType="fade"
+        onRequestClose={() => setPreviewImageUri(null)}
+        presentationStyle="fullScreen"
+        visible={Boolean(previewImageUri)}
+      >
+        <View style={styles.leafImagePreview}>
+          <ScrollView
+            centerContent
+            contentContainerStyle={styles.leafImagePreviewContent}
+            key={previewImageUri}
+            maximumZoomScale={4}
+            minimumZoomScale={1}
+            onLayout={() => {
+              previewScrollRef.current?.measureInWindow?.((x, y, width, height) => {
+                previewViewportRef.current = { x, y, width, height };
+              });
+            }}
+            onScroll={(event) => {
+              previewZoomScaleRef.current = event.nativeEvent.zoomScale ?? 1;
+            }}
+            onTouchEnd={handlePreviewTouchEnd}
+            onTouchMove={handlePreviewTouchMove}
+            onTouchStart={handlePreviewTouchStart}
+            ref={previewScrollRef}
+            scrollEventThrottle={16}
+            showsHorizontalScrollIndicator={false}
+            showsVerticalScrollIndicator={false}
+            style={styles.leafImagePreviewScroll}
+          >
+            {previewImageUri ? (
+              <CachedImage
+                accessibilityLabel="Full-screen card image"
+                cachePolicy="memory-disk"
+                contentFit="contain"
+                onLoad={(event) => {
+                  const { height, width } = event.source ?? {};
+
+                  if (width > 0 && height > 0) {
+                    previewImageSizeRef.current = { width, height };
+                  }
+                }}
+                priority="high"
+                recyclingKey={previewImageUri}
+                source={getCardImageSource(previewImageUri)}
+                style={[
+                  styles.leafImagePreviewImage,
+                  { height: SCREEN_HEIGHT, width: SCREEN_WIDTH },
+                ]}
+              />
+            ) : null}
+          </ScrollView>
+          <SafeAreaView
+            pointerEvents="box-none"
+            style={styles.leafImagePreviewSafeArea}
+          >
+            <Pressable
+              accessibilityLabel="Close image preview"
+              accessibilityRole="button"
+              onPress={() => setPreviewImageUri(null)}
+              style={({ pressed }) => [
+                styles.leafImagePreviewClose,
+                pressed && styles.leafImagePreviewClosePressed,
+              ]}
+            >
+              <Ionicons color="#FFFFFF" name="close" size={26} />
+            </Pressable>
+          </SafeAreaView>
+        </View>
+      </Modal>
+    </>
   );
 }

@@ -1,6 +1,7 @@
 import {
   adoptMissionRoot,
   archiveRootTree,
+  clearCardImageAt,
   ensureSystemCards,
   getSnapshot,
   insertRelativeTo,
@@ -8,6 +9,7 @@ import {
   MISSION_CARD_ID,
   push,
   restoreRootTree,
+  setCardImageAt,
   setScanStateAt,
   TREASURE_CARD_ID,
   updateAt,
@@ -160,5 +162,26 @@ describe('system cards', () => {
 
     const card = getSnapshot().find((candidate) => candidate.scanRequestId === 'scan-request-1');
     expect(card.scanStatus).toBe('pending');
+  });
+
+  it('converts between text and image cards across reloads', () => {
+    const cardIndex = push('Discard this text');
+
+    expect(setCardImageAt(
+      cardIndex,
+      '/api/card-images/7/1-123e4567-e89b-12d3-a456-426614174000.jpg',
+      'image/jpeg',
+    )).toBe(true);
+    expect(getSnapshot()[cardIndex]).toMatchObject({
+      imageMimeType: 'image/jpeg',
+      imagePath: '/api/card-images/7/1-123e4567-e89b-12d3-a456-426614174000.jpg',
+      text: '',
+    });
+
+    loadCards(getSnapshot());
+    const reloadedCardIndex = getSnapshot().findIndex((card) => card.imagePath);
+    expect(clearCardImageAt(reloadedCardIndex)).toBe(true);
+    expect(getSnapshot()[reloadedCardIndex]).toEqual(expect.objectContaining({ text: '' }));
+    expect(getSnapshot()[reloadedCardIndex].imagePath).toBeUndefined();
   });
 });

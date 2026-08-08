@@ -24,36 +24,39 @@ describe('math keyboard store', () => {
         systemKeyId: 'keyboard',
       }),
       expect.objectContaining({
+        action: 'camera',
+        isSystem: true,
+        label: 'camera',
+        slotIndex: MATH_KEYBOARD_GRID_SIZE - 5,
+        systemKeyId: 'camera',
+      }),
+      expect.objectContaining({
         insert: ' ',
         isSystem: true,
         label: 'space',
-        slotIndex: MATH_KEYBOARD_GRID_SIZE - 5,
+        slotIndex: MATH_KEYBOARD_GRID_SIZE - 4,
         systemKeyId: 'space',
       }),
       expect.objectContaining({
         insert: '\n',
         isSystem: true,
         label: 'enter',
-        slotIndex: MATH_KEYBOARD_GRID_SIZE - 4,
+        slotIndex: MATH_KEYBOARD_GRID_SIZE - 3,
         systemKeyId: 'newline',
       }),
       expect.objectContaining({
         action: 'delete',
         isSystem: true,
         label: 'delete',
-        slotIndex: MATH_KEYBOARD_GRID_SIZE - 3,
-        systemKeyId: 'delete',
-      }),
-      expect.objectContaining({
-        isReserved: true,
         slotIndex: MATH_KEYBOARD_GRID_SIZE - 2,
+        systemKeyId: 'delete',
       }),
       expect.objectContaining({
         isReserved: true,
         slotIndex: MATH_KEYBOARD_GRID_SIZE - 1,
       }),
     ]);
-    expect(getActiveMathKeyboardKeys(keys)).toHaveLength(4);
+    expect(getActiveMathKeyboardKeys(keys)).toHaveLength(5);
   });
 
   it('migrates existing string keys into the first grid slots', () => {
@@ -77,8 +80,8 @@ describe('math keyboard store', () => {
       },
     ]);
     expect(keys[2].isEmpty).toBe(true);
-    expect(keys.slice(-6, -2).every((key) => key.isSystem)).toBe(true);
-    expect(keys.slice(-2).every((key) => key.isReserved)).toBe(true);
+    expect(keys.slice(-6, -1).every((key) => key.isSystem)).toBe(true);
+    expect(keys.at(-1).isReserved).toBe(true);
   });
 
   it('keeps separate label and insert values', () => {
@@ -167,14 +170,18 @@ describe('math keyboard store', () => {
       },
       {
         slotIndex: MATH_KEYBOARD_GRID_SIZE - 5,
-        systemKeyId: 'space',
+        systemKeyId: 'camera',
       },
       {
         slotIndex: MATH_KEYBOARD_GRID_SIZE - 4,
-        systemKeyId: 'newline',
+        systemKeyId: 'space',
       },
       {
         slotIndex: MATH_KEYBOARD_GRID_SIZE - 3,
+        systemKeyId: 'newline',
+      },
+      {
+        slotIndex: MATH_KEYBOARD_GRID_SIZE - 2,
         systemKeyId: 'delete',
       },
     ]);
@@ -206,8 +213,8 @@ describe('math keyboard store', () => {
     expect(updatedKeys[MATH_KEYBOARD_GRID_SIZE - 5]).toEqual(
       expect.objectContaining({
         isSystem: true,
-        label: 'space',
-        systemKeyId: 'space',
+        label: 'camera',
+        systemKeyId: 'camera',
       }),
     );
   });
@@ -224,9 +231,9 @@ describe('math keyboard store', () => {
 
     expect(movedKeys[4]).toEqual(expect.objectContaining({
       isSystem: true,
-      label: 'space',
+      label: 'camera',
       slotIndex: 4,
-      systemKeyId: 'space',
+      systemKeyId: 'camera',
     }));
     expect(movedKeys[MATH_KEYBOARD_GRID_SIZE - 5]).toEqual({
       id: `math-key-slot-${MATH_KEYBOARD_GRID_SIZE - 5}`,
@@ -250,8 +257,8 @@ describe('math keyboard store', () => {
 
     expect(movedKeys[MATH_KEYBOARD_GRID_SIZE - 5]).toEqual(expect.objectContaining({
       isSystem: true,
-      label: 'space',
-      systemKeyId: 'space',
+      label: 'camera',
+      systemKeyId: 'camera',
     }));
     expect(movedKeys[firstReservedSlotIndex]).toEqual(expect.objectContaining({
       isReserved: true,

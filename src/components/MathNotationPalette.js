@@ -7,6 +7,10 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { styles } from '../styles/appStyles';
 
 const SYSTEM_KEY_ICONS = {
+  camera: {
+    Icon: Ionicons,
+    name: 'camera-outline',
+  },
   delete: {
     Icon: MaterialCommunityIcons,
     name: 'backspace-outline',
@@ -26,18 +30,24 @@ const SYSTEM_KEY_ICONS = {
 };
 
 export function MathNotationPalette({
+  cameraDisabled = false,
   disabled = false,
+  hasImage = false,
   keys = [],
+  locked = false,
+  onCameraPress,
+  onDeleteImage,
   onTouchStart,
   onDeleteNotation,
   onInsertNotation,
   onOpenSystemKeyboard,
+  textEntryDisabled = false,
 }) {
   const customKeys = Array.isArray(keys) ? keys : [];
 
   return (
     <View
-      pointerEvents={disabled ? 'none' : 'box-none'}
+      pointerEvents={disabled || locked ? 'none' : 'box-none'}
       style={[
         styles.mathNotationPalette,
         disabled && styles.mathNotationPaletteDisabled,
@@ -47,25 +57,47 @@ export function MathNotationPalette({
         pointerEvents="box-none"
         style={styles.mathNotationGrid}
       >
-        {customKeys.map((key, keyIndex) => (
-          key?.isEmpty ? (
-            <View
-              key={`math-notation-slot-${key.slotIndex ?? keyIndex}`}
-              pointerEvents="none"
-              style={[
-                styles.mathNotationGridKey,
-                styles.mathNotationGridInvisibleKey,
-              ]}
-            />
-          ) : (
+        {customKeys.map((key, keyIndex) => {
+          if (key?.isEmpty) {
+            return (
+              <View
+                key={`math-notation-slot-${key.slotIndex ?? keyIndex}`}
+                pointerEvents="none"
+                style={[
+                  styles.mathNotationGridKey,
+                  styles.mathNotationGridInvisibleKey,
+                ]}
+              />
+            );
+          }
+
+          const isCameraKey = key.isSystem && key.systemKeyId === 'camera';
+          const isImageDeleteKey = hasImage && key.action === 'delete';
+          const isKeyDisabled = disabled || (isCameraKey
+            ? cameraDisabled
+            : (isImageDeleteKey ? cameraDisabled : textEntryDisabled));
+
+          return (
             <Pressable
-              accessibilityLabel={`Insert ${key.label}`}
+              accessibilityLabel={isCameraKey ? 'Take card photo' : (
+                isImageDeleteKey ? 'Remove card image' : `Insert ${key.label}`
+              )}
               accessibilityRole="button"
-              disabled={disabled}
+              disabled={isKeyDisabled}
               key={`math-notation-slot-${key.slotIndex ?? keyIndex}`}
               onTouchStart={onTouchStart}
               onPress={() => {
+                if (key.action === 'camera') {
+                  onCameraPress?.();
+                  return;
+                }
+
                 if (key.action === 'delete') {
+                  if (hasImage) {
+                    onDeleteImage?.();
+                    return;
+                  }
+
                   onDeleteNotation?.();
                   return;
                 }
@@ -80,6 +112,7 @@ export function MathNotationPalette({
               style={({ pressed }) => [
                 styles.mathNotationGridKey,
                 key.isSystem && styles.mathNotationGridSystemKey,
+                isKeyDisabled && styles.mathNotationTextKeyDisabled,
                 pressed && styles.mathNotationKeyPressed,
               ]}
             >
@@ -105,8 +138,8 @@ export function MathNotationPalette({
                 </Text>
               )}
             </Pressable>
-          )
-        ))}
+          );
+        })}
       </View>
     </View>
   );
