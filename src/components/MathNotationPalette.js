@@ -34,6 +34,7 @@ export function MathNotationPalette({
   disabled = false,
   hasImage = false,
   keys = [],
+  locked = false,
   onCameraPress,
   onDeleteImage,
   onTouchStart,
@@ -46,7 +47,7 @@ export function MathNotationPalette({
 
   return (
     <View
-      pointerEvents={disabled ? 'none' : 'box-none'}
+      pointerEvents={disabled || locked ? 'none' : 'box-none'}
       style={[
         styles.mathNotationPalette,
         disabled && styles.mathNotationPaletteDisabled,

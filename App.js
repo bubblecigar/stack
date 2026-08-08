@@ -451,8 +451,9 @@ export default function App() {
   const [addPreviewRelation, setAddPreviewRelation] = useState(null);
   const [isAddHoldActive, setIsAddHoldActive] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
-  const [isUpdatingCardImage, setIsUpdatingCardImage] = useState(false);
-  const [uploadingCardImageId, setUploadingCardImageId] = useState(null);
+  const [updatingCardImageIds, setUpdatingCardImageIds] = useState(() => new Set());
+  const [uploadingCardImageIds, setUploadingCardImageIds] = useState(() => new Set());
+  const updatingCardImageIdsRef = useRef(new Set());
   const [settingsPanelCloseRequest, setSettingsPanelCloseRequest] = useState(0);
   const [mathKeyboardKeys, setMathKeyboardKeys] = useState(() => normalizeMathKeyboardKeys([]));
   const [currentDayReference, setCurrentDayReference] = useState(() => Date.now());
@@ -464,10 +465,11 @@ export default function App() {
   const stack = useSyncExternalStore(subscribe, getSnapshot);
   const cards = useMemo(() => stack.map((card, index) => ({
     ...card,
-    isImageUploading: card.id === uploadingCardImageId,
+    isImageUpdating: updatingCardImageIds.has(card.id),
+    isImageUploading: uploadingCardImageIds.has(card.id),
     imageUri: resolveApiAssetUrl(card.imagePath),
     index,
-  })), [stack, uploadingCardImageId]);
+  })), [stack, updatingCardImageIds, uploadingCardImageIds]);
   const hiddenSystemCardIds = useMemo(
     () => getHiddenSystemCardIds(cards, [MISSION_CARD_ID]),
     [cards],
@@ -1492,12 +1494,35 @@ export default function App() {
     persistMathKeyboardKeys(moveMathKeyboardKey(mathKeyboardKeys, sourceIndex, targetIndex));
   }
 
+  function beginCardImageUpdate(cardId) {
+    if (updatingCardImageIdsRef.current.has(cardId)) {
+      return false;
+    }
+
+    const nextIds = new Set(updatingCardImageIdsRef.current);
+    nextIds.add(cardId);
+    updatingCardImageIdsRef.current = nextIds;
+    setUpdatingCardImageIds(nextIds);
+    return true;
+  }
+
+  function finishCardImageUpdate(cardId) {
+    const nextIds = new Set(updatingCardImageIdsRef.current);
+    nextIds.delete(cardId);
+    updatingCardImageIdsRef.current = nextIds;
+    setUpdatingCardImageIds(nextIds);
+    setUploadingCardImageIds((currentIds) => {
+      const nextUploadingIds = new Set(currentIds);
+      nextUploadingIds.delete(cardId);
+      return nextUploadingIds;
+    });
+  }
+
   async function removeImageFromCard(cardId) {
-    if (!authToken || isUpdatingCardImage) {
+    if (!authToken || !beginCardImageUpdate(cardId)) {
       return;
     }
 
-    setIsUpdatingCardImage(true);
     try {
       await deleteCardImage(authToken, cardId);
       const currentIndex = getSnapshot().findIndex((card) => card.id === cardId);
@@ -1511,16 +1536,15 @@ export default function App() {
       }
       Alert.alert('Could not remove image', error.message || 'Try again.');
     } finally {
-      setIsUpdatingCardImage(false);
+      finishCardImageUpdate(cardId);
     }
   }
 
   async function takePhotoForCard(cardId) {
-    if (!authToken || isUpdatingCardImage) {
+    if (!authToken || !beginCardImageUpdate(cardId)) {
       return;
     }
 
-    setIsUpdatingCardImage(true);
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
@@ -1539,7 +1563,7 @@ export default function App() {
         return;
       }
 
-      setUploadingCardImageId(cardId);
+      setUploadingCardImageIds((currentIds) => new Set(currentIds).add(cardId));
       const uploadedImage = await uploadCardImage(
         authToken,
         cardId,
@@ -1567,13 +1591,12 @@ export default function App() {
       }
       Alert.alert('Could not attach image', error.message || 'Try again.');
     } finally {
-      setUploadingCardImageId(null);
-      setIsUpdatingCardImage(false);
+      finishCardImageUpdate(cardId);
     }
   }
 
   function handleCardCameraPress(card) {
-    if (!card || isSystemCard(card) || isUpdatingCardImage) {
+    if (!card || isSystemCard(card) || updatingCardImageIdsRef.current.has(card.id)) {
       return;
     }
 
@@ -1581,7 +1604,11 @@ export default function App() {
   }
 
   function handleCardImageDelete(card) {
-    if (!card?.imagePath || isSystemCard(card) || isUpdatingCardImage) {
+    if (
+      !card?.imagePath
+      || isSystemCard(card)
+      || updatingCardImageIdsRef.current.has(card.id)
+    ) {
       return;
     }
 
@@ -2018,7 +2045,6 @@ export default function App() {
             onDeleteCurrentCard={handleDeleteCurrentLeafCard}
             onDoneCurrentCard={handleDoneCurrentLeafCard}
             swipeDisabled={editingIndex !== null}
-            cameraDisabled={isUpdatingCardImage}
           />
         ) : (
           <TreeCanvas

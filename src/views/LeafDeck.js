@@ -218,7 +218,6 @@ export function LeafDeck({
   onDeleteCurrentCard,
   onDoneCurrentCard,
   swipeDisabled,
-  cameraDisabled = false,
 }) {
   const dragX = useRef(new Animated.Value(0)).current;
   const dragY = useRef(new Animated.Value(0)).current;
@@ -1087,10 +1086,11 @@ export function LeafDeck({
         </>
       ) : null}
       <MathNotationPalette
-        cameraDisabled={cameraDisabled}
-        disabled={!canUseMathNotationPalette || cameraDisabled}
+        cameraDisabled={Boolean(activeCard?.isImageUpdating)}
+        disabled={!canUseMathNotationPalette}
         hasImage={Boolean(activeCard?.imagePath)}
         keys={mathKeyboardKeys}
+        locked={Boolean(activeCard?.isImageUpdating)}
         onCameraPress={() => onCameraPress?.(activeCard)}
         onDeleteImage={() => onDeleteImage?.(activeCard)}
         onDeleteNotation={onDeleteMathNotation}
