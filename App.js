@@ -818,18 +818,32 @@ export default function App() {
     setIsLoadingUserData(true);
     setSyncError('');
 
+    const localUiStateResultPromise = getStoredUiState(userId).then(
+      (state) => ({ error: null, state }),
+      (error) => ({ error, state: null }),
+    );
+
+    localUiStateResultPromise.then(({ error, state }) => {
+      if (!isMounted || error || !state) {
+        return;
+      }
+
+      setLayoutMode(state.layoutMode);
+      setCollapsedNodeIds(new Set(state.collapsedNodeIds));
+    });
+
     async function loadCardsForUser() {
       try {
         const [
-          cardsResult,
-          todayCanvasResult,
-          previousDayCanvasResult,
-          localUiState,
+          [cardsResult, todayCanvasResult, previousDayCanvasResult],
+          localUiStateResult,
         ] = await Promise.all([
-          loadRemoteCards(authToken),
-          loadRemoteUserData(authToken, currentTreeCompletionCanvasKey),
-          loadRemoteUserData(authToken, previousTreeCompletionCanvasKey),
-          getStoredUiState(userId),
+          Promise.all([
+            loadRemoteCards(authToken),
+            loadRemoteUserData(authToken, currentTreeCompletionCanvasKey),
+            loadRemoteUserData(authToken, previousTreeCompletionCanvasKey),
+          ]),
+          localUiStateResultPromise,
         ]);
 
         if (!isMounted) {
@@ -837,7 +851,7 @@ export default function App() {
         }
 
         const nextCards = Array.isArray(cardsResult.cards) ? cardsResult.cards : [];
-        const restoredUiState = localUiState;
+        const restoredUiState = localUiStateResult.state;
 
         isApplyingRemoteCards.current = true;
         loadCards(nextCards);
@@ -848,10 +862,13 @@ export default function App() {
         setPreviousDayTreeCompletionCanvas(
           previousDayCanvasResult.value || EMPTY_TREE_COMPLETION_CANVAS,
         );
-        restoredUiStateUserIdRef.current = userId;
 
         if (restoredUiState) {
+          const loadedCardIds = new Set(loadedCards.map((card) => card.id));
           setLayoutMode(restoredUiState.layoutMode);
+          setCollapsedNodeIds(new Set(
+            restoredUiState.collapsedNodeIds.filter((cardId) => loadedCardIds.has(cardId)),
+          ));
 
           const nextFocusedIndex = restoredUiState.focusedCardId === null
             ? null
@@ -865,9 +882,16 @@ export default function App() {
             setLeafFocusedCardId(restoredUiState.leafFocusedCardId);
             setLeafTopIndex(nextLeafFocusedIndex);
           }
+        } else {
+          setCollapsedNodeIds(new Set());
         }
 
         hasLoadedRemoteCards.current = true;
+        if (localUiStateResult.error) {
+          setSyncError('Could not load local UI state.');
+        } else {
+          restoredUiStateUserIdRef.current = userId;
+        }
 
         if (!todayCanvasResult.value) {
           saveRemoteUserData(
@@ -1383,78 +1407,28 @@ export default function App() {
     const userId = authUser?.id ?? null;
     if (
       userId === null
-      || restoredUiStateUserIdRef.current === userId
-      || !hasLoadedRemoteCards.current
-      || isLoadingUserData
-    ) {
-      return undefined;
-    }
-
-    let isMounted = true;
-
-    async function restoreUiState() {
-      const storedUiState = await getStoredUiState(userId);
-      if (!isMounted) {
-        return;
-      }
-
-      restoredUiStateUserIdRef.current = userId;
-
-      if (!storedUiState) {
-        return;
-      }
-
-      setLayoutMode(storedUiState.layoutMode);
-
-      const nextFocusedIndex = storedUiState.focusedCardId === null
-        ? null
-        : cards.findIndex((card) => card.id === storedUiState.focusedCardId);
-      setFocusedCardIndex(nextFocusedIndex >= 0 ? nextFocusedIndex : null);
-
-      const nextLeafFocusedIndex = storedUiState.leafFocusedCardId === null
-        ? -1
-        : cards.findIndex((card) => card.id === storedUiState.leafFocusedCardId);
-      if (nextLeafFocusedIndex >= 0) {
-        setLeafFocusedCardId(storedUiState.leafFocusedCardId);
-        setLeafTopIndex(nextLeafFocusedIndex);
-      }
-    }
-
-    restoreUiState();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [
-    authUser?.id,
-    cards,
-    isLoadingUserData,
-  ]);
-
-  useEffect(() => {
-    const userId = authUser?.id ?? null;
-    if (
-      userId === null
       || restoredUiStateUserIdRef.current !== userId
       || !hasLoadedRemoteCards.current
     ) {
       return undefined;
     }
 
-    const timeoutId = setTimeout(() => {
-      const nextUiState = {
-        archivedRootIds: [],
-        focusedCardId,
-        layoutMode,
-        leafFocusedCardId,
-      };
+    setStoredUiState(userId, {
+      archivedRootIds: [],
+      collapsedNodeIds: [...collapsedNodeIds],
+      focusedCardId,
+      layoutMode,
+      leafFocusedCardId,
+    }).catch(() => {
+      if (authUserRef.current?.id === userId) {
+        setSyncError('Could not save local UI state.');
+      }
+    });
 
-      setStoredUiState(userId, nextUiState).catch(() => {});
-    }, 250);
-
-    return () => clearTimeout(timeoutId);
+    return undefined;
   }, [
     authUser?.id,
+    collapsedNodeIds,
     focusedCardId,
     layoutMode,
     leafFocusedCardId,

@@ -1,18 +1,40 @@
 import * as SecureStore from 'expo-secure-store';
 
 const UI_STATE_KEY_PREFIX = 'stack.uiState';
+const pendingWritesByKey = new Map();
 
 function getUiStateKey(userId) {
   return `${UI_STATE_KEY_PREFIX}.${userId}`;
 }
 
-function normalizeOptionalCardId(cardId) {
+function normalizeCardId(cardId) {
   if (cardId === null || cardId === undefined || cardId === '') {
     return null;
   }
 
-  const normalizedCardId = Number(cardId);
-  return Number.isInteger(normalizedCardId) ? normalizedCardId : null;
+  if (typeof cardId === 'number') {
+    return Number.isInteger(cardId) ? cardId : null;
+  }
+
+  if (typeof cardId !== 'string') {
+    return null;
+  }
+
+  const trimmedCardId = cardId.trim();
+  if (!trimmedCardId) {
+    return null;
+  }
+
+  const numericCardId = Number(trimmedCardId);
+  return Number.isInteger(numericCardId) ? numericCardId : trimmedCardId;
+}
+
+function normalizeCardIds(cardIds) {
+  if (!Array.isArray(cardIds)) {
+    return [];
+  }
+
+  return [...new Set(cardIds.map(normalizeCardId).filter((cardId) => cardId !== null))];
 }
 
 export function normalizeUiState(rawState) {
@@ -21,17 +43,12 @@ export function normalizeUiState(rawState) {
   }
 
   const layoutMode = rawState.layoutMode === 'tree' ? 'tree' : 'leaf';
-  const archivedRootIds = Array.isArray(rawState.archivedRootIds)
-    ? rawState.archivedRootIds
-      .map((cardId) => Number(cardId))
-      .filter((cardId) => Number.isInteger(cardId))
-    : [];
-
   return {
-    archivedRootIds,
-    focusedCardId: normalizeOptionalCardId(rawState.focusedCardId),
+    archivedRootIds: normalizeCardIds(rawState.archivedRootIds),
+    collapsedNodeIds: normalizeCardIds(rawState.collapsedNodeIds),
+    focusedCardId: normalizeCardId(rawState.focusedCardId),
     layoutMode,
-    leafFocusedCardId: normalizeOptionalCardId(rawState.leafFocusedCardId),
+    leafFocusedCardId: normalizeCardId(rawState.leafFocusedCardId),
   };
 }
 
@@ -40,12 +57,12 @@ export async function getStoredUiState(userId) {
     return null;
   }
 
-  try {
-    const value = await SecureStore.getItemAsync(getUiStateKey(userId));
-    return normalizeUiState(JSON.parse(value));
-  } catch {
+  const value = await SecureStore.getItemAsync(getUiStateKey(userId));
+  if (value === null) {
     return null;
   }
+
+  return normalizeUiState(JSON.parse(value));
 }
 
 export async function setStoredUiState(userId, state) {
@@ -58,5 +75,19 @@ export async function setStoredUiState(userId, state) {
     return;
   }
 
-  await SecureStore.setItemAsync(getUiStateKey(userId), JSON.stringify(normalizedState));
+  const key = getUiStateKey(userId);
+  const previousWrite = pendingWritesByKey.get(key) || Promise.resolve();
+  const nextWrite = previousWrite
+    .catch(() => {})
+    .then(() => SecureStore.setItemAsync(key, JSON.stringify(normalizedState)));
+
+  pendingWritesByKey.set(key, nextWrite);
+
+  try {
+    await nextWrite;
+  } finally {
+    if (pendingWritesByKey.get(key) === nextWrite) {
+      pendingWritesByKey.delete(key);
+    }
+  }
 }
