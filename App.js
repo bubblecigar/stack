@@ -1612,7 +1612,18 @@ export default function App() {
       return;
     }
 
-    removeImageFromCard(card.id);
+    Alert.alert(
+      'Remove attached image?',
+      'The image will be removed and the card will become an empty text card.',
+      [
+        { style: 'cancel', text: 'Cancel' },
+        {
+          onPress: () => removeImageFromCard(card.id),
+          style: 'destructive',
+          text: 'Remove',
+        },
+      ],
+    );
   }
 
   function focusScanRoot(index) {
