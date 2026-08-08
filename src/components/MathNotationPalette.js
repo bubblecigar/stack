@@ -35,6 +35,7 @@ export function MathNotationPalette({
   hasImage = false,
   keys = [],
   onCameraPress,
+  onDeleteImage,
   onTouchStart,
   onDeleteNotation,
   onInsertNotation,
@@ -70,15 +71,16 @@ export function MathNotationPalette({
           }
 
           const isCameraKey = key.isSystem && key.systemKeyId === 'camera';
+          const isImageDeleteKey = hasImage && key.action === 'delete';
           const isKeyDisabled = disabled || (isCameraKey
             ? cameraDisabled
-            : textEntryDisabled);
+            : (isImageDeleteKey ? cameraDisabled : textEntryDisabled));
 
           return (
             <Pressable
-              accessibilityLabel={isCameraKey
-                ? (hasImage ? 'Remove card image' : 'Take card photo')
-                : `Insert ${key.label}`}
+              accessibilityLabel={isCameraKey ? 'Take card photo' : (
+                isImageDeleteKey ? 'Remove card image' : `Insert ${key.label}`
+              )}
               accessibilityRole="button"
               disabled={isKeyDisabled}
               key={`math-notation-slot-${key.slotIndex ?? keyIndex}`}
@@ -90,6 +92,11 @@ export function MathNotationPalette({
                 }
 
                 if (key.action === 'delete') {
+                  if (hasImage) {
+                    onDeleteImage?.();
+                    return;
+                  }
+
                   onDeleteNotation?.();
                   return;
                 }
@@ -111,13 +118,11 @@ export function MathNotationPalette({
               {key.isSystem ? (() => {
                 const SystemIcon = SYSTEM_KEY_ICONS[key.systemKeyId]?.Icon
                   ?? MaterialCommunityIcons;
-                const systemIconName = isCameraKey && hasImage
-                  ? 'camera'
-                  : SYSTEM_KEY_ICONS[key.systemKeyId]?.name;
+                const systemIconName = SYSTEM_KEY_ICONS[key.systemKeyId]?.name;
 
                 return (
                   <SystemIcon
-                    color={isCameraKey && hasImage ? '#DC2626' : '#94A3B8'}
+                    color={isImageDeleteKey ? '#DC2626' : '#94A3B8'}
                     name={systemIconName}
                     size={16}
                   />

@@ -1572,23 +1572,15 @@ export default function App() {
       return;
     }
 
-    if (card.imagePath) {
-      Alert.alert(
-        'Remove attached image?',
-        'The card will become an empty text card.',
-        [
-          { style: 'cancel', text: 'Cancel' },
-          {
-            onPress: () => removeImageFromCard(card.id),
-            style: 'destructive',
-            text: 'Remove',
-          },
-        ],
-      );
+    takePhotoForCard(card.id);
+  }
+
+  function handleCardImageDelete(card) {
+    if (!card?.imagePath || isSystemCard(card) || isUpdatingCardImage) {
       return;
     }
 
-    takePhotoForCard(card.id);
+    removeImageFromCard(card.id);
   }
 
   function focusScanRoot(index) {
@@ -2010,6 +2002,7 @@ export default function App() {
             onEditingSelectionChange={setEditingSelection}
             onCompleteEdit={handleCompleteEdit}
             onCameraPress={handleCardCameraPress}
+            onDeleteImage={handleCardImageDelete}
             onDeleteMathNotation={handleDeleteMathNotation}
             onInsertMathNotation={handleInsertMathNotation}
             onOpenSystemKeyboard={handleOpenSystemKeyboard}

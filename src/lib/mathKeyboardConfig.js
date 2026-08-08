@@ -16,32 +16,32 @@ export const SYSTEM_MATH_KEY_DEFINITIONS = [
     systemKeyId: 'keyboard',
   },
   {
-    action: 'insert',
+    action: 'camera',
     defaultSlotIndex: MATH_KEYBOARD_GRID_SIZE - 5,
+    insert: '',
+    label: 'camera',
+    systemKeyId: 'camera',
+  },
+  {
+    action: 'insert',
+    defaultSlotIndex: MATH_KEYBOARD_GRID_SIZE - 4,
     insert: ' ',
     label: 'space',
     systemKeyId: 'space',
   },
   {
     action: 'insert',
-    defaultSlotIndex: MATH_KEYBOARD_GRID_SIZE - 4,
+    defaultSlotIndex: MATH_KEYBOARD_GRID_SIZE - 3,
     insert: '\n',
     label: 'enter',
     systemKeyId: 'newline',
   },
   {
     action: 'delete',
-    defaultSlotIndex: MATH_KEYBOARD_GRID_SIZE - 3,
+    defaultSlotIndex: MATH_KEYBOARD_GRID_SIZE - 2,
     insert: '',
     label: 'delete',
     systemKeyId: 'delete',
-  },
-  {
-    action: 'camera',
-    defaultSlotIndex: MATH_KEYBOARD_GRID_SIZE - 2,
-    insert: '',
-    label: 'camera',
-    systemKeyId: 'camera',
   },
 ];
 

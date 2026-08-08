@@ -206,6 +206,7 @@ export function LeafDeck({
   onEditingSelectionChange,
   onCompleteEdit,
   onCameraPress,
+  onDeleteImage,
   onDeleteMathNotation,
   onInsertMathNotation,
   onOpenSystemKeyboard,
@@ -1091,6 +1092,7 @@ export function LeafDeck({
         hasImage={Boolean(activeCard?.imagePath)}
         keys={mathKeyboardKeys}
         onCameraPress={() => onCameraPress?.(activeCard)}
+        onDeleteImage={() => onDeleteImage?.(activeCard)}
         onDeleteNotation={onDeleteMathNotation}
         onInsertNotation={onInsertMathNotation}
         onOpenSystemKeyboard={onOpenSystemKeyboard}
