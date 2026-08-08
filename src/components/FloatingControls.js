@@ -863,7 +863,7 @@ export function FloatingControls({
         <View
           {...addPanResponder.panHandlers}
           accessibilityHint={rootDoubleTapEnabled
-            ? 'Double tap to expand or collapse all cards.'
+            ? 'Double tap to collapse all cards or expand non-treasure cards.'
             : 'Drag to insert a card. Double tap to toggle leaf or tree view.'}
           accessibilityLabel={rootDoubleTapEnabled
             ? 'Expand or collapse cards'
