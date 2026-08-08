@@ -772,10 +772,10 @@ export const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    top: 0,
-    alignItems: 'flex-end',
+    bottom: 0,
+    alignItems: 'center',
     paddingHorizontal: 14,
-    paddingTop: 8,
+    paddingBottom: 8,
   },
   leafImagePreviewClose: {
     width: 44,

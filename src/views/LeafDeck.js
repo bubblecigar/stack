@@ -5,6 +5,7 @@ import {
   Image,
   Modal,
   PanResponder,
+  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -36,6 +37,9 @@ const SLOT_OPACITY_STEP = 0.12;
 const SLOT_ROTATE_STEP = 1.1;
 const DOUBLE_TAP_DELAY_MS = 280;
 const TAP_MOVE_TOLERANCE = 12;
+const PREVIEW_DOUBLE_TAP_DISTANCE = 48;
+const PREVIEW_ZOOM_SCALE = 2.5;
+const PREVIEW_ZOOM_RESET_THRESHOLD = 1.05;
 const ADD_PREVIEW_DURATION = 220;
 const ADD_PREVIEW_START_X = SCREEN_WIDTH * 0.42;
 const ADD_PREVIEW_START_Y = SCREEN_HEIGHT * 0.22;
@@ -67,6 +71,33 @@ function getCircularCard(cards, topIndex, offset) {
 
 function getVisibleSlotCount(cards, visibleCount) {
   return Math.min(visibleCount, cards.length);
+}
+
+function getContainedImageBounds(viewport, source) {
+  if (
+    !viewport
+    || !source
+    || viewport.width <= 0
+    || viewport.height <= 0
+    || source.width <= 0
+    || source.height <= 0
+  ) {
+    return null;
+  }
+
+  const scale = Math.min(
+    viewport.width / source.width,
+    viewport.height / source.height,
+  );
+  const width = source.width * scale;
+  const height = source.height * scale;
+
+  return {
+    x: viewport.x + ((viewport.width - width) / 2),
+    y: viewport.y + ((viewport.height - height) / 2),
+    width,
+    height,
+  };
 }
 
 function getSlotMetrics(slot) {
@@ -240,6 +271,12 @@ export function LeafDeck({
   const lastTapRef = useRef({
     timestamp: 0,
   });
+  const previewLastTapRef = useRef({ timestamp: 0, x: 0, y: 0 });
+  const previewImageSizeRef = useRef(null);
+  const previewScrollRef = useRef(null);
+  const previewTouchRef = useRef(null);
+  const previewViewportRef = useRef(null);
+  const previewZoomScaleRef = useRef(1);
   const touchStartRef = useRef(null);
   const inputTouchRef = useRef(false);
   const topCardFrameRef = useRef(null);
@@ -337,6 +374,9 @@ export function LeafDeck({
     touchStartRef.current = null;
     inputTouchRef.current = false;
     lastTapRef.current = { timestamp: 0 };
+    previewImageSizeRef.current = null;
+    previewLastTapRef.current = { timestamp: 0, x: 0, y: 0 };
+    previewZoomScaleRef.current = 1;
     dragX.setValue(0);
     dragY.setValue(0);
     swipeProgressValue.setValue(0);
@@ -692,6 +732,110 @@ export function LeafDeck({
         onCreateEdit?.(activeCard.index, activeCard.text);
       }
     }
+  }
+
+  function handlePreviewTouchStart(event) {
+    const touches = event.nativeEvent.touches ?? [];
+
+    if (touches.length !== 1) {
+      previewTouchRef.current = null;
+      return;
+    }
+
+    const touch = touches[0];
+    previewTouchRef.current = {
+      pageX: touch.pageX ?? 0,
+      pageY: touch.pageY ?? 0,
+    };
+  }
+
+  function handlePreviewTouchMove(event) {
+    const touches = event.nativeEvent.touches ?? [];
+    const touchStart = previewTouchRef.current;
+
+    if (touches.length !== 1 || !touchStart) {
+      previewTouchRef.current = null;
+      return;
+    }
+
+    const touch = touches[0];
+    const deltaX = Math.abs((touch.pageX ?? 0) - touchStart.pageX);
+    const deltaY = Math.abs((touch.pageY ?? 0) - touchStart.pageY);
+
+    if (Math.max(deltaX, deltaY) > TAP_MOVE_TOLERANCE) {
+      previewTouchRef.current = null;
+    }
+  }
+
+  function handlePreviewTouchEnd(event) {
+    const touchStart = previewTouchRef.current;
+    previewTouchRef.current = null;
+
+    if (!touchStart) {
+      previewLastTapRef.current = { timestamp: 0, x: 0, y: 0 };
+      return;
+    }
+
+    const touch = event.nativeEvent.changedTouches?.[0] ?? event.nativeEvent;
+    const pageX = touch.pageX ?? touchStart.pageX;
+    const pageY = touch.pageY ?? touchStart.pageY;
+    const now = Date.now();
+    const lastTap = previewLastTapRef.current;
+    const tapDistance = Math.hypot(pageX - lastTap.x, pageY - lastTap.y);
+    const isDoubleTap = (
+      now - lastTap.timestamp <= DOUBLE_TAP_DELAY_MS
+      && tapDistance <= PREVIEW_DOUBLE_TAP_DISTANCE
+    );
+
+    if (!isDoubleTap) {
+      previewLastTapRef.current = { timestamp: now, x: pageX, y: pageY };
+      return;
+    }
+
+    previewLastTapRef.current = { timestamp: 0, x: 0, y: 0 };
+
+    const imageBounds = getContainedImageBounds(
+      previewViewportRef.current,
+      previewImageSizeRef.current,
+    );
+    const isOutsideImage = (
+      imageBounds
+      && previewZoomScaleRef.current <= PREVIEW_ZOOM_RESET_THRESHOLD
+      && (
+        pageX < imageBounds.x
+        || pageX > imageBounds.x + imageBounds.width
+        || pageY < imageBounds.y
+        || pageY > imageBounds.y + imageBounds.height
+      )
+    );
+
+    if (isOutsideImage) {
+      setPreviewImageUri(null);
+      return;
+    }
+
+    if (Platform.OS !== 'ios') {
+      return;
+    }
+
+    const shouldReset = previewZoomScaleRef.current > PREVIEW_ZOOM_RESET_THRESHOLD;
+    const targetScale = shouldReset ? 1 : PREVIEW_ZOOM_SCALE;
+    const width = SCREEN_WIDTH / targetScale;
+    const height = SCREEN_HEIGHT / targetScale;
+    const x = shouldReset
+      ? 0
+      : Math.max(0, Math.min(pageX - (width / 2), SCREEN_WIDTH - width));
+    const y = shouldReset
+      ? 0
+      : Math.max(0, Math.min(pageY - (height / 2), SCREEN_HEIGHT - height));
+
+    previewScrollRef.current?.scrollResponderZoomTo({
+      animated: true,
+      height,
+      width,
+      x,
+      y,
+    });
   }
 
   const panResponder = useMemo(() => PanResponder.create({
@@ -1143,8 +1287,22 @@ export function LeafDeck({
           <ScrollView
             centerContent
             contentContainerStyle={styles.leafImagePreviewContent}
+            key={previewImageUri}
             maximumZoomScale={4}
             minimumZoomScale={1}
+            onLayout={() => {
+              previewScrollRef.current?.measureInWindow?.((x, y, width, height) => {
+                previewViewportRef.current = { x, y, width, height };
+              });
+            }}
+            onScroll={(event) => {
+              previewZoomScaleRef.current = event.nativeEvent.zoomScale ?? 1;
+            }}
+            onTouchEnd={handlePreviewTouchEnd}
+            onTouchMove={handlePreviewTouchMove}
+            onTouchStart={handlePreviewTouchStart}
+            ref={previewScrollRef}
+            scrollEventThrottle={16}
             showsHorizontalScrollIndicator={false}
             showsVerticalScrollIndicator={false}
             style={styles.leafImagePreviewScroll}
@@ -1154,6 +1312,13 @@ export function LeafDeck({
                 accessibilityLabel="Full-screen card image"
                 cachePolicy="memory-disk"
                 contentFit="contain"
+                onLoad={(event) => {
+                  const { height, width } = event.source ?? {};
+
+                  if (width > 0 && height > 0) {
+                    previewImageSizeRef.current = { width, height };
+                  }
+                }}
                 priority="high"
                 recyclingKey={previewImageUri}
                 source={getCardImageSource(previewImageUri)}
