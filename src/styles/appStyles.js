@@ -528,6 +528,10 @@ export const styles = StyleSheet.create({
     left: 0,
     right: 0,
   },
+  leafImageCard: {
+    padding: 0,
+    overflow: 'hidden',
+  },
   leafCardFrame: {
     position: 'relative',
     width: '100%',
@@ -731,6 +735,10 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingTop: 10,
     zIndex: 1,
+  },
+  leafImageContentSurface: {
+    paddingHorizontal: 0,
+    paddingTop: 0,
   },
   leafContentLayer: {
     position: 'absolute',

@@ -241,6 +241,7 @@ export function StackCard({
       style={[
         styles.card,
         isLeafCard && styles.leafCard,
+        isLeafCard && imageUri && styles.leafImageCard,
         isTreeCard && styles.treeCard,
         isTreeCard && isSystem && styles.treasureCard,
         isLeafCard && isSystem && styles.leafTreasureCard,
@@ -400,7 +401,11 @@ export function StackCard({
         )
       ) : (
         isLeafCard ? (
-          <View style={styles.leafContentSurface}>
+          <View style={[
+            styles.leafContentSurface,
+            imageUri && styles.leafImageContentSurface,
+          ]}
+          >
             {isSystem ? (
               <View style={[
                 styles.leafContentLayer,
@@ -444,7 +449,7 @@ export function StackCard({
                 <CachedImage
                   accessibilityLabel="Card image"
                   cachePolicy="memory-disk"
-                  contentFit="contain"
+                  contentFit="cover"
                   priority={isLeafTopCard ? 'high' : 'normal'}
                   recyclingKey={imageUri}
                   source={getCardImageSource(imageUri)}
