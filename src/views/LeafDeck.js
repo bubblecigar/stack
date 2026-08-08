@@ -661,7 +661,7 @@ export function LeafDeck({
       timestamp: now,
     };
 
-    if (isDoubleTap) {
+    if (isDoubleTap && !activeCard.imagePath && !activeCard.isImageUploading) {
       onCreateEdit?.(activeCard.index, activeCard.text);
     }
   }

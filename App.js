@@ -995,7 +995,8 @@ export default function App() {
   }
 
   function handleEditCard(index, text) {
-    if (isSystemCard(cards[index])) {
+    const card = cards[index];
+    if (!card || isSystemCard(card) || card.imagePath || card.isImageUploading) {
       return;
     }
 
