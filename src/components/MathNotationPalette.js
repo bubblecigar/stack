@@ -122,7 +122,7 @@ export function MathNotationPalette({
 
                 return (
                   <SystemIcon
-                    color={isImageDeleteKey ? '#DC2626' : '#94A3B8'}
+                    color="#94A3B8"
                     name={systemIconName}
                     size={16}
                   />
