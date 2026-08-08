@@ -753,6 +753,41 @@ export const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  leafImagePreview: {
+    flex: 1,
+    backgroundColor: '#0B0D10',
+  },
+  leafImagePreviewScroll: {
+    flex: 1,
+  },
+  leafImagePreviewContent: {
+    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  leafImagePreviewImage: {
+    flexShrink: 0,
+  },
+  leafImagePreviewSafeArea: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    alignItems: 'flex-end',
+    paddingHorizontal: 14,
+    paddingTop: 8,
+  },
+  leafImagePreviewClose: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.72)',
+  },
+  leafImagePreviewClosePressed: {
+    opacity: 0.64,
+  },
   leafPlaceholder: {
     width: '100%',
     alignSelf: 'center',

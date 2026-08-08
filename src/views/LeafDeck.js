@@ -3,12 +3,19 @@ import {
   Dimensions,
   Easing,
   Image,
+  Modal,
   PanResponder,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
   View,
 } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image as CachedImage } from 'expo-image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MathNotationPalette } from '../components/MathNotationPalette';
 import { StackCard } from '../components/StackCard';
+import { getCardImageSource } from '../lib/cardImageCache';
 import { styles } from '../styles/appStyles';
 
 const doneStampImage = require('../../assets/card/done_stamp_gray.png');
@@ -244,6 +251,7 @@ export function LeafDeck({
   const [insertingDirection, setInsertingDirection] = useState(null);
   const [displayCard, setDisplayCard] = useState(null);
   const [animatedAddPreviewRelation, setAnimatedAddPreviewRelation] = useState(null);
+  const [previewImageUri, setPreviewImageUri] = useState(null);
 
   function reportTopCardFrame() {
     topCardFrameRef.current?.measureInWindow?.((x, y, width, height) => {
@@ -660,8 +668,15 @@ export function LeafDeck({
       timestamp: now,
     };
 
-    if (isDoubleTap && !activeCard.imagePath && !activeCard.isImageUploading) {
-      onCreateEdit?.(activeCard.index, activeCard.text);
+    if (isDoubleTap) {
+      if (activeCard.imageUri && !activeCard.isImageUploading) {
+        setPreviewImageUri(activeCard.imageUri);
+        return;
+      }
+
+      if (!activeCard.imagePath && !activeCard.isImageUploading) {
+        onCreateEdit?.(activeCard.index, activeCard.text);
+      }
     }
   }
 
@@ -1101,6 +1116,55 @@ export function LeafDeck({
           inputTouchRef.current = true;
         }}
       />
+      <Modal
+        animationType="fade"
+        onRequestClose={() => setPreviewImageUri(null)}
+        presentationStyle="fullScreen"
+        visible={Boolean(previewImageUri)}
+      >
+        <View style={styles.leafImagePreview}>
+          <ScrollView
+            centerContent
+            contentContainerStyle={styles.leafImagePreviewContent}
+            maximumZoomScale={4}
+            minimumZoomScale={1}
+            showsHorizontalScrollIndicator={false}
+            showsVerticalScrollIndicator={false}
+            style={styles.leafImagePreviewScroll}
+          >
+            {previewImageUri ? (
+              <CachedImage
+                accessibilityLabel="Full-screen card image"
+                cachePolicy="memory-disk"
+                contentFit="contain"
+                priority="high"
+                recyclingKey={previewImageUri}
+                source={getCardImageSource(previewImageUri)}
+                style={[
+                  styles.leafImagePreviewImage,
+                  { height: SCREEN_HEIGHT, width: SCREEN_WIDTH },
+                ]}
+              />
+            ) : null}
+          </ScrollView>
+          <SafeAreaView
+            pointerEvents="box-none"
+            style={styles.leafImagePreviewSafeArea}
+          >
+            <Pressable
+              accessibilityLabel="Close image preview"
+              accessibilityRole="button"
+              onPress={() => setPreviewImageUri(null)}
+              style={({ pressed }) => [
+                styles.leafImagePreviewClose,
+                pressed && styles.leafImagePreviewClosePressed,
+              ]}
+            >
+              <Ionicons color="#FFFFFF" name="close" size={26} />
+            </Pressable>
+          </SafeAreaView>
+        </View>
+      </Modal>
     </View>
   );
 }
