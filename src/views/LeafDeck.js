@@ -330,6 +330,20 @@ export function LeafDeck({
   ]);
 
   useEffect(() => {
+    if (!previewImageUri) {
+      return;
+    }
+
+    touchStartRef.current = null;
+    inputTouchRef.current = false;
+    lastTapRef.current = { timestamp: 0 };
+    dragX.setValue(0);
+    dragY.setValue(0);
+    swipeProgressValue.setValue(0);
+    setIsCardSwipeActive(false);
+  }, [dragX, dragY, previewImageUri, swipeProgressValue]);
+
+  useEffect(() => {
     if (addPreviewAnimationRef.current) {
       addPreviewAnimationRef.current.stop();
       addPreviewAnimationRef.current = null;
@@ -816,12 +830,14 @@ export function LeafDeck({
   });
 
   return (
-    <View
-      {...panResponder.panHandlers}
-      onTouchEnd={handleDeckTouchEnd}
-      onTouchStart={handleDeckTouchStart}
-      style={styles.deck}
-    >
+    <>
+      <View
+        {...(previewImageUri ? {} : panResponder.panHandlers)}
+        onTouchEnd={previewImageUri ? undefined : handleDeckTouchEnd}
+        onTouchStart={previewImageUri ? undefined : handleDeckTouchStart}
+        pointerEvents={previewImageUri ? 'none' : 'auto'}
+        style={styles.deck}
+      >
       {visualSlots.map((slot) => {
         const isTopSlot = slot === 0;
         const shouldRenderActiveTopSlot = isTopSlot && activeCard;
@@ -1116,6 +1132,7 @@ export function LeafDeck({
           inputTouchRef.current = true;
         }}
       />
+      </View>
       <Modal
         animationType="fade"
         onRequestClose={() => setPreviewImageUri(null)}
@@ -1165,6 +1182,6 @@ export function LeafDeck({
           </SafeAreaView>
         </View>
       </Modal>
-    </View>
+    </>
   );
 }
