@@ -11,12 +11,11 @@ import {
 import AntDesign from '@expo/vector-icons/AntDesign';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Image as CachedImage } from 'expo-image';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { DeleteHoldIndicator } from './DeleteHoldIndicator';
+import { DoneStampArtwork } from './DoneStampArtwork';
 import { getCardImageSource } from '../lib/cardImageCache';
 import { styles } from '../styles/appStyles';
-
-const doneStampImage = require('../../assets/card/done_stamp_gray.png');
 
 export function StackCard({
   card,
@@ -60,6 +59,7 @@ export function StackCard({
     id,
     index,
     done = false,
+    doneStampUri = null,
     isImageUploading = false,
     imageUri,
     text,
@@ -82,7 +82,12 @@ export function StackCard({
         : focusedCardIndex === index)
   );
   const shouldShowControls = !hideControls && isFocusedCard;
-  const shouldShowEdit = isFocusedCard && !isSystem && !imageUri;
+  const shouldShowEdit = (
+    isFocusedCard
+    && !isSystem
+    && !imageUri
+    && !(isTreeCard && done)
+  );
   const shouldShowAdoptMission = (
     shouldShowControls
     && isTreeCard
@@ -517,9 +522,8 @@ export function StackCard({
                     style={styles.leafImageDoneStampBackground}
                   />
                 ) : null}
-                <Image
-                  pointerEvents="none"
-                  source={doneStampImage}
+                <DoneStampArtwork
+                  uri={doneStampUri}
                   style={[
                     styles.leafDoneStampOverlay,
                     imageUri && styles.imageDoneStampArtwork,
@@ -587,9 +591,8 @@ export function StackCard({
                     style={styles.treeImageDoneStampBackground}
                   />
                 ) : null}
-                <Image
-                  pointerEvents="none"
-                  source={doneStampImage}
+                <DoneStampArtwork
+                  uri={doneStampUri}
                   style={[
                     styles.treeDoneStampOverlay,
                     imageUri && styles.imageDoneStampArtwork,

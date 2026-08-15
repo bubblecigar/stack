@@ -23,6 +23,7 @@ import {
 import { scanImageToCards } from './openaiVision.mjs';
 import { scheduleScanJobWorker, startScanJobWorker } from './scanJobWorker.mjs';
 import { storeScanJobUpload } from './scanUpload.mjs';
+import { serveMonsterStamp } from './monsterStamps.mjs';
 import {
   pruneCardImages,
   removeCardImages,
@@ -139,6 +140,16 @@ async function handleRequest(request, response) {
       sendJson(response, 405, {
         error: 'Method not allowed.',
       });
+      return;
+    }
+
+    const monsterStampMatch = url.pathname.match(/^\/api\/monster-stamps\/([^/]+)$/);
+    if (monsterStampMatch) {
+      if (!requireMethod(request, response, ['GET'])) {
+        return;
+      }
+
+      await serveMonsterStamp(response, decodeURIComponent(monsterStampMatch[1]));
       return;
     }
 

@@ -10,10 +10,12 @@ import {
   push,
   restoreRootTree,
   setCardImageAt,
+  setDoneAt,
   setScanStateAt,
   TREASURE_CARD_ID,
   updateAt,
 } from '../../stackStore';
+import { getMonsterDoneVisualIds } from './doneStampVisual';
 
 describe('system cards', () => {
   beforeEach(() => {
@@ -39,6 +41,30 @@ describe('system cards', () => {
       1,
       TREASURE_CARD_ID,
     ]);
+  });
+
+  it('persists a validated Done visual without changing toggle semantics', () => {
+    const cardIndex = push('Hatch me');
+    const cardId = getSnapshot()[cardIndex].id;
+    const [doneVisualId] = getMonsterDoneVisualIds();
+
+    setDoneAt(cardIndex, true, doneVisualId);
+    expect(getSnapshot()[cardIndex]).toMatchObject({
+      done: true,
+      doneVisualId,
+    });
+
+    setDoneAt(cardIndex, false);
+    expect(getSnapshot()[cardIndex]).toMatchObject({
+      done: false,
+      doneVisualId,
+    });
+
+    loadCards(getSnapshot());
+    expect(getSnapshot().find((card) => card.id === cardId)).toMatchObject({
+      done: false,
+      doneVisualId,
+    });
   });
 
   it('adopts a mission root and its descendants as an independent user tree', () => {

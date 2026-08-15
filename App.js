@@ -69,6 +69,7 @@ import {
   moveInTraversal,
 } from './src/lib/cardTraversal';
 import { getDailyVisibleCards } from './src/lib/cardVisibility';
+import { chooseDoneVisualId, getDoneMonsterPath } from './src/lib/doneStampVisual';
 import {
   getAppDayKey,
   getNextAppDayBoundary,
@@ -453,6 +454,7 @@ export default function App() {
   const stack = useSyncExternalStore(subscribe, getSnapshot);
   const cards = useMemo(() => stack.map((card, index) => ({
     ...card,
+    doneStampUri: resolveApiAssetUrl(getDoneMonsterPath(card.doneVisualId)),
     isImageUpdating: updatingCardImageIds.has(card.id),
     isImageUploading: uploadingCardImageIds.has(card.id),
     imageUri: resolveApiAssetUrl(card.imagePath),
@@ -989,7 +991,13 @@ export default function App() {
 
   function handleEditCard(index, text) {
     const card = cards[index];
-    if (!card || isSystemCard(card) || card.imagePath || card.isImageUploading) {
+    if (
+      !card
+      || isSystemCard(card)
+      || card.imagePath
+      || card.isImageUploading
+      || (shouldRenderLeaf && card.done)
+    ) {
       return;
     }
 
@@ -1060,6 +1068,7 @@ export default function App() {
             .map((childId) => nodeIdByCardId.get(childId))
           : [],
         completedAt,
+        ...(card.doneVisualId ? { doneVisualId: card.doneVisualId } : {}),
         groupId: completionGroupId,
         id: nodeIdByCardId.get(card.id),
         originalId: card.id,
@@ -1466,7 +1475,12 @@ export default function App() {
       return;
     }
 
-    setDoneAt(visibleTopCardIndex, true);
+    if (editingIndex === visibleTopCardIndex) {
+      handleCompleteEdit(visibleTopCardIndex, editingValue);
+    }
+
+    const doneVisualId = currentCard.doneVisualId || chooseDoneVisualId();
+    setDoneAt(visibleTopCardIndex, true, doneVisualId);
     setLeafFocusedCardId(currentCard.id);
     setLeafTopIndex(visibleTopCardIndex);
     playDoneStampSound();
