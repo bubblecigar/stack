@@ -13,37 +13,9 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Image as CachedImage } from 'expo-image';
 import { useEffect, useRef, useState } from 'react';
 import { DeleteHoldIndicator } from './DeleteHoldIndicator';
+import { DoneStampArtwork } from './DoneStampArtwork';
 import { getCardImageSource } from '../lib/cardImageCache';
 import { styles } from '../styles/appStyles';
-
-const doneStampImage = require('../../assets/card/done_stamp_gray.png');
-const doneStampRingsImage = require('../../assets/card/done_stamp_rings_gray.png');
-
-function DoneStampArtwork({ uri, style }) {
-  const [failedUri, setFailedUri] = useState(null);
-  const canShowMonster = Boolean(uri && failedUri !== uri);
-
-  if (!canShowMonster) {
-    return (
-      <View pointerEvents="none" style={style}>
-        <Image source={doneStampImage} style={styles.doneStampFullArtwork} />
-      </View>
-    );
-  }
-
-  return (
-    <View pointerEvents="none" style={style}>
-      <Image source={doneStampRingsImage} style={styles.doneStampFullArtwork} />
-      <CachedImage
-        cachePolicy="memory-disk"
-        contentFit="contain"
-        onError={() => setFailedUri(uri)}
-        source={getCardImageSource(uri)}
-        style={styles.doneStampMonsterArtwork}
-      />
-    </View>
-  );
-}
 
 export function StackCard({
   card,
