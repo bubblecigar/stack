@@ -29,6 +29,7 @@
     "test": "jest && npm run test:server",
     "test:unit": "jest src/lib",
     "test:server": "node --test --test-concurrency=1 server/*.test.mjs",
+    "prepare:collections": "node scripts/prepare-collection-assets.mjs",
     "evaluate:scan": "node scripts/evaluate-scan-quality.mjs",
     "export:web": "expo export --platform web --output-dir dist --clear",
     "build-internal": "npx eas-cli build --profile internal --platform ios",
