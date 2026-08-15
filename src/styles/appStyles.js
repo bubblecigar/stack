@@ -445,6 +445,9 @@ export const styles = StyleSheet.create({
     height: 44,
     opacity: 0.28,
   },
+  completionProgressDoneArtwork: {
+    opacity: 0.55,
+  },
   card: {
     minHeight: 360,
     borderRadius: 8,
@@ -843,6 +846,18 @@ export const styles = StyleSheet.create({
     top: 0,
     width: '100%',
     height: '100%',
+    resizeMode: 'contain',
+  },
+  doneStampDefaultArtwork: {
+    opacity: 0.32,
+  },
+  doneStampMonsterBackgroundArtwork: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: '100%',
+    height: '100%',
+    opacity: 0.32,
     resizeMode: 'contain',
   },
   doneStampMonsterArtwork: {

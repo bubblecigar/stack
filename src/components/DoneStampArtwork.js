@@ -7,21 +7,28 @@ import { styles } from '../styles/appStyles';
 const doneStampImage = require('../../assets/card/done_stamp_gray.png');
 const doneStampRingsImage = require('../../assets/card/done_stamp_rings_gray.png');
 
-export function DoneStampArtwork({ uri, style }) {
+export function DoneStampArtwork({ defaultArtworkStyle, uri, style }) {
   const [failedUri, setFailedUri] = useState(null);
   const canShowMonster = Boolean(uri && failedUri !== uri);
 
   if (!canShowMonster) {
     return (
       <View pointerEvents="none" style={style}>
-        <Image source={doneStampImage} style={styles.doneStampFullArtwork} />
+        <Image
+          source={doneStampImage}
+          style={[
+            styles.doneStampFullArtwork,
+            styles.doneStampDefaultArtwork,
+            defaultArtworkStyle,
+          ]}
+        />
       </View>
     );
   }
 
   return (
     <View pointerEvents="none" style={style}>
-      <Image source={doneStampRingsImage} style={styles.doneStampFullArtwork} />
+      <Image source={doneStampRingsImage} style={styles.doneStampMonsterBackgroundArtwork} />
       <CachedImage
         cachePolicy="memory-disk"
         contentFit="contain"
