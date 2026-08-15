@@ -17,30 +17,31 @@ import { getCardImageSource } from '../lib/cardImageCache';
 import { styles } from '../styles/appStyles';
 
 const doneStampImage = require('../../assets/card/done_stamp_gray.png');
+const doneStampRingsImage = require('../../assets/card/done_stamp_rings_gray.png');
 
 function DoneStampArtwork({ uri, style }) {
   const [failedUri, setFailedUri] = useState(null);
+  const canShowMonster = Boolean(uri && failedUri !== uri);
 
-  if (!uri || failedUri === uri) {
+  if (!canShowMonster) {
     return (
-      <Image
-        pointerEvents="none"
-        source={doneStampImage}
-        style={style}
-      />
+      <View pointerEvents="none" style={style}>
+        <Image source={doneStampImage} style={styles.doneStampFullArtwork} />
+      </View>
     );
   }
 
   return (
-    <CachedImage
-      cachePolicy="memory-disk"
-      contentFit="contain"
-      onError={() => setFailedUri(uri)}
-      placeholder={doneStampImage}
-      pointerEvents="none"
-      source={getCardImageSource(uri)}
-      style={style}
-    />
+    <View pointerEvents="none" style={style}>
+      <Image source={doneStampRingsImage} style={styles.doneStampFullArtwork} />
+      <CachedImage
+        cachePolicy="memory-disk"
+        contentFit="contain"
+        onError={() => setFailedUri(uri)}
+        source={getCardImageSource(uri)}
+        style={styles.doneStampMonsterArtwork}
+      />
+    </View>
   );
 }
 

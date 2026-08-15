@@ -851,7 +851,6 @@ export const styles = StyleSheet.create({
     marginLeft: -125,
     marginTop: -125,
     opacity: 0.64,
-    resizeMode: 'contain',
     transform: [{ rotate: '-8deg' }],
     zIndex: 28,
     elevation: 28,
@@ -878,7 +877,6 @@ export const styles = StyleSheet.create({
     marginLeft: -53,
     marginTop: -53,
     opacity: 0.6,
-    resizeMode: 'contain',
     transform: [{ rotate: '-8deg' }],
     zIndex: 28,
     elevation: 28,
@@ -898,6 +896,21 @@ export const styles = StyleSheet.create({
   },
   imageDoneStampArtwork: {
     opacity: 1,
+  },
+  doneStampFullArtwork: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: '100%',
+    height: '100%',
+    resizeMode: 'contain',
+  },
+  doneStampMonsterArtwork: {
+    position: 'absolute',
+    left: '14%',
+    top: '14%',
+    width: '72%',
+    height: '72%',
   },
   leafPlaceholderBar: {
     width: '88%',
