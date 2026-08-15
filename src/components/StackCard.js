@@ -82,7 +82,12 @@ export function StackCard({
         : focusedCardIndex === index)
   );
   const shouldShowControls = !hideControls && isFocusedCard;
-  const shouldShowEdit = isFocusedCard && !isSystem && !imageUri;
+  const shouldShowEdit = (
+    isFocusedCard
+    && !isSystem
+    && !imageUri
+    && !(isTreeCard && done)
+  );
   const shouldShowAdoptMission = (
     shouldShowControls
     && isTreeCard
