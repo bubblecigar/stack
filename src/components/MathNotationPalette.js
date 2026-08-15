@@ -51,6 +51,7 @@ export function MathNotationPalette({
       style={[
         styles.mathNotationPalette,
         disabled && styles.mathNotationPaletteDisabled,
+        locked && styles.mathNotationPaletteLocked,
       ]}
     >
       <View
@@ -73,7 +74,7 @@ export function MathNotationPalette({
 
           const isCameraKey = key.isSystem && key.systemKeyId === 'camera';
           const isImageDeleteKey = hasImage && key.action === 'delete';
-          const isKeyDisabled = disabled || (isCameraKey
+          const isKeyDisabled = disabled || locked || (isCameraKey
             ? cameraDisabled
             : (isImageDeleteKey ? cameraDisabled : textEntryDisabled));
 
@@ -112,7 +113,7 @@ export function MathNotationPalette({
               style={({ pressed }) => [
                 styles.mathNotationGridKey,
                 key.isSystem && styles.mathNotationGridSystemKey,
-                isKeyDisabled && styles.mathNotationTextKeyDisabled,
+                isKeyDisabled && !locked && styles.mathNotationTextKeyDisabled,
                 pressed && styles.mathNotationKeyPressed,
               ]}
             >

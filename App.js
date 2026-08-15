@@ -991,7 +991,13 @@ export default function App() {
 
   function handleEditCard(index, text) {
     const card = cards[index];
-    if (!card || isSystemCard(card) || card.imagePath || card.isImageUploading) {
+    if (
+      !card
+      || isSystemCard(card)
+      || card.imagePath
+      || card.isImageUploading
+      || (shouldRenderLeaf && card.done)
+    ) {
       return;
     }
 
@@ -1467,6 +1473,10 @@ export default function App() {
       setLeafFocusedCardId(currentCard.id);
       setLeafTopIndex(visibleTopCardIndex);
       return;
+    }
+
+    if (editingIndex === visibleTopCardIndex) {
+      handleCompleteEdit(visibleTopCardIndex, editingValue);
     }
 
     const doneVisualId = currentCard.doneVisualId || chooseDoneVisualId();

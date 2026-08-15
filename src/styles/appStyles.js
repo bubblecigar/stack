@@ -187,6 +187,9 @@ export const styles = StyleSheet.create({
   mathNotationPaletteDisabled: {
     opacity: 0.24,
   },
+  mathNotationPaletteLocked: {
+    opacity: 0.48,
+  },
   mathNotationGrid: {
     width: 284,
     height: 226,

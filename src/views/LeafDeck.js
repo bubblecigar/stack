@@ -367,6 +367,20 @@ export function LeafDeck({
   ]);
 
   useEffect(() => {
+    if (!activeCardDone || editingIndex !== activeCard?.index) {
+      return;
+    }
+
+    onCompleteEdit?.(editingIndex, editingValue);
+  }, [
+    activeCard?.index,
+    activeCardDone,
+    editingIndex,
+    editingValue,
+    onCompleteEdit,
+  ]);
+
+  useEffect(() => {
     if (!previewImageUri) {
       return;
     }
@@ -710,6 +724,13 @@ export function LeafDeck({
       || !startedInsideTopCard
       || !endedInsideTopCard
     ) {
+      lastTapRef.current = {
+        timestamp: 0,
+      };
+      return;
+    }
+
+    if (activeCardDone) {
       lastTapRef.current = {
         timestamp: 0,
       };
@@ -1265,7 +1286,7 @@ export function LeafDeck({
         disabled={!canUseMathNotationPalette}
         hasImage={Boolean(activeCard?.imagePath)}
         keys={mathKeyboardKeys}
-        locked={Boolean(activeCard?.isImageUpdating)}
+        locked={Boolean(activeCard?.isImageUpdating || activeCardDone)}
         onCameraPress={() => onCameraPress?.(activeCard)}
         onDeleteImage={() => onDeleteImage?.(activeCard)}
         onDeleteNotation={onDeleteMathNotation}
