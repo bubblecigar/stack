@@ -443,7 +443,7 @@ export const styles = StyleSheet.create({
     position: 'absolute',
     width: 44,
     height: 44,
-    opacity: 0.72,
+    opacity: 0.28,
   },
   card: {
     minHeight: 360,
