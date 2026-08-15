@@ -1,3 +1,5 @@
+import { normalizeDoneVisualId } from './src/lib/doneStampVisual';
+
 let nextCardId = 1;
 let stack = [];
 const listeners = new Set();
@@ -267,6 +269,7 @@ function normalizeIncomingCard(rawCard, nextGeneratedId) {
   const imageMimeType = ['image/jpeg', 'image/png', 'image/webp'].includes(rawCard?.imageMimeType)
     ? rawCard.imageMimeType
     : null;
+  const doneVisualId = normalizeDoneVisualId(rawCard?.doneVisualId);
 
   function normalizeLinkedId(id) {
     if (typeof id === 'string') {
@@ -304,6 +307,7 @@ function normalizeIncomingCard(rawCard, nextGeneratedId) {
   return {
     childIds,
     done: isSystem ? false : Boolean(rawCard?.done),
+    ...(!isSystem && doneVisualId ? { doneVisualId } : {}),
     id,
     ...(!isSystem && imagePath ? {
       imageMimeType: imageMimeType || 'image/jpeg',
@@ -514,13 +518,20 @@ export function setScanStateAt(index, requestId, status) {
   emitChange();
 }
 
-export function setDoneAt(index, done = true) {
+export function setDoneAt(index, done = true, doneVisualId = null) {
   if (index < 0 || index >= stack.length || isSystemCard(stack[index])) {
     return;
   }
 
+  const normalizedVisualId = normalizeDoneVisualId(doneVisualId);
   stack = stack.map((card, itemIndex) => (
-    itemIndex === index ? { ...card, done: Boolean(done) } : card
+    itemIndex === index
+      ? {
+        ...card,
+        done: Boolean(done),
+        ...(normalizedVisualId ? { doneVisualId: normalizedVisualId } : {}),
+      }
+      : card
   ));
   emitChange();
 }

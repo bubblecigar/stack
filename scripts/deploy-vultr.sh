@@ -95,14 +95,22 @@ if [[ "$DISABLE_CADDY" == "1" ]]; then
   "${SSH_CMD[@]}" "$SSH_TARGET" "systemctl disable --now caddy 2>/dev/null || true"
 fi
 
+if [[ ! -f assets/collections/mobile/collection-manifest.json ]]; then
+  echo "Missing prepared collection assets. Run: npm run prepare:collections" >&2
+  exit 1
+fi
+
 echo "Preparing remote directories"
-"${SSH_CMD[@]}" "$SSH_TARGET" "mkdir -p '$REMOTE_APP_DIR/server' '$WEB_ROOT' '$DATA_DIR'"
+"${SSH_CMD[@]}" "$SSH_TARGET" "mkdir -p '$REMOTE_APP_DIR/server' '$REMOTE_APP_DIR/assets/collections/mobile' '$WEB_ROOT' '$DATA_DIR'"
 
 echo "Uploading web build"
 rsync -az --delete -e "${RSYNC_SSH_CMD[*]}" "$BUILD_DIR"/ "$SSH_TARGET:$WEB_ROOT"/
 
 echo "Uploading Node servers"
 rsync -az --delete -e "${RSYNC_SSH_CMD[*]}" server/ "$SSH_TARGET:$REMOTE_APP_DIR/server"/
+
+echo "Uploading monster stamp assets"
+rsync -az --delete -e "${RSYNC_SSH_CMD[*]}" assets/collections/mobile/ "$SSH_TARGET:$REMOTE_APP_DIR/assets/collections/mobile"/
 
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT

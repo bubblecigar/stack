@@ -41,7 +41,7 @@ export function prefetchCardImage(imageUri) {
 
 export function prefetchCardImages(cards) {
   const imageUrls = [...new Set((Array.isArray(cards) ? cards : [])
-    .map((card) => card?.imageUri)
+    .flatMap((card) => [card?.imageUri, card?.doneStampUri])
     .filter(Boolean))];
 
   return Promise.allSettled(imageUrls.map(prefetchCardImage));

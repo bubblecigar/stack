@@ -11,12 +11,38 @@ import {
 import AntDesign from '@expo/vector-icons/AntDesign';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Image as CachedImage } from 'expo-image';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { DeleteHoldIndicator } from './DeleteHoldIndicator';
 import { getCardImageSource } from '../lib/cardImageCache';
 import { styles } from '../styles/appStyles';
 
 const doneStampImage = require('../../assets/card/done_stamp_gray.png');
+
+function DoneStampArtwork({ uri, style }) {
+  const [failedUri, setFailedUri] = useState(null);
+
+  if (!uri || failedUri === uri) {
+    return (
+      <Image
+        pointerEvents="none"
+        source={doneStampImage}
+        style={style}
+      />
+    );
+  }
+
+  return (
+    <CachedImage
+      cachePolicy="memory-disk"
+      contentFit="contain"
+      onError={() => setFailedUri(uri)}
+      placeholder={doneStampImage}
+      pointerEvents="none"
+      source={getCardImageSource(uri)}
+      style={style}
+    />
+  );
+}
 
 export function StackCard({
   card,
@@ -60,6 +86,7 @@ export function StackCard({
     id,
     index,
     done = false,
+    doneStampUri = null,
     isImageUploading = false,
     imageUri,
     text,
@@ -517,9 +544,8 @@ export function StackCard({
                     style={styles.leafImageDoneStampBackground}
                   />
                 ) : null}
-                <Image
-                  pointerEvents="none"
-                  source={doneStampImage}
+                <DoneStampArtwork
+                  uri={doneStampUri}
                   style={[
                     styles.leafDoneStampOverlay,
                     imageUri && styles.imageDoneStampArtwork,
@@ -587,9 +613,8 @@ export function StackCard({
                     style={styles.treeImageDoneStampBackground}
                   />
                 ) : null}
-                <Image
-                  pointerEvents="none"
-                  source={doneStampImage}
+                <DoneStampArtwork
+                  uri={doneStampUri}
                   style={[
                     styles.treeDoneStampOverlay,
                     imageUri && styles.imageDoneStampArtwork,
