@@ -70,6 +70,11 @@ import {
 } from './src/lib/cardTraversal';
 import { getDailyVisibleCards } from './src/lib/cardVisibility';
 import {
+  getAppDayKey,
+  getNextAppDayBoundary,
+  getPreviousAppDayKey,
+} from './src/lib/appDay';
+import {
   getHiddenSystemCardIds,
   getVisibleCardsExcludingIds,
 } from './src/lib/systemVisibility';
@@ -107,8 +112,6 @@ import { styles } from './src/styles/appStyles';
 
 const LEAF_VISIBLE_COUNT = 5;
 const TREE_COMPLETION_CANVAS_KEY = 'treeCompletionCanvas';
-const DAY_START_OFFSET_MS = ((4 * 60) + 30) * 60 * 1000;
-const DAY_MS = 24 * 60 * 60 * 1000;
 const EMPTY_TREE_COMPLETION_CANVAS = {
   entries: [],
   nodes: [],
@@ -149,53 +152,15 @@ function getDoneCleanupCardIds(cards, rootCardId) {
   );
 }
 
-function getCompletionDayKey(timestamp = Date.now()) {
-  const date = new Date(Number(timestamp) - DAY_START_OFFSET_MS);
-  if (Number.isNaN(date.getTime())) {
-    return getCompletionDayKey(Date.now());
-  }
-
-  return date.toISOString().slice(0, 10);
-}
-
 function getTreeCompletionCanvasKey(timestamp = Date.now()) {
-  return `${TREE_COMPLETION_CANVAS_KEY}:${getCompletionDayKey(timestamp)}`;
+  return `${TREE_COMPLETION_CANVAS_KEY}:${getAppDayKey(timestamp)}`;
 }
 
-function getNextCompletionDayBoundary(timestamp = Date.now()) {
-  const current = new Date(timestamp);
-  const boundary = new Date(
-    current.getFullYear(),
-    current.getMonth(),
-    current.getDate(),
-    4,
-    30,
-    0,
-    0,
-  );
-
-  if (timestamp >= boundary.getTime()) {
-    boundary.setDate(boundary.getDate() + 1);
-  }
-
-  return boundary.getTime();
+function isPreviousDayTimestamp(timestamp, now = Date.now()) {
+  return getAppDayKey(timestamp) === getPreviousAppDayKey(now);
 }
 
-function isPreviousDayTimestamp(timestamp) {
-  const date = new Date(Number(timestamp) - DAY_START_OFFSET_MS);
-  if (Number.isNaN(date.getTime())) {
-    return false;
-  }
-
-  const yesterday = new Date(Date.now() - DAY_START_OFFSET_MS);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  return date.getFullYear() === yesterday.getFullYear()
-    && date.getMonth() === yesterday.getMonth()
-    && date.getDate() === yesterday.getDate();
-}
-
-function countPreviousDayCompletedTasks(treeCompletionCanvas) {
+function countPreviousDayCompletedTasks(treeCompletionCanvas, now = Date.now()) {
   const completionNodes = Array.isArray(treeCompletionCanvas?.nodes)
     ? treeCompletionCanvas.nodes
     : [];
@@ -207,7 +172,9 @@ function countPreviousDayCompletedTasks(treeCompletionCanvas) {
     ? treeCompletionCanvas.entries
     : [];
 
-  return completionEntries.filter((entry) => isPreviousDayTimestamp(entry?.completedAt)).length;
+  return completionEntries.filter((entry) => (
+    isPreviousDayTimestamp(entry?.completedAt, now)
+  )).length;
 }
 
 function getLeafRootScopedCards(cards, currentCardId) {
@@ -507,15 +474,15 @@ export default function App() {
   );
   const shouldRenderLeaf = layoutMode === 'leaf';
   const previousDayCompletedTaskCount = useMemo(
-    () => countPreviousDayCompletedTasks(previousDayTreeCompletionCanvas),
-    [previousDayTreeCompletionCanvas],
+    () => countPreviousDayCompletedTasks(previousDayTreeCompletionCanvas, currentDayReference),
+    [currentDayReference, previousDayTreeCompletionCanvas],
   );
   const currentTreeCompletionCanvasKey = useMemo(
     () => getTreeCompletionCanvasKey(currentDayReference),
     [currentDayReference],
   );
   const previousTreeCompletionCanvasKey = useMemo(
-    () => getTreeCompletionCanvasKey(currentDayReference - DAY_MS),
+    () => `${TREE_COMPLETION_CANVAS_KEY}:${getPreviousAppDayKey(currentDayReference)}`,
     [currentDayReference],
   );
   const focusedCardId = focusedCardIndex === null
@@ -648,7 +615,7 @@ export default function App() {
     const now = Date.now();
     const timeoutId = setTimeout(() => {
       setCurrentDayReference(Date.now());
-    }, Math.max(getNextCompletionDayBoundary(now) - now, 1));
+    }, Math.max(getNextAppDayBoundary(now) - now, 1));
 
     return () => clearTimeout(timeoutId);
   }, [currentDayReference]);
@@ -2052,7 +2019,10 @@ export default function App() {
             <Text style={styles.syncBannerText}>{syncError}</Text>
           </View>
         ) : null}
-        <CompletionProgressTree treeCompletionCanvas={treeCompletionCanvas} />
+        <CompletionProgressTree
+          dayReference={currentDayReference}
+          treeCompletionCanvas={treeCompletionCanvas}
+        />
         {shouldRenderLeaf ? (
           <LeafDeck
             cards={leafCards}

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useWindowDimensions, View } from 'react-native';
+import { isTimestampInAppDay } from '../lib/appDay';
 import { styles } from '../styles/appStyles';
 
 const COMPLETION_NODE_SIZE = 14;
@@ -8,20 +9,6 @@ const COMPLETION_NODE_STEP_X = 28;
 const COMPLETION_NODE_STEP_Y = 24;
 const COMPLETION_ROW_STEP_Y = 42;
 const COMPLETION_EDGE_THICKNESS = 1;
-const DAY_START_OFFSET_MS = ((4 * 60) + 30) * 60 * 1000;
-
-function isTodayTimestamp(timestamp) {
-  const date = new Date(Number(timestamp) - DAY_START_OFFSET_MS);
-  if (Number.isNaN(date.getTime())) {
-    return false;
-  }
-
-  const today = new Date(Date.now() - DAY_START_OFFSET_MS);
-  return date.getFullYear() === today.getFullYear()
-    && date.getMonth() === today.getMonth()
-    && date.getDate() === today.getDate();
-}
-
 function buildWrappedCompletionLayout(cards = [], availableWidth = 0) {
   const cardById = new Map(cards.map((card) => [card.id, card]));
   const rootCards = cards.filter((card) => (
@@ -122,10 +109,15 @@ function getCompletionEdgeSegments(fromNode, toNode) {
   }).filter(Boolean);
 }
 
-export function CompletionProgressTree({ treeCompletionCanvas = null }) {
+export function CompletionProgressTree({
+  dayReference = Date.now(),
+  treeCompletionCanvas = null,
+}) {
   const windowSize = useWindowDimensions();
   const completionNodes = Array.isArray(treeCompletionCanvas?.nodes)
-    ? treeCompletionCanvas.nodes.filter((node) => isTodayTimestamp(node?.completedAt))
+    ? treeCompletionCanvas.nodes.filter((node) => (
+      isTimestampInAppDay(node?.completedAt, dayReference)
+    ))
     : [];
   const completionLayout = useMemo(
     () => buildWrappedCompletionLayout(completionNodes, windowSize.width),

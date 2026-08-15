@@ -41,4 +41,17 @@ describe('getDailyVisibleCards', () => {
 
     expect(getDailyVisibleCards(cards, 'mission', nextDay)).toBe(cards);
   });
+
+  it('does not restore an adopted mission subtree before the 04:30 boundary', () => {
+    const adoptedAt = new Date(2026, 6, 25, 23, 0, 0).getTime();
+    const beforeBoundary = new Date(2026, 6, 26, 4, 29, 59).getTime();
+    const atBoundary = new Date(2026, 6, 26, 4, 30, 0).getTime();
+    const cards = [
+      card('mission', ['root']),
+      card('root', [], ['mission'], { lastAdoptedAt: adoptedAt }),
+    ];
+
+    expect(getDailyVisibleCards(cards, 'mission', beforeBoundary)).toHaveLength(1);
+    expect(getDailyVisibleCards(cards, 'mission', atBoundary)).toBe(cards);
+  });
 });

@@ -15,6 +15,7 @@ import {
   useEffect, useMemo, useRef, useState,
 } from 'react';
 import { constrainAddRelation } from '../lib/cardInsertion';
+import { getAppDayDate } from '../lib/appDay';
 import {
   MATH_KEYBOARD_GRID_COLUMNS,
   MATH_KEYBOARD_GRID_ROWS,
@@ -410,10 +411,11 @@ export function FloatingControls({
   }
 
   const userLabel = user?.email || 'Unknown user';
-  const controlDateLabel = formatControlDate(currentTime);
+  const appDayDate = getAppDayDate(currentTime) || currentTime;
+  const controlDateLabel = formatControlDate(appDayDate);
   const controlTimeLabel = formatControlTime(currentTime);
-  const calendarDays = getCalendarDays(currentTime);
-  const currentDay = currentTime.getDate();
+  const calendarDays = getCalendarDays(appDayDate);
+  const currentDay = appDayDate.getDate();
 
   function renderSystemCardMainContent() {
     if (!systemCardExplanation) {
