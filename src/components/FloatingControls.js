@@ -22,7 +22,7 @@ import {
 } from '../lib/mathKeyboardConfig';
 import { styles } from '../styles/appStyles';
 
-const voidStampImage = require('../../assets/card/void_stamp_gray.png');
+const voidStampImage = require('../../assets/card/void_stamp_red.png');
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const DELETE_HOLD_MS = 500;
