@@ -24,7 +24,6 @@ function createMissionCard(childIds = []) {
     isMissionCard: true,
     locked: true,
     parentIds: [],
-    stamps: [],
     systemType: 'mission',
     text: 'Mission',
   };
@@ -38,7 +37,6 @@ function createTreasureCard(childIds = []) {
     isTreasureCard: true,
     locked: true,
     parentIds: [],
-    stamps: [],
     systemType: 'treasure',
     text: 'Treasure',
   };
@@ -96,7 +94,6 @@ export function push(value) {
       done: false,
       id: nextCardId,
       parentIds: [],
-      stamps: [],
       text: nextValue,
     },
   ];
@@ -112,7 +109,6 @@ function createCard(value) {
     done: false,
     id: nextCardId,
     parentIds: [],
-    stamps: [],
     text: value.trim(),
   };
   nextCardId += 1;
@@ -256,7 +252,6 @@ function normalizeIncomingCard(rawCard, nextGeneratedId) {
 
   const rawChildIds = Array.isArray(rawCard?.childIds) ? rawCard.childIds : [];
   const rawParentIds = Array.isArray(rawCard?.parentIds) ? rawCard.parentIds : [];
-  const rawStamps = Array.isArray(rawCard?.stamps) ? rawCard.stamps : [];
   const rawLastAdoptedAt = rawCard?.lastAdoptedAt;
   const lastAdoptedAt = Number(rawLastAdoptedAt);
   const scanRequestId = typeof rawCard?.scanRequestId === 'string'
@@ -290,24 +285,6 @@ function normalizeIncomingCard(rawCard, nextGeneratedId) {
 
   const childIds = rawChildIds.map(normalizeLinkedId).filter((id) => id !== null);
   const parentIds = rawParentIds.map(normalizeLinkedId).filter((id) => id !== null);
-  const stamps = rawStamps
-    .map((stamp, stampIndex) => {
-      const x = Number(stamp?.x);
-      const y = Number(stamp?.y);
-
-      if (!Number.isFinite(x) || !Number.isFinite(y)) {
-        return null;
-      }
-
-      return {
-        id: String(stamp?.id ?? `stamp-${stampIndex}`),
-        type: String(stamp?.type ?? 'clock'),
-        x: Math.min(Math.max(x, 0), 1),
-        y: Math.min(Math.max(y, 0), 1),
-      };
-    })
-    .filter(Boolean);
-
   const rawId = rawCard?.id;
   const systemType = (
     rawId === MISSION_CARD_ID || rawCard?.systemType === 'mission' || rawCard?.isMissionCard
@@ -338,7 +315,6 @@ function normalizeIncomingCard(rawCard, nextGeneratedId) {
     parentIds,
     ...(scanRequestId ? { scanRequestId } : {}),
     ...(scanStatus ? { scanStatus } : {}),
-    stamps,
     ...(isSystem ? {
       ...(systemType === 'mission'
         ? { isMissionCard: true }
@@ -545,36 +521,6 @@ export function setDoneAt(index, done = true) {
 
   stack = stack.map((card, itemIndex) => (
     itemIndex === index ? { ...card, done: Boolean(done) } : card
-  ));
-  emitChange();
-}
-
-export function addStampAt(index, stamp) {
-  if (index < 0 || index >= stack.length || !stamp || isSystemCard(stack[index])) {
-    return;
-  }
-
-  const x = Number(stamp.x);
-  const y = Number(stamp.y);
-
-  if (!Number.isFinite(x) || !Number.isFinite(y)) {
-    return;
-  }
-
-  const nextStamp = {
-    id: String(stamp.id ?? `stamp-${Date.now()}`),
-    type: String(stamp.type ?? 'clock'),
-    x: Math.min(Math.max(x, 0), 1),
-    y: Math.min(Math.max(y, 0), 1),
-  };
-
-  stack = stack.map((card, itemIndex) => (
-    itemIndex === index
-      ? {
-        ...card,
-        stamps: [...(Array.isArray(card.stamps) ? card.stamps : []), nextStamp],
-      }
-      : card
   ));
   emitChange();
 }

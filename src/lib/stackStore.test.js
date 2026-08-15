@@ -26,7 +26,6 @@ describe('system cards', () => {
         childIds: [],
         id: 1,
         parentIds: [],
-        stamps: [],
         text: 'Existing card',
       },
     ]);
