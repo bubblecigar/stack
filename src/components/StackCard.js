@@ -185,8 +185,18 @@ export function StackCard({
     outputRange: ['-8deg', '352deg'],
     extrapolate: 'clamp',
   });
+  const deleteStampScale = deleteHoldProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 0.08],
+    extrapolate: 'clamp',
+  });
   const deleteStampAnimatedStyle = isDoneCleanupPreviewCard
-    ? { transform: [{ rotate: deleteStampRotation }] }
+    ? {
+      transform: [
+        { rotate: deleteStampRotation },
+        { scale: deleteStampScale },
+      ],
+    }
     : null;
 
   useEffect(() => {
