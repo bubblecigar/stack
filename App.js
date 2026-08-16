@@ -1080,7 +1080,9 @@ export default function App() {
             .map((childId) => nodeIdByCardId.get(childId))
           : [],
         completedAt,
-        ...(card.doneVisualId ? { doneVisualId: card.doneVisualId } : {}),
+        ...(card.isMonsterCard && card.monsterVisualId
+          ? { monsterVisualId: card.monsterVisualId }
+          : {}),
         groupId: completionGroupId,
         id: nodeIdByCardId.get(card.id),
         originalId: card.id,
@@ -1217,6 +1219,9 @@ export default function App() {
     }
 
     removeAt(index);
+    if (removedCard.isMonsterCard) {
+      writeRemovedCardsToTreeCanvas(removedCards);
+    }
   }
 
   function handleToggleCollapse(index) {

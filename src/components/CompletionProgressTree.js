@@ -56,7 +56,7 @@ export function CompletionProgressTree({
           <DoneStampArtwork
             defaultArtworkStyle={styles.completionProgressDoneArtwork}
             key={entry.card.id || `completion-stamp-${entryIndex}`}
-            uri={resolveApiAssetUrl(getDoneMonsterPath(entry.card.doneVisualId))}
+            uri={resolveApiAssetUrl(getDoneMonsterPath(entry.card.monsterVisualId))}
             style={[
               styles.completionProgressStamp,
               {
