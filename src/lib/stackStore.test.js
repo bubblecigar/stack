@@ -4,6 +4,7 @@ import {
   clearCardImageAt,
   ensureSystemCards,
   getSnapshot,
+  hasChildOnlyInsertion,
   insertRelativeTo,
   loadCards,
   MISSION_CARD_ID,
@@ -104,6 +105,15 @@ describe('system cards', () => {
       done: false,
       text: '',
     });
+    expect(hasChildOnlyInsertion(getSnapshot()[monsterIndex])).toBe(false);
+
+    const insertedParentIndex = insertRelativeTo(monsterIndex, 'parent', 'Monster keeper');
+    const insertedParent = getSnapshot()[insertedParentIndex];
+    expect(insertedParent.id).not.toBe(targetId);
+    expect(insertedParent.childIds).toEqual([targetId]);
+    expect(getSnapshot().find((card) => card.id === targetId).parentIds).toEqual([
+      insertedParent.id,
+    ]);
 
     loadCards(getSnapshot());
     expect(getSnapshot().find((card) => card.id === targetId)).toMatchObject({

@@ -22,6 +22,7 @@ import {
   clearCardImageAt,
   ensureSystemCards,
   getSnapshot,
+  hasChildOnlyInsertion,
   insertRelativeTo,
   isSystemCard,
   loadCards,
@@ -980,7 +981,7 @@ export default function App() {
     const currentCard = currentIndex === null || currentIndex < 0
       ? null
       : cards[currentIndex];
-    if (isSystemCard(currentCard) && relation !== 'child') {
+    if (hasChildOnlyInsertion(currentCard) && relation !== 'child') {
       return;
     }
 
@@ -988,7 +989,7 @@ export default function App() {
       ? push('')
       : insertRelativeTo(currentIndex, relation, '');
 
-    if (nextIndex === currentIndex && isSystemCard(currentCard)) {
+    if (nextIndex === currentIndex && hasChildOnlyInsertion(currentCard)) {
       return;
     }
 
@@ -1418,7 +1419,7 @@ export default function App() {
   const insertionTargetCard = insertionTargetIndex === null || insertionTargetIndex < 0
     ? null
     : cards[insertionTargetIndex];
-  const isSystemInsertionTarget = isSystemCard(insertionTargetCard);
+  const isChildOnlyInsertionTarget = hasChildOnlyInsertion(insertionTargetCard);
   const nodeMapFocusedCardId = shouldRenderLeaf ? leafFocusedCardId : focusedCardId;
   const focusedSystemRootId = shouldRenderLeaf
     ? getFocusedSystemRootId(systemTreeCards, nodeMapFocusedCardId)
@@ -2136,7 +2137,7 @@ export default function App() {
         canDeleteCurrentCard={!shouldRenderLeaf && canDeleteCurrentCard}
         deleteTargetDone={Boolean(!shouldRenderLeaf && insertionTargetCard?.done)}
         audioEnabled={isAudioEnabled}
-        childInsertionOnly={isSystemInsertionTarget}
+        childInsertionOnly={isChildOnlyInsertionTarget}
         focusedSystemCardType={focusedSystemCardType}
         mathKeyboardKeys={mathKeyboardKeys}
         user={authUser}

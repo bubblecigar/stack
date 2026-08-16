@@ -25,6 +25,10 @@ export function isSystemCard(card) {
   return isMissionCard(card) || isTreasureCard(card) || isMonsterCard(card);
 }
 
+export function hasChildOnlyInsertion(card) {
+  return Boolean(isMissionCard(card) || isTreasureCard(card));
+}
+
 function createMissionCard(childIds = []) {
   return {
     childIds,
@@ -151,7 +155,7 @@ export function insertRelativeTo(targetIndex, relation, value = '') {
   }
 
   const targetCard = stack[targetIndex];
-  if (isSystemCard(targetCard) && relation !== 'child') {
+  if (hasChildOnlyInsertion(targetCard) && relation !== 'child') {
     return targetIndex;
   }
 
