@@ -69,7 +69,7 @@ import {
   moveInTraversal,
 } from './src/lib/cardTraversal';
 import { getDailyVisibleCards } from './src/lib/cardVisibility';
-import { chooseDoneVisualId, getDoneMonsterPath } from './src/lib/doneStampVisual';
+import { chooseDoneVisualId } from './src/lib/doneStampVisual';
 import {
   getAppDayKey,
   getNextAppDayBoundary,
@@ -454,7 +454,6 @@ export default function App() {
   const stack = useSyncExternalStore(subscribe, getSnapshot);
   const cards = useMemo(() => stack.map((card, index) => ({
     ...card,
-    doneStampUri: resolveApiAssetUrl(getDoneMonsterPath(card.doneVisualId)),
     isImageUpdating: updatingCardImageIds.has(card.id),
     isImageUploading: uploadingCardImageIds.has(card.id),
     imageUri: resolveApiAssetUrl(card.imagePath),
