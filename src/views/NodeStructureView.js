@@ -230,8 +230,13 @@ export function NodeStructureView({
           isFocused: entry.card.id === focusedCardId,
           isPreview: entry.card.id === PREVIEW_CARD_ID,
           isDone: Boolean(entry.card.done),
-          isSystem: Boolean(entry.card.isMissionCard || entry.card.isTreasureCard),
-          isSystemFocusActive: activeSystemCardIds.has(entry.card.id),
+          isSystem: Boolean(
+            entry.card.isMissionCard || entry.card.isTreasureCard || entry.card.isMonsterCard,
+          ),
+          isSystemFocusActive: (
+            activeSystemCardIds.has(entry.card.id)
+            || (entry.card.isMonsterCard && entry.card.id === focusedCardId)
+          ),
           isDeleteTarget: deleteTargetActive && entry.card.id === focusedCardId,
         };
       }),

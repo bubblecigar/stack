@@ -2,6 +2,7 @@ import {
   chooseDoneVisualId,
   DEFAULT_DONE_VISUAL_ID,
   getDoneMonsterPath,
+  getFirstMonsterDoneVisualId,
   getMonsterDoneVisualIds,
   normalizeDoneVisualId,
 } from './doneStampVisual';
@@ -24,5 +25,18 @@ describe('done stamp visuals', () => {
   it('rejects unknown persisted visuals', () => {
     expect(normalizeDoneVisualId('unknown-monster')).toBeNull();
     expect(getDoneMonsterPath('unknown-monster')).toBeNull();
+  });
+
+  it('selects only the first monster from a completed card group', () => {
+    const [firstMonsterId, secondMonsterId] = getMonsterDoneVisualIds();
+
+    expect(getFirstMonsterDoneVisualId([
+      { doneVisualId: DEFAULT_DONE_VISUAL_ID },
+      { doneVisualId: firstMonsterId },
+      { doneVisualId: secondMonsterId },
+    ])).toBe(firstMonsterId);
+    expect(getFirstMonsterDoneVisualId([
+      { doneVisualId: DEFAULT_DONE_VISUAL_ID },
+    ])).toBeNull();
   });
 });

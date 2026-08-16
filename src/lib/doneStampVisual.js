@@ -46,3 +46,11 @@ export function getDoneMonsterPath(visualId) {
 export function getMonsterDoneVisualIds() {
   return monsterAssets.map((asset) => asset.assetId);
 }
+
+export function getFirstMonsterDoneVisualId(cards = []) {
+  const firstMonsterCard = (Array.isArray(cards) ? cards : []).find((card) => (
+    Boolean(getDoneMonsterPath(card?.doneVisualId))
+  ));
+
+  return firstMonsterCard?.doneVisualId ?? null;
+}

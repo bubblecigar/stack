@@ -19,6 +19,47 @@ import { styles } from '../styles/appStyles';
 
 const voidStampBlueImage = require('../../assets/card/void_stamp_blue.png');
 
+function MonsterCardContent({ dialog, imageUri, layout }) {
+  const isLeaf = layout === 'leaf';
+
+  return (
+    <View style={[
+      styles.monsterCardContent,
+      isLeaf && styles.leafMonsterCardContent,
+    ]}
+    >
+      <CachedImage
+        accessibilityLabel="Summoned monster"
+        cachePolicy="memory-disk"
+        contentFit="contain"
+        source={getCardImageSource(imageUri)}
+        style={[
+          styles.monsterCardArtwork,
+          isLeaf && styles.leafMonsterCardArtwork,
+        ]}
+      />
+      <View style={[
+        styles.monsterCardDialog,
+        isLeaf && styles.leafMonsterCardDialog,
+      ]}
+      >
+        <Text style={[
+          styles.monsterCardDialogText,
+          isLeaf && styles.leafMonsterCardDialogText,
+        ]}
+        >
+          {dialog || 'Hello!'}
+        </Text>
+        <View style={[
+          styles.monsterCardDialogTail,
+          isLeaf && styles.leafMonsterCardDialogTail,
+        ]}
+        />
+      </View>
+    </View>
+  );
+}
+
 export function StackCard({
   card,
   visibleIndex,
@@ -64,6 +105,7 @@ export function StackCard({
     doneStampUri = null,
     isImageUploading = false,
     imageUri,
+    monsterImageUri = null,
     text,
   } = card;
 
@@ -71,7 +113,8 @@ export function StackCard({
   const isTreeCard = layout === 'tree';
   const isMission = isMissionCard || Boolean(card?.isMissionCard);
   const isTreasure = isTreasureCard || Boolean(card?.isTreasureCard);
-  const isSystem = isMission || isTreasure;
+  const isMonster = Boolean(card?.isMonsterCard || card?.systemType === 'monster');
+  const isSystem = isMission || isTreasure || isMonster;
   const SystemCardIcon = isMission ? AntDesign : MaterialCommunityIcons;
   const systemCardIconName = isMission ? 'printer' : 'treasure-chest-outline';
   const isMissionRootCard = isMissionRoot || Boolean(card?.isMissionRoot);
@@ -274,7 +317,8 @@ export function StackCard({
         isLeafCard && styles.leafCard,
         isLeafCard && imageUri && styles.leafImageCard,
         isTreeCard && styles.treeCard,
-        isTreeCard && isSystem && styles.treasureCard,
+        isTreeCard && isSystem && !isMonster && styles.treasureCard,
+        isTreeCard && isMonster && styles.monsterTreeCard,
         isLeafCard && isSystem && styles.leafTreasureCard,
         isTreeCard && isPreviewCard && styles.treePreviewCard,
         isTreeCard && isCollapsedStacked && styles.treeCollapsedCard,
@@ -285,7 +329,7 @@ export function StackCard({
           position: 'absolute',
         },
         isFocusedCard && !isLeafCard && styles.focusedCard,
-        isFocusedCard && isSystem && styles.focusedTreasureCard,
+        isFocusedCard && isSystem && !isMonster && styles.focusedTreasureCard,
         isDeleteProgressVisible && styles.deleteFocusedCard,
         isDoneCleanupChromeVisible && styles.doneCleanupFocusedCard,
         zLayer != null ? { zIndex: zLayer } : null,
@@ -448,7 +492,13 @@ export function StackCard({
             imageUri && styles.leafImageContentSurface,
           ]}
           >
-            {isSystem ? (
+            {isMonster ? (
+              <MonsterCardContent
+                dialog={text}
+                imageUri={monsterImageUri}
+                layout="leaf"
+              />
+            ) : isSystem ? (
               <View style={[
                 styles.leafContentLayer,
                 styles.leafTreasureContent,
@@ -573,7 +623,13 @@ export function StackCard({
           </View>
         ) : (
           <Animated.View style={{ opacity: 1 }}>
-            {isSystem ? (
+            {isMonster ? (
+              <MonsterCardContent
+                dialog={text}
+                imageUri={monsterImageUri}
+                layout="tree"
+              />
+            ) : isSystem ? (
               <View style={styles.treasureCardIconWrap}>
                 <SystemCardIcon
                   color="#F8FAFC"
