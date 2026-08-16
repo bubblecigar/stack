@@ -7,10 +7,12 @@ const DELETE_HOLD_MS = 500;
 export function DeleteHoldIndicator({
   active,
   onComplete,
+  progressValue,
   tone = 'delete',
   variant = 'cardFill',
 }) {
-  const progress = useRef(new Animated.Value(0)).current;
+  const internalProgress = useRef(new Animated.Value(0)).current;
+  const progress = progressValue ?? internalProgress;
   const animationRef = useRef(null);
   const completedRef = useRef(false);
   const [isVisualActive, setIsVisualActive] = useState(false);
@@ -20,7 +22,7 @@ export function DeleteHoldIndicator({
       animationRef.current.stop();
       animationRef.current = null;
     }
-  }, []);
+  }, [progress]);
 
   useEffect(() => {
     if (!active) {

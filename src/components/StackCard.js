@@ -140,6 +140,7 @@ export function StackCard({
   const dependencyText = '';
   const editingInputRef = useRef(null);
   const placeholderPulse = useRef(new Animated.Value(0)).current;
+  const deleteHoldProgress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (!isLeafCard || leafContentMode !== 'placeholder') {
@@ -177,6 +178,14 @@ export function StackCard({
     inputRange: [0, 1],
     outputRange: [0.18, 1],
   });
+  const deleteStampRotation = deleteHoldProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['-8deg', '352deg'],
+    extrapolate: 'clamp',
+  });
+  const deleteStampAnimatedStyle = isDoneCleanupPreviewCard
+    ? { transform: [{ rotate: deleteStampRotation }] }
+    : null;
 
   useEffect(() => {
     if (!isEditing || suppressEditingKeyboard) {
@@ -282,6 +291,7 @@ export function StackCard({
       {(isTreeCard || isLeafCard) && (isPrimaryDeleteHoldCard || isDoneCleanupPreviewCard) ? (
         <DeleteHoldIndicator
           active={isPrimaryDeleteHoldCard || isDoneCleanupPreviewCard}
+          progressValue={deleteHoldProgress}
           tone={isDoneCleanupPreviewCard ? 'done' : 'delete'}
           variant={isTreeCard ? 'treeCardFill' : 'cardFill'}
           onComplete={isPrimaryDeleteHoldCard ? () => {
@@ -527,6 +537,7 @@ export function StackCard({
                   style={[
                     styles.leafDoneStampOverlay,
                     imageUri && styles.imageDoneStampArtwork,
+                    deleteStampAnimatedStyle,
                   ]}
                 />
               </>
@@ -596,6 +607,7 @@ export function StackCard({
                   style={[
                     styles.treeDoneStampOverlay,
                     imageUri && styles.imageDoneStampArtwork,
+                    deleteStampAnimatedStyle,
                   ]}
                 />
               </>

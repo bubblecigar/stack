@@ -1,4 +1,4 @@
-import { Image, View } from 'react-native';
+import { Animated, Image } from 'react-native';
 import { Image as CachedImage } from 'expo-image';
 import { useState } from 'react';
 import { getCardImageSource } from '../lib/cardImageCache';
@@ -13,7 +13,7 @@ export function DoneStampArtwork({ defaultArtworkStyle, uri, style }) {
 
   if (!canShowMonster) {
     return (
-      <View pointerEvents="none" style={style}>
+      <Animated.View pointerEvents="none" style={style}>
         <Image
           source={doneStampImage}
           style={[
@@ -22,12 +22,12 @@ export function DoneStampArtwork({ defaultArtworkStyle, uri, style }) {
             defaultArtworkStyle,
           ]}
         />
-      </View>
+      </Animated.View>
     );
   }
 
   return (
-    <View pointerEvents="none" style={style}>
+    <Animated.View pointerEvents="none" style={style}>
       <Image source={doneStampRingsImage} style={styles.doneStampMonsterBackgroundArtwork} />
       <CachedImage
         cachePolicy="memory-disk"
@@ -36,6 +36,6 @@ export function DoneStampArtwork({ defaultArtworkStyle, uri, style }) {
         source={getCardImageSource(uri)}
         style={styles.doneStampMonsterArtwork}
       />
-    </View>
+    </Animated.View>
   );
 }
