@@ -511,7 +511,11 @@ export default function App() {
   const focusedControlCard = cards.find((card) => card.id === focusedControlCardId);
   const focusedSystemCardType = focusedControlCard?.isMissionCard
     ? 'mission'
-    : (focusedControlCard?.isTreasureCard ? 'treasure' : null);
+    : focusedControlCard?.isTreasureCard
+      ? 'treasure'
+      : focusedControlCard?.isMonsterCard
+        ? 'monster'
+        : null;
   const doneCleanupPreviewCardIds = useMemo(() => {
     if (!isDeleteHoldActive || !focusedControlCardId) {
       return new Set();
