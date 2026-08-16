@@ -17,6 +17,8 @@ import { DoneStampArtwork } from './DoneStampArtwork';
 import { getCardImageSource } from '../lib/cardImageCache';
 import { styles } from '../styles/appStyles';
 
+const voidStampBlueImage = require('../../assets/card/void_stamp_blue.png');
+
 export function StackCard({
   card,
   visibleIndex,
@@ -140,6 +142,7 @@ export function StackCard({
   const dependencyText = '';
   const editingInputRef = useRef(null);
   const placeholderPulse = useRef(new Animated.Value(0)).current;
+  const deleteHoldProgress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (!isLeafCard || leafContentMode !== 'placeholder') {
@@ -177,6 +180,29 @@ export function StackCard({
     inputRange: [0, 1],
     outputRange: [0.18, 1],
   });
+  const deleteStampRotation = deleteHoldProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['-8deg', '352deg'],
+    extrapolate: 'clamp',
+  });
+  const deleteStampScale = deleteHoldProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 0.08],
+    extrapolate: 'clamp',
+  });
+  const deleteCompletionFlashOpacity = deleteHoldProgress.interpolate({
+    inputRange: [0, 0.66, 0.9, 1],
+    outputRange: [0, 0, 0.8, 0],
+    extrapolate: 'clamp',
+  });
+  const deleteStampAnimatedStyle = isDoneCleanupPreviewCard
+    ? {
+      transform: [
+        { rotate: deleteStampRotation },
+        { scale: deleteStampScale },
+      ],
+    }
+    : null;
 
   useEffect(() => {
     if (!isEditing || suppressEditingKeyboard) {
@@ -282,11 +308,22 @@ export function StackCard({
       {(isTreeCard || isLeafCard) && (isPrimaryDeleteHoldCard || isDoneCleanupPreviewCard) ? (
         <DeleteHoldIndicator
           active={isPrimaryDeleteHoldCard || isDoneCleanupPreviewCard}
+          progressValue={deleteHoldProgress}
           tone={isDoneCleanupPreviewCard ? 'done' : 'delete'}
           variant={isTreeCard ? 'treeCardFill' : 'cardFill'}
           onComplete={isPrimaryDeleteHoldCard ? () => {
             onDeleteHoldComplete?.(index);
           } : undefined}
+        />
+      ) : null}
+
+      {(isTreeCard || isLeafCard) && (isPrimaryDeleteHoldCard || isDoneCleanupPreviewCard) ? (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.deleteCompletionFlash,
+            { opacity: deleteCompletionFlashOpacity },
+          ]}
         />
       ) : null}
 
@@ -523,10 +560,12 @@ export function StackCard({
                   />
                 ) : null}
                 <DoneStampArtwork
+                  overrideSource={isDoneCleanupPreviewCard ? voidStampBlueImage : null}
                   uri={doneStampUri}
                   style={[
                     styles.leafDoneStampOverlay,
                     imageUri && styles.imageDoneStampArtwork,
+                    deleteStampAnimatedStyle,
                   ]}
                 />
               </>
@@ -592,10 +631,12 @@ export function StackCard({
                   />
                 ) : null}
                 <DoneStampArtwork
+                  overrideSource={isDoneCleanupPreviewCard ? voidStampBlueImage : null}
                   uri={doneStampUri}
                   style={[
                     styles.treeDoneStampOverlay,
                     imageUri && styles.imageDoneStampArtwork,
+                    deleteStampAnimatedStyle,
                   ]}
                 />
               </>

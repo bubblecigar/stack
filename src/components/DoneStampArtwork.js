@@ -1,4 +1,4 @@
-import { Image, View } from 'react-native';
+import { Animated, Image } from 'react-native';
 import { Image as CachedImage } from 'expo-image';
 import { useState } from 'react';
 import { getCardImageSource } from '../lib/cardImageCache';
@@ -7,13 +7,26 @@ import { styles } from '../styles/appStyles';
 const doneStampImage = require('../../assets/card/done_stamp_gray.png');
 const doneStampRingsImage = require('../../assets/card/done_stamp_rings_gray.png');
 
-export function DoneStampArtwork({ defaultArtworkStyle, uri, style }) {
+export function DoneStampArtwork({
+  defaultArtworkStyle,
+  overrideSource,
+  uri,
+  style,
+}) {
   const [failedUri, setFailedUri] = useState(null);
   const canShowMonster = Boolean(uri && failedUri !== uri);
 
+  if (overrideSource) {
+    return (
+      <Animated.View pointerEvents="none" style={style}>
+        <Image source={overrideSource} style={styles.doneStampFullArtwork} />
+      </Animated.View>
+    );
+  }
+
   if (!canShowMonster) {
     return (
-      <View pointerEvents="none" style={style}>
+      <Animated.View pointerEvents="none" style={style}>
         <Image
           source={doneStampImage}
           style={[
@@ -22,12 +35,12 @@ export function DoneStampArtwork({ defaultArtworkStyle, uri, style }) {
             defaultArtworkStyle,
           ]}
         />
-      </View>
+      </Animated.View>
     );
   }
 
   return (
-    <View pointerEvents="none" style={style}>
+    <Animated.View pointerEvents="none" style={style}>
       <Image source={doneStampRingsImage} style={styles.doneStampMonsterBackgroundArtwork} />
       <CachedImage
         cachePolicy="memory-disk"
@@ -36,6 +49,6 @@ export function DoneStampArtwork({ defaultArtworkStyle, uri, style }) {
         source={getCardImageSource(uri)}
         style={styles.doneStampMonsterArtwork}
       />
-    </View>
+    </Animated.View>
   );
 }
