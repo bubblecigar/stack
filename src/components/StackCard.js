@@ -17,6 +17,8 @@ import { DoneStampArtwork } from './DoneStampArtwork';
 import { getCardImageSource } from '../lib/cardImageCache';
 import { styles } from '../styles/appStyles';
 
+const voidStampBlueImage = require('../../assets/card/void_stamp_blue.png');
+
 export function StackCard({
   card,
   visibleIndex,
@@ -533,6 +535,7 @@ export function StackCard({
                   />
                 ) : null}
                 <DoneStampArtwork
+                  overrideSource={isDoneCleanupPreviewCard ? voidStampBlueImage : null}
                   uri={doneStampUri}
                   style={[
                     styles.leafDoneStampOverlay,
@@ -603,6 +606,7 @@ export function StackCard({
                   />
                 ) : null}
                 <DoneStampArtwork
+                  overrideSource={isDoneCleanupPreviewCard ? voidStampBlueImage : null}
                   uri={doneStampUri}
                   style={[
                     styles.treeDoneStampOverlay,

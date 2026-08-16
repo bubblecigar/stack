@@ -7,9 +7,22 @@ import { styles } from '../styles/appStyles';
 const doneStampImage = require('../../assets/card/done_stamp_gray.png');
 const doneStampRingsImage = require('../../assets/card/done_stamp_rings_gray.png');
 
-export function DoneStampArtwork({ defaultArtworkStyle, uri, style }) {
+export function DoneStampArtwork({
+  defaultArtworkStyle,
+  overrideSource,
+  uri,
+  style,
+}) {
   const [failedUri, setFailedUri] = useState(null);
   const canShowMonster = Boolean(uri && failedUri !== uri);
+
+  if (overrideSource) {
+    return (
+      <Animated.View pointerEvents="none" style={style}>
+        <Image source={overrideSource} style={styles.doneStampFullArtwork} />
+      </Animated.View>
+    );
+  }
 
   if (!canShowMonster) {
     return (
