@@ -1,4 +1,7 @@
-import { normalizeDoneVisualId } from './src/lib/doneStampVisual';
+import {
+  DEFAULT_DONE_VISUAL_ID,
+  normalizeDoneVisualId,
+} from './src/lib/doneStampVisual';
 
 let nextCardId = 1;
 let stack = [];
@@ -14,8 +17,16 @@ function isTreasureCard(card) {
   return card?.id === TREASURE_CARD_ID || card?.systemType === 'treasure' || card?.isTreasureCard;
 }
 
+function isMonsterCard(card) {
+  return card?.systemType === 'monster' || card?.isMonsterCard;
+}
+
 export function isSystemCard(card) {
-  return isMissionCard(card) || isTreasureCard(card);
+  return isMissionCard(card) || isTreasureCard(card) || isMonsterCard(card);
+}
+
+export function hasChildOnlyInsertion(card) {
+  return Boolean(isMissionCard(card) || isTreasureCard(card));
 }
 
 function createMissionCard(childIds = []) {
@@ -144,7 +155,7 @@ export function insertRelativeTo(targetIndex, relation, value = '') {
   }
 
   const targetCard = stack[targetIndex];
-  if (isSystemCard(targetCard) && relation !== 'child') {
+  if (hasChildOnlyInsertion(targetCard) && relation !== 'child') {
     return targetIndex;
   }
 
@@ -270,6 +281,10 @@ function normalizeIncomingCard(rawCard, nextGeneratedId) {
     ? rawCard.imageMimeType
     : null;
   const doneVisualId = normalizeDoneVisualId(rawCard?.doneVisualId);
+  const normalizedMonsterVisualId = normalizeDoneVisualId(rawCard?.monsterVisualId);
+  const monsterVisualId = normalizedMonsterVisualId !== DEFAULT_DONE_VISUAL_ID
+    ? normalizedMonsterVisualId
+    : null;
 
   function normalizeLinkedId(id) {
     if (typeof id === 'string') {
@@ -296,13 +311,18 @@ function normalizeIncomingCard(rawCard, nextGeneratedId) {
     : (
       rawId === TREASURE_CARD_ID || rawCard?.systemType === 'treasure' || rawCard?.isTreasureCard
         ? 'treasure'
-        : null
+        : (rawCard?.systemType === 'monster' || rawCard?.isMonsterCard) && monsterVisualId
+          ? 'monster'
+          : null
     );
   const numericId = Number(rawId);
-  const id = systemType
-    ? (systemType === 'mission' ? MISSION_CARD_ID : TREASURE_CARD_ID)
-    : (Number.isInteger(numericId) && numericId > 0 ? numericId : nextGeneratedId);
+  const id = systemType === 'mission'
+    ? MISSION_CARD_ID
+    : systemType === 'treasure'
+      ? TREASURE_CARD_ID
+      : (Number.isInteger(numericId) && numericId > 0 ? numericId : nextGeneratedId);
   const isSystem = systemType !== null;
+  const isAnchoredSystem = systemType === 'mission' || systemType === 'treasure';
 
   return {
     childIds,
@@ -322,9 +342,14 @@ function normalizeIncomingCard(rawCard, nextGeneratedId) {
     ...(isSystem ? {
       ...(systemType === 'mission'
         ? { isMissionCard: true }
-        : { isTreasureCard: true }),
+        : systemType === 'treasure'
+          ? { isTreasureCard: true }
+          : {
+            isMonsterCard: true,
+            monsterVisualId,
+          }),
       locked: true,
-      parentIds: [],
+      ...(isAnchoredSystem ? { parentIds: [] } : {}),
       systemType,
     } : {}),
     text: !isSystem && imagePath ? '' : String(text),
@@ -393,26 +418,28 @@ export function ensureSystemCards(legacyArchivedRootIds = []) {
     MISSION_CARD_ID,
   ).filter((childId) => cardIds.has(childId));
 
-  const normalizedUserCards = stack.filter((card) => !isSystemCard(card)).map((card) => {
-    const systemParentIds = [
-      ...(missionChildIds.includes(card.id) ? [MISSION_CARD_ID] : []),
-      ...(treasureChildIds.includes(card.id) ? [TREASURE_CARD_ID] : []),
-    ];
-    if (systemParentIds.length === 0) {
-      return card;
-    }
+  const normalizedPersistentCards = stack
+    .filter((card) => !isMissionCard(card) && !isTreasureCard(card))
+    .map((card) => {
+      const systemParentIds = [
+        ...(missionChildIds.includes(card.id) ? [MISSION_CARD_ID] : []),
+        ...(treasureChildIds.includes(card.id) ? [TREASURE_CARD_ID] : []),
+      ];
+      if (systemParentIds.length === 0) {
+        return card;
+      }
 
-    return {
-      ...card,
-      parentIds: uniqueLinkedIds([
-        ...(Array.isArray(card.parentIds) ? card.parentIds : []),
-        ...systemParentIds,
-      ], card.id),
-    };
-  });
+      return {
+        ...card,
+        parentIds: uniqueLinkedIds([
+          ...(Array.isArray(card.parentIds) ? card.parentIds : []),
+          ...systemParentIds,
+        ], card.id),
+      };
+    });
   const nextStack = [
     createMissionCard(missionChildIds),
-    ...normalizedUserCards,
+    ...normalizedPersistentCards,
     createTreasureCard(treasureChildIds),
   ];
   const didChange = JSON.stringify(stack) !== JSON.stringify(nextStack);
@@ -536,20 +563,12 @@ export function setDoneAt(index, done = true, doneVisualId = null) {
   emitChange();
 }
 
-export function removeAt(index) {
-  if (index < 0 || index >= stack.length) {
-    return [];
-  }
-
+function removeCardAtIndex(index) {
   const removedCard = stack[index];
   const removedCardId = removedCard.id;
   const removedChildIds = Array.isArray(removedCard.childIds) ? removedCard.childIds : [];
   const removedParentIds = Array.isArray(removedCard.parentIds) ? removedCard.parentIds : [];
   const removedCards = [removedCard];
-
-  if (isSystemCard(removedCard)) {
-    return [];
-  }
 
   stack = stack
     .filter((_, itemIndex) => itemIndex !== index)
@@ -570,6 +589,14 @@ export function removeAt(index) {
     }));
   emitChange();
   return removedCards;
+}
+
+export function removeAt(index) {
+  if (index < 0 || index >= stack.length || hasChildOnlyInsertion(stack[index])) {
+    return [];
+  }
+
+  return removeCardAtIndex(index);
 }
 
 export function adoptMissionRoot(rootId) {
@@ -763,6 +790,98 @@ export function removeDoneCascadeAt(index) {
     candidateIds.delete(removedCard.id);
   }
 
+  return removedCards;
+}
+
+export function replaceDoneCascadeWithMonsterAt(index, monsterVisualId) {
+  if (index < 0 || index >= stack.length || !stack[index]?.done) {
+    return [];
+  }
+
+  const normalizedMonsterVisualId = normalizeDoneVisualId(monsterVisualId);
+  if (!normalizedMonsterVisualId || normalizedMonsterVisualId === DEFAULT_DONE_VISUAL_ID) {
+    return [];
+  }
+
+  const originalRoot = stack[index];
+  const rootId = originalRoot.id;
+  const candidateIds = new Set();
+  const visitedIds = new Set();
+
+  function collectCandidateIds(cardId) {
+    if (visitedIds.has(cardId)) {
+      return;
+    }
+
+    visitedIds.add(cardId);
+    candidateIds.add(cardId);
+
+    const card = stack.find((item) => item.id === cardId);
+    (card?.childIds || []).forEach(collectCandidateIds);
+  }
+
+  collectCandidateIds(rootId);
+  candidateIds.delete(rootId);
+
+  const {
+    doneVisualId: _unusedDoneVisualId,
+    imageMimeType: _unusedImageMimeType,
+    imagePath: _unusedImagePath,
+    scanRequestId: _unusedScanRequestId,
+    scanStatus: _unusedScanStatus,
+    ...rootCard
+  } = originalRoot;
+  const removedCards = [originalRoot];
+
+  stack = stack.map((card, cardIndex) => (
+    cardIndex === index
+      ? {
+        ...rootCard,
+        done: false,
+        isMonsterCard: true,
+        locked: true,
+        monsterVisualId: normalizedMonsterVisualId,
+        systemType: 'monster',
+        text: '',
+      }
+      : card
+  ));
+
+  while (true) {
+    const nextDoneIndex = stack.findIndex((card) => (
+      candidateIds.has(card.id) && card.done && !isSystemCard(card)
+    ));
+
+    if (nextDoneIndex === -1) {
+      break;
+    }
+
+    const removedCard = stack[nextDoneIndex];
+    const removedChildIds = Array.isArray(removedCard.childIds) ? removedCard.childIds : [];
+    const removedParentIds = Array.isArray(removedCard.parentIds) ? removedCard.parentIds : [];
+
+    stack = stack
+      .filter((_, cardIndex) => cardIndex !== nextDoneIndex)
+      .map((card) => ({
+        ...card,
+        childIds: uniqueLinkedIds(
+          card.childIds.flatMap((id) => (
+            id === removedCard.id ? removedChildIds : [id]
+          )),
+          card.id,
+        ),
+        parentIds: uniqueLinkedIds(
+          card.parentIds.flatMap((id) => (
+            id === removedCard.id ? removedParentIds : [id]
+          )),
+          card.id,
+        ),
+      }));
+    removedCards.push(removedCard);
+    candidateIds.delete(removedCard.id);
+  }
+
+  emitChange();
   return removedCards;
 }
 

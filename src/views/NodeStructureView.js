@@ -5,6 +5,7 @@ import {
   View,
 } from 'react-native';
 import AntDesign from '@expo/vector-icons/AntDesign';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { buildTreeLayout } from '../lib/treeLayout';
 import { buildPreviewCards, PREVIEW_CARD_ID } from '../lib/previewCards';
@@ -23,6 +24,24 @@ const LEAF_STACK_HEIGHT = 360;
 const LEAF_ADD_CARD_VISIBLE_TOP_OFFSET = 90;
 
 function SystemMapNode({ entry }) {
+  if (entry.card.isMonsterCard) {
+    return (
+      <FontAwesome
+        color={entry.isSystemFocusActive ? '#0EA5E9' : '#94A3B8'}
+        name="exclamation-circle"
+        size={9}
+        style={[
+          styles.nodeViewMapMonsterIcon,
+          entry.isSystemFocusActive && styles.nodeViewMapMonsterIconActive,
+          {
+            left: entry.x,
+            top: entry.y,
+          },
+        ]}
+      />
+    );
+  }
+
   const Icon = AntDesign;
 
   return (
@@ -230,8 +249,13 @@ export function NodeStructureView({
           isFocused: entry.card.id === focusedCardId,
           isPreview: entry.card.id === PREVIEW_CARD_ID,
           isDone: Boolean(entry.card.done),
-          isSystem: Boolean(entry.card.isMissionCard || entry.card.isTreasureCard),
-          isSystemFocusActive: activeSystemCardIds.has(entry.card.id),
+          isSystem: Boolean(
+            entry.card.isMissionCard || entry.card.isTreasureCard || entry.card.isMonsterCard,
+          ),
+          isSystemFocusActive: (
+            activeSystemCardIds.has(entry.card.id)
+            || (entry.card.isMonsterCard && entry.card.id === focusedCardId)
+          ),
           isDeleteTarget: deleteTargetActive && entry.card.id === focusedCardId,
         };
       }),

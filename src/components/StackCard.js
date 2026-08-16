@@ -19,6 +19,29 @@ import { styles } from '../styles/appStyles';
 
 const voidStampBlueImage = require('../../assets/card/void_stamp_blue.png');
 
+function MonsterCardContent({ imageUri, layout }) {
+  const isLeaf = layout === 'leaf';
+
+  return (
+    <View style={[
+      styles.monsterCardContent,
+      isLeaf && styles.leafMonsterCardContent,
+    ]}
+    >
+      <CachedImage
+        accessibilityLabel="Summoned monster"
+        cachePolicy="memory-disk"
+        contentFit="contain"
+        source={getCardImageSource(imageUri)}
+        style={[
+          styles.monsterCardArtwork,
+          isLeaf && styles.leafMonsterCardArtwork,
+        ]}
+      />
+    </View>
+  );
+}
+
 export function StackCard({
   card,
   visibleIndex,
@@ -64,6 +87,7 @@ export function StackCard({
     doneStampUri = null,
     isImageUploading = false,
     imageUri,
+    monsterImageUri = null,
     text,
   } = card;
 
@@ -71,7 +95,8 @@ export function StackCard({
   const isTreeCard = layout === 'tree';
   const isMission = isMissionCard || Boolean(card?.isMissionCard);
   const isTreasure = isTreasureCard || Boolean(card?.isTreasureCard);
-  const isSystem = isMission || isTreasure;
+  const isMonster = Boolean(card?.isMonsterCard || card?.systemType === 'monster');
+  const isSystem = isMission || isTreasure || isMonster;
   const SystemCardIcon = isMission ? AntDesign : MaterialCommunityIcons;
   const systemCardIconName = isMission ? 'printer' : 'treasure-chest-outline';
   const isMissionRootCard = isMissionRoot || Boolean(card?.isMissionRoot);
@@ -110,13 +135,20 @@ export function StackCard({
     && doneCleanupPreviewCardIds?.has?.(id)
   );
   const isDoneCleanupProgressVisible = isDoneCleanupPreviewCard;
-  const isDoneCleanupChromeVisible = isDoneCleanupPreviewCard && isPrimaryDeleteHoldCard;
-  const isDeleteProgressVisible = isTreeDeleteHoldActive && !isDoneCleanupProgressVisible;
+  const isBlueDeleteTheme = isDoneCleanupPreviewCard || (
+    isMonster && isPrimaryDeleteHoldCard
+  );
+  const isDoneCleanupChromeVisible = isBlueDeleteTheme && isPrimaryDeleteHoldCard;
+  const isDeleteProgressVisible = (
+    isTreeDeleteHoldActive
+    && !isDoneCleanupProgressVisible
+    && !isMonster
+  );
   const editButtonColor = isTreeDeleteHoldActive
-    ? (done ? '#0EA5E9' : '#DC2626')
+    ? (done || isMonster ? '#0EA5E9' : '#DC2626')
     : (isTreeCard ? '#0EA5E9' : '#0F172A');
   const editButtonPressedColor = isTreeDeleteHoldActive
-    ? (done ? '#0284C7' : '#B91C1C')
+    ? (done || isMonster ? '#0284C7' : '#B91C1C')
     : (isTreeCard ? '#0284C7' : '#2563EB');
   const treasureIconSize = isLeafCard ? 40 : 30;
   const canShowDoneStamp = done && !isSystem;
@@ -309,7 +341,7 @@ export function StackCard({
         <DeleteHoldIndicator
           active={isPrimaryDeleteHoldCard || isDoneCleanupPreviewCard}
           progressValue={deleteHoldProgress}
-          tone={isDoneCleanupPreviewCard ? 'done' : 'delete'}
+          tone={isBlueDeleteTheme ? 'done' : 'delete'}
           variant={isTreeCard ? 'treeCardFill' : 'cardFill'}
           onComplete={isPrimaryDeleteHoldCard ? () => {
             onDeleteHoldComplete?.(index);
@@ -448,7 +480,12 @@ export function StackCard({
             imageUri && styles.leafImageContentSurface,
           ]}
           >
-            {isSystem ? (
+            {isMonster ? (
+              <MonsterCardContent
+                imageUri={monsterImageUri}
+                layout="leaf"
+              />
+            ) : isSystem ? (
               <View style={[
                 styles.leafContentLayer,
                 styles.leafTreasureContent,
@@ -573,7 +610,12 @@ export function StackCard({
           </View>
         ) : (
           <Animated.View style={{ opacity: 1 }}>
-            {isSystem ? (
+            {isMonster ? (
+              <MonsterCardContent
+                imageUri={monsterImageUri}
+                layout="tree"
+              />
+            ) : isSystem ? (
               <View style={styles.treasureCardIconWrap}>
                 <SystemCardIcon
                   color="#F8FAFC"

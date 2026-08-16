@@ -369,6 +369,18 @@ export const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 3,
   },
+  nodeViewMapMonsterIcon: {
+    position: 'absolute',
+    width: 10,
+    height: 10,
+    marginLeft: -5,
+    marginTop: -5,
+    lineHeight: 10,
+    textAlign: 'center',
+  },
+  nodeViewMapMonsterIconActive: {
+    transform: [{ scale: 1.28 }],
+  },
   nodeViewMapNodeFocused: {
     width: 12,
     height: 12,
@@ -611,6 +623,26 @@ export const styles = StyleSheet.create({
     shadowColor: '#64748B',
     shadowOpacity: 0.2,
     shadowRadius: 14,
+  },
+  monsterCardContent: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  monsterCardArtwork: {
+    width: 112,
+    height: 112,
+  },
+  leafMonsterCardContent: {
+    paddingVertical: 32,
+  },
+  leafMonsterCardArtwork: {
+    width: 230,
+    height: 230,
   },
   treasureCardIconWrap: {
     width: 40,

@@ -4,11 +4,14 @@ import {
   clearCardImageAt,
   ensureSystemCards,
   getSnapshot,
+  hasChildOnlyInsertion,
   insertRelativeTo,
   loadCards,
   MISSION_CARD_ID,
   push,
+  removeAt,
   restoreRootTree,
+  replaceDoneCascadeWithMonsterAt,
   setCardImageAt,
   setDoneAt,
   setScanStateAt,
@@ -65,6 +68,70 @@ describe('system cards', () => {
       done: false,
       doneVisualId,
     });
+  });
+
+  it('replaces a completed cascade root with a persistent locked monster card', () => {
+    const parentIndex = push('Parent');
+    const parentId = getSnapshot()[parentIndex].id;
+    const targetIndex = insertRelativeTo(parentIndex, 'child', 'Void target');
+    const targetId = getSnapshot()[targetIndex].id;
+    const childIndex = insertRelativeTo(targetIndex, 'child', 'Completed child');
+    const childId = getSnapshot()[childIndex].id;
+    const survivingIndex = insertRelativeTo(childIndex, 'child', 'Not done');
+    const survivingId = getSnapshot()[survivingIndex].id;
+    const [monsterVisualId] = getMonsterDoneVisualIds();
+
+    setDoneAt(targetIndex, true, monsterVisualId);
+    setDoneAt(childIndex, true);
+    const removedCards = replaceDoneCascadeWithMonsterAt(targetIndex, monsterVisualId);
+
+    expect(removedCards.map((card) => card.id)).toEqual([targetId, childId]);
+    expect(getSnapshot().find((card) => card.id === targetId)).toMatchObject({
+      childIds: [survivingId],
+      done: false,
+      isMonsterCard: true,
+      locked: true,
+      monsterVisualId,
+      parentIds: [parentId],
+      systemType: 'monster',
+      text: '',
+    });
+    expect(getSnapshot().find((card) => card.id === parentId).childIds).toEqual([targetId]);
+    expect(getSnapshot().find((card) => card.id === survivingId).parentIds).toEqual([targetId]);
+
+    const monsterIndex = getSnapshot().findIndex((card) => card.id === targetId);
+    updateAt(monsterIndex, 'Edited');
+    setDoneAt(monsterIndex, true);
+    expect(getSnapshot()[monsterIndex]).toMatchObject({
+      done: false,
+      text: '',
+    });
+    expect(hasChildOnlyInsertion(getSnapshot()[monsterIndex])).toBe(false);
+
+    const insertedParentIndex = insertRelativeTo(monsterIndex, 'parent', 'Monster keeper');
+    const insertedParent = getSnapshot()[insertedParentIndex];
+    expect(insertedParent.id).not.toBe(targetId);
+    expect(insertedParent.childIds).toEqual([targetId]);
+    expect(getSnapshot().find((card) => card.id === targetId).parentIds).toEqual([
+      insertedParent.id,
+    ]);
+
+    loadCards(getSnapshot());
+    expect(getSnapshot().find((card) => card.id === targetId)).toMatchObject({
+      isMonsterCard: true,
+      monsterVisualId,
+      systemType: 'monster',
+    });
+
+    const reloadedMonsterIndex = getSnapshot().findIndex((card) => card.id === targetId);
+    expect(removeAt(reloadedMonsterIndex)).toHaveLength(1);
+    expect(getSnapshot().some((card) => card.id === targetId)).toBe(false);
+    expect(getSnapshot().find((card) => card.id === insertedParent.id).childIds).toEqual([
+      survivingId,
+    ]);
+    expect(getSnapshot().find((card) => card.id === survivingId).parentIds).toEqual([
+      insertedParent.id,
+    ]);
   });
 
   it('adopts a mission root and its descendants as an independent user tree', () => {

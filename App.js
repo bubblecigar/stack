@@ -22,6 +22,7 @@ import {
   clearCardImageAt,
   ensureSystemCards,
   getSnapshot,
+  hasChildOnlyInsertion,
   insertRelativeTo,
   isSystemCard,
   loadCards,
@@ -29,6 +30,7 @@ import {
   push,
   removeAt,
   removeDoneCascadeAt,
+  replaceDoneCascadeWithMonsterAt,
   restoreRootTree,
   setCardImageAt,
   setScanStateAt,
@@ -69,7 +71,11 @@ import {
   moveInTraversal,
 } from './src/lib/cardTraversal';
 import { getDailyVisibleCards } from './src/lib/cardVisibility';
-import { chooseDoneVisualId } from './src/lib/doneStampVisual';
+import {
+  chooseDoneVisualId,
+  getDoneMonsterPath,
+  getFirstMonsterDoneVisualId,
+} from './src/lib/doneStampVisual';
 import {
   getAppDayKey,
   getNextAppDayBoundary,
@@ -384,7 +390,9 @@ function getSystemTreeCards(cards) {
     ),
   }));
   const missionCards = renderCards.filter((card) => card.isMissionCard);
-  const normalCards = renderCards.filter((card) => !isSystemCard(card));
+  const normalCards = renderCards.filter((card) => (
+    !card.isMissionCard && !card.isTreasureCard
+  ));
   const treasureCards = renderCards.filter((card) => card.isTreasureCard);
 
   return [...missionCards, ...normalCards, ...treasureCards];
@@ -457,6 +465,7 @@ export default function App() {
     isImageUpdating: updatingCardImageIds.has(card.id),
     isImageUploading: uploadingCardImageIds.has(card.id),
     imageUri: resolveApiAssetUrl(card.imagePath),
+    monsterImageUri: resolveApiAssetUrl(getDoneMonsterPath(card.monsterVisualId)),
     index,
   })), [stack, updatingCardImageIds, uploadingCardImageIds]);
   useEffect(() => {
@@ -503,7 +512,11 @@ export default function App() {
   const focusedControlCard = cards.find((card) => card.id === focusedControlCardId);
   const focusedSystemCardType = focusedControlCard?.isMissionCard
     ? 'mission'
-    : (focusedControlCard?.isTreasureCard ? 'treasure' : null);
+    : focusedControlCard?.isTreasureCard
+      ? 'treasure'
+      : focusedControlCard?.isMonsterCard
+        ? 'monster'
+        : null;
   const doneCleanupPreviewCardIds = useMemo(() => {
     if (!isDeleteHoldActive || !focusedControlCardId) {
       return new Set();
@@ -968,7 +981,7 @@ export default function App() {
     const currentCard = currentIndex === null || currentIndex < 0
       ? null
       : cards[currentIndex];
-    if (isSystemCard(currentCard) && relation !== 'child') {
+    if (hasChildOnlyInsertion(currentCard) && relation !== 'child') {
       return;
     }
 
@@ -976,7 +989,7 @@ export default function App() {
       ? push('')
       : insertRelativeTo(currentIndex, relation, '');
 
-    if (nextIndex === currentIndex && isSystemCard(currentCard)) {
+    if (nextIndex === currentIndex && hasChildOnlyInsertion(currentCard)) {
       return;
     }
 
@@ -1067,7 +1080,9 @@ export default function App() {
             .map((childId) => nodeIdByCardId.get(childId))
           : [],
         completedAt,
-        ...(card.doneVisualId ? { doneVisualId: card.doneVisualId } : {}),
+        ...(card.isMonsterCard && card.monsterVisualId
+          ? { monsterVisualId: card.monsterVisualId }
+          : {}),
         groupId: completionGroupId,
         id: nodeIdByCardId.get(card.id),
         originalId: card.id,
@@ -1107,7 +1122,7 @@ export default function App() {
 
   function handleDeleteCard(index) {
     const removedCard = cards[index];
-    if (!removedCard || isSystemCard(removedCard)) {
+    if (!removedCard || hasChildOnlyInsertion(removedCard)) {
       return;
     }
 
@@ -1119,12 +1134,20 @@ export default function App() {
     const removedCards = removedCard.done
       ? cards.filter((card) => doneCleanupCardIds.has(card.id))
       : [removedCard];
+    const summonedMonsterVisualId = getFirstMonsterDoneVisualId(removedCards);
+    const willSummonMonster = Boolean(removedCard.done && summonedMonsterVisualId);
     const removedCardIds = new Set(removedCards.map((card) => card.id));
     const removedIndexes = removedCards
       .map((card) => card.index)
       .filter((itemIndex) => Number.isInteger(itemIndex))
       .sort((left, right) => left - right);
-    const nextCardCount = Math.max(cards.length - removedIndexes.length, 0);
+    const actuallyRemovedIndexes = willSummonMonster
+      ? removedIndexes.filter((itemIndex) => itemIndex !== index)
+      : removedIndexes;
+    const summonedMonsterIndex = willSummonMonster
+      ? index - actuallyRemovedIndexes.filter((itemIndex) => itemIndex < index).length
+      : null;
+    const nextCardCount = Math.max(cards.length - actuallyRemovedIndexes.length, 0);
 
     function adjustIndexAfterRemoval(currentIndex) {
       if (currentIndex === null || currentIndex === undefined) {
@@ -1133,10 +1156,12 @@ export default function App() {
 
       const currentCard = cards[currentIndex];
       if (currentCard && removedCardIds.has(currentCard.id)) {
-        return null;
+        return willSummonMonster && currentCard.id === removedCard.id
+          ? summonedMonsterIndex
+          : null;
       }
 
-      const removedBeforeCount = removedIndexes.filter((removedIndex) => (
+      const removedBeforeCount = actuallyRemovedIndexes.filter((removedIndex) => (
         removedIndex < currentIndex
       )).length;
       const adjustedIndex = currentIndex - removedBeforeCount;
@@ -1184,12 +1209,19 @@ export default function App() {
     }
 
     if (removedCard.done) {
-      removeDoneCascadeAt(index);
+      if (willSummonMonster) {
+        replaceDoneCascadeWithMonsterAt(index, summonedMonsterVisualId);
+      } else {
+        removeDoneCascadeAt(index);
+      }
       writeRemovedCardsToTreeCanvas(removedCards);
       return;
     }
 
     removeAt(index);
+    if (removedCard.isMonsterCard) {
+      writeRemovedCardsToTreeCanvas(removedCards);
+    }
   }
 
   function handleToggleCollapse(index) {
@@ -1392,7 +1424,7 @@ export default function App() {
   const insertionTargetCard = insertionTargetIndex === null || insertionTargetIndex < 0
     ? null
     : cards[insertionTargetIndex];
-  const isSystemInsertionTarget = isSystemCard(insertionTargetCard);
+  const isChildOnlyInsertionTarget = hasChildOnlyInsertion(insertionTargetCard);
   const nodeMapFocusedCardId = shouldRenderLeaf ? leafFocusedCardId : focusedCardId;
   const focusedSystemRootId = shouldRenderLeaf
     ? getFocusedSystemRootId(systemTreeCards, nodeMapFocusedCardId)
@@ -1401,12 +1433,12 @@ export default function App() {
     ? (
       visibleTopCardIndex !== null
       && visibleTopCardIndex >= 0
-      && !isSystemCard(cards[visibleTopCardIndex])
+      && !hasChildOnlyInsertion(cards[visibleTopCardIndex])
     )
     : (
       focusedCardIndex !== null
       && focusedCardIndex >= 0
-      && !isSystemCard(cards[focusedCardIndex])
+      && !hasChildOnlyInsertion(cards[focusedCardIndex])
     );
   const nodeMapCards = shouldRenderLeaf
     ? (focusedSystemRootId
@@ -2108,9 +2140,12 @@ export default function App() {
 
       <FloatingControls
         canDeleteCurrentCard={!shouldRenderLeaf && canDeleteCurrentCard}
-        deleteTargetDone={Boolean(!shouldRenderLeaf && insertionTargetCard?.done)}
+        deleteTargetDone={Boolean(
+          !shouldRenderLeaf
+          && (insertionTargetCard?.done || insertionTargetCard?.isMonsterCard)
+        )}
         audioEnabled={isAudioEnabled}
-        childInsertionOnly={isSystemInsertionTarget}
+        childInsertionOnly={isChildOnlyInsertionTarget}
         focusedSystemCardType={focusedSystemCardType}
         mathKeyboardKeys={mathKeyboardKeys}
         user={authUser}
