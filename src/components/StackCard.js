@@ -19,7 +19,7 @@ import { styles } from '../styles/appStyles';
 
 const voidStampBlueImage = require('../../assets/card/void_stamp_blue.png');
 
-function MonsterCardContent({ dialog, imageUri, layout }) {
+function MonsterCardContent({ imageUri, layout }) {
   const isLeaf = layout === 'leaf';
 
   return (
@@ -38,24 +38,6 @@ function MonsterCardContent({ dialog, imageUri, layout }) {
           isLeaf && styles.leafMonsterCardArtwork,
         ]}
       />
-      <View style={[
-        styles.monsterCardDialog,
-        isLeaf && styles.leafMonsterCardDialog,
-      ]}
-      >
-        <Text style={[
-          styles.monsterCardDialogText,
-          isLeaf && styles.leafMonsterCardDialogText,
-        ]}
-        >
-          {dialog || 'Hello!'}
-        </Text>
-        <View style={[
-          styles.monsterCardDialogTail,
-          isLeaf && styles.leafMonsterCardDialogTail,
-        ]}
-        />
-      </View>
     </View>
   );
 }
@@ -494,7 +476,6 @@ export function StackCard({
           >
             {isMonster ? (
               <MonsterCardContent
-                dialog={text}
                 imageUri={monsterImageUri}
                 layout="leaf"
               />
@@ -625,7 +606,6 @@ export function StackCard({
           <Animated.View style={{ opacity: 1 }}>
             {isMonster ? (
               <MonsterCardContent
-                dialog={text}
                 imageUri={monsterImageUri}
                 layout="tree"
               />

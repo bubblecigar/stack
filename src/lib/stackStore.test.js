@@ -92,7 +92,7 @@ describe('system cards', () => {
       monsterVisualId,
       parentIds: [parentId],
       systemType: 'monster',
-      text: 'Hello!',
+      text: '',
     });
     expect(getSnapshot().find((card) => card.id === parentId).childIds).toEqual([targetId]);
     expect(getSnapshot().find((card) => card.id === survivingId).parentIds).toEqual([targetId]);
@@ -102,7 +102,7 @@ describe('system cards', () => {
     setDoneAt(monsterIndex, true);
     expect(getSnapshot()[monsterIndex]).toMatchObject({
       done: false,
-      text: 'Hello!',
+      text: '',
     });
 
     loadCards(getSnapshot());

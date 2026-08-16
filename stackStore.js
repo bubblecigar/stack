@@ -838,7 +838,7 @@ export function replaceDoneCascadeWithMonsterAt(index, monsterVisualId) {
         locked: true,
         monsterVisualId: normalizedMonsterVisualId,
         systemType: 'monster',
-        text: 'Hello!',
+        text: '',
       }
       : card
   ));
