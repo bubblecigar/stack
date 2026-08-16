@@ -369,6 +369,18 @@ export const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 3,
   },
+  nodeViewMapMonsterIcon: {
+    position: 'absolute',
+    width: 10,
+    height: 10,
+    marginLeft: -5,
+    marginTop: -5,
+    lineHeight: 10,
+    textAlign: 'center',
+  },
+  nodeViewMapMonsterIconActive: {
+    transform: [{ scale: 1.28 }],
+  },
   nodeViewMapNodeFocused: {
     width: 12,
     height: 12,
