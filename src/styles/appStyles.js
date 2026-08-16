@@ -612,17 +612,6 @@ export const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 14,
   },
-  monsterTreeCard: {
-    height: 112,
-    minHeight: 112,
-    maxHeight: 112,
-    padding: 0,
-    backgroundColor: 'transparent',
-    borderWidth: 0,
-    shadowOpacity: 0,
-    shadowRadius: 0,
-    elevation: 0,
-  },
   monsterCardContent: {
     position: 'absolute',
     left: 0,
