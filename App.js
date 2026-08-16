@@ -2109,6 +2109,7 @@ export default function App() {
 
       <FloatingControls
         canDeleteCurrentCard={!shouldRenderLeaf && canDeleteCurrentCard}
+        deleteTargetDone={Boolean(!shouldRenderLeaf && insertionTargetCard?.done)}
         audioEnabled={isAudioEnabled}
         childInsertionOnly={isSystemInsertionTarget}
         focusedSystemCardType={focusedSystemCardType}

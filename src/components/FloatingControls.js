@@ -22,7 +22,8 @@ import {
 } from '../lib/mathKeyboardConfig';
 import { styles } from '../styles/appStyles';
 
-const voidStampImage = require('../../assets/card/void_stamp_red.png');
+const voidStampBlueImage = require('../../assets/card/void_stamp_blue.png');
+const voidStampRedImage = require('../../assets/card/void_stamp_red.png');
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const DELETE_HOLD_MS = 500;
@@ -197,6 +198,7 @@ export function FloatingControls({
   onUpdateMathKeyboardKey,
   settingsPanelCloseRequest = 0,
   canDeleteCurrentCard = false,
+  deleteTargetDone = false,
   childInsertionOnly = false,
   disableCardInsertion = false,
   focusedSystemCardType = null,
@@ -828,7 +830,7 @@ export function FloatingControls({
           >
             <Image
               pointerEvents="none"
-              source={voidStampImage}
+              source={deleteTargetDone ? voidStampBlueImage : voidStampRedImage}
               style={styles.deleteStampIcon}
             />
           </Pressable>
