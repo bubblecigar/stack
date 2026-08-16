@@ -135,13 +135,20 @@ export function StackCard({
     && doneCleanupPreviewCardIds?.has?.(id)
   );
   const isDoneCleanupProgressVisible = isDoneCleanupPreviewCard;
-  const isDoneCleanupChromeVisible = isDoneCleanupPreviewCard && isPrimaryDeleteHoldCard;
-  const isDeleteProgressVisible = isTreeDeleteHoldActive && !isDoneCleanupProgressVisible;
+  const isBlueDeleteTheme = isDoneCleanupPreviewCard || (
+    isMonster && isPrimaryDeleteHoldCard
+  );
+  const isDoneCleanupChromeVisible = isBlueDeleteTheme && isPrimaryDeleteHoldCard;
+  const isDeleteProgressVisible = (
+    isTreeDeleteHoldActive
+    && !isDoneCleanupProgressVisible
+    && !isMonster
+  );
   const editButtonColor = isTreeDeleteHoldActive
-    ? (done ? '#0EA5E9' : '#DC2626')
+    ? (done || isMonster ? '#0EA5E9' : '#DC2626')
     : (isTreeCard ? '#0EA5E9' : '#0F172A');
   const editButtonPressedColor = isTreeDeleteHoldActive
-    ? (done ? '#0284C7' : '#B91C1C')
+    ? (done || isMonster ? '#0284C7' : '#B91C1C')
     : (isTreeCard ? '#0284C7' : '#2563EB');
   const treasureIconSize = isLeafCard ? 40 : 30;
   const canShowDoneStamp = done && !isSystem;
@@ -334,7 +341,7 @@ export function StackCard({
         <DeleteHoldIndicator
           active={isPrimaryDeleteHoldCard || isDoneCleanupPreviewCard}
           progressValue={deleteHoldProgress}
-          tone={isDoneCleanupPreviewCard ? 'done' : 'delete'}
+          tone={isBlueDeleteTheme ? 'done' : 'delete'}
           variant={isTreeCard ? 'treeCardFill' : 'cardFill'}
           onComplete={isPrimaryDeleteHoldCard ? () => {
             onDeleteHoldComplete?.(index);

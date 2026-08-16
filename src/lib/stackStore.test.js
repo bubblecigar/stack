@@ -9,6 +9,7 @@ import {
   loadCards,
   MISSION_CARD_ID,
   push,
+  removeAt,
   restoreRootTree,
   replaceDoneCascadeWithMonsterAt,
   setCardImageAt,
@@ -121,6 +122,16 @@ describe('system cards', () => {
       monsterVisualId,
       systemType: 'monster',
     });
+
+    const reloadedMonsterIndex = getSnapshot().findIndex((card) => card.id === targetId);
+    expect(removeAt(reloadedMonsterIndex)).toHaveLength(1);
+    expect(getSnapshot().some((card) => card.id === targetId)).toBe(false);
+    expect(getSnapshot().find((card) => card.id === insertedParent.id).childIds).toEqual([
+      survivingId,
+    ]);
+    expect(getSnapshot().find((card) => card.id === survivingId).parentIds).toEqual([
+      insertedParent.id,
+    ]);
   });
 
   it('adopts a mission root and its descendants as an independent user tree', () => {

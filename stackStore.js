@@ -563,20 +563,12 @@ export function setDoneAt(index, done = true, doneVisualId = null) {
   emitChange();
 }
 
-export function removeAt(index) {
-  if (index < 0 || index >= stack.length) {
-    return [];
-  }
-
+function removeCardAtIndex(index) {
   const removedCard = stack[index];
   const removedCardId = removedCard.id;
   const removedChildIds = Array.isArray(removedCard.childIds) ? removedCard.childIds : [];
   const removedParentIds = Array.isArray(removedCard.parentIds) ? removedCard.parentIds : [];
   const removedCards = [removedCard];
-
-  if (isSystemCard(removedCard)) {
-    return [];
-  }
 
   stack = stack
     .filter((_, itemIndex) => itemIndex !== index)
@@ -597,6 +589,14 @@ export function removeAt(index) {
     }));
   emitChange();
   return removedCards;
+}
+
+export function removeAt(index) {
+  if (index < 0 || index >= stack.length || hasChildOnlyInsertion(stack[index])) {
+    return [];
+  }
+
+  return removeCardAtIndex(index);
 }
 
 export function adoptMissionRoot(rootId) {

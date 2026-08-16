@@ -1120,7 +1120,7 @@ export default function App() {
 
   function handleDeleteCard(index) {
     const removedCard = cards[index];
-    if (!removedCard || isSystemCard(removedCard)) {
+    if (!removedCard || hasChildOnlyInsertion(removedCard)) {
       return;
     }
 
@@ -1428,12 +1428,12 @@ export default function App() {
     ? (
       visibleTopCardIndex !== null
       && visibleTopCardIndex >= 0
-      && !isSystemCard(cards[visibleTopCardIndex])
+      && !hasChildOnlyInsertion(cards[visibleTopCardIndex])
     )
     : (
       focusedCardIndex !== null
       && focusedCardIndex >= 0
-      && !isSystemCard(cards[focusedCardIndex])
+      && !hasChildOnlyInsertion(cards[focusedCardIndex])
     );
   const nodeMapCards = shouldRenderLeaf
     ? (focusedSystemRootId
@@ -2135,7 +2135,10 @@ export default function App() {
 
       <FloatingControls
         canDeleteCurrentCard={!shouldRenderLeaf && canDeleteCurrentCard}
-        deleteTargetDone={Boolean(!shouldRenderLeaf && insertionTargetCard?.done)}
+        deleteTargetDone={Boolean(
+          !shouldRenderLeaf
+          && (insertionTargetCard?.done || insertionTargetCard?.isMonsterCard)
+        )}
         audioEnabled={isAudioEnabled}
         childInsertionOnly={isChildOnlyInsertionTarget}
         focusedSystemCardType={focusedSystemCardType}
