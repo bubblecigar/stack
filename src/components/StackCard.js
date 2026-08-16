@@ -190,6 +190,11 @@ export function StackCard({
     outputRange: [1, 0.08],
     extrapolate: 'clamp',
   });
+  const deleteCompletionFlashOpacity = deleteHoldProgress.interpolate({
+    inputRange: [0, 0.66, 0.9, 1],
+    outputRange: [0, 0, 0.8, 0],
+    extrapolate: 'clamp',
+  });
   const deleteStampAnimatedStyle = isDoneCleanupPreviewCard
     ? {
       transform: [
@@ -309,6 +314,16 @@ export function StackCard({
           onComplete={isPrimaryDeleteHoldCard ? () => {
             onDeleteHoldComplete?.(index);
           } : undefined}
+        />
+      ) : null}
+
+      {(isTreeCard || isLeafCard) && (isPrimaryDeleteHoldCard || isDoneCleanupPreviewCard) ? (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.deleteCompletionFlash,
+            { opacity: deleteCompletionFlashOpacity },
+          ]}
         />
       ) : null}
 

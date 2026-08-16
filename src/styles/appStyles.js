@@ -270,6 +270,17 @@ export const styles = StyleSheet.create({
   doneProgressCardFillSurface: {
     backgroundColor: 'rgba(37, 99, 235, 0.14)',
   },
+  deleteCompletionFlash: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    zIndex: 40,
+    elevation: 40,
+  },
   leafAddPreviewOverlay: {
     position: 'absolute',
     left: 0,
