@@ -376,10 +376,13 @@ function getSystemSubtreeCards(cards, systemCardId) {
   return cards.filter((card) => subtreeIds.has(card.id));
 }
 
-function getSystemTreeCards(cards, treasureInventory = []) {
+function getSystemTreeCards(cards, treasureInventory = [], hasCollectionHistory = false) {
   const renderCards = cards.map((card) => ({
     ...card,
-    ...(card.isTreasureCard ? { inventoryMonsters: treasureInventory } : {}),
+    ...(card.isTreasureCard ? {
+      hasCollectionHistory,
+      inventoryMonsters: treasureInventory,
+    } : {}),
     isArchivedRoot: (
       card.id !== TREASURE_CARD_ID
       && Array.isArray(card.parentIds)
@@ -515,8 +518,12 @@ export default function App() {
     cards.find((card) => card.id === focusedCardId),
   );
   const systemTreeCards = useMemo(
-    () => getSystemTreeCards(dailyVisibleCards, treasureInventory),
-    [dailyVisibleCards, treasureInventory],
+    () => getSystemTreeCards(
+      dailyVisibleCards,
+      treasureInventory,
+      collections.length > 0,
+    ),
+    [collections.length, dailyVisibleCards, treasureInventory],
   );
   const leafScopeFocusedCardId = shouldRenderLeaf
     ? leafFocusedCardId

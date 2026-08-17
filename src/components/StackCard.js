@@ -86,6 +86,7 @@ export function StackCard({
     index,
     done = false,
     doneStampUri = null,
+    hasCollectionHistory = false,
     isImageUploading = false,
     imageUri,
     inventoryMonsters = [],
@@ -310,7 +311,10 @@ export function StackCard({
         isTreeCard && styles.treeCard,
         isTreeCard && isSystem && styles.treasureCard,
         isLeafCard && isSystem && styles.leafTreasureCard,
-        isLeafCard && isTreasure && styles.leafTreasureInventoryCard,
+        isLeafCard
+          && isTreasure
+          && hasCollectionHistory
+          && styles.leafTreasureInventoryCard,
         isTreeCard && isPreviewCard && styles.treePreviewCard,
         isTreeCard && isCollapsedStacked && styles.treeCollapsedCard,
         isEditing && isLeafCard && styles.leafEditingCard,
@@ -488,7 +492,7 @@ export function StackCard({
                 imageUri={monsterImageUri}
                 layout="leaf"
               />
-            ) : isTreasure ? (
+            ) : isTreasure && hasCollectionHistory ? (
               <TreasureInventoryContent monsters={inventoryMonsters} />
             ) : isSystem ? (
               <View style={[
