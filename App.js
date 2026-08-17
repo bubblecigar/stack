@@ -56,6 +56,7 @@ import {
   deleteCardImage,
   failScanJobImageUpload,
   getMe,
+  loadRemoteCollections,
   loadRemoteCards,
   loadScanJob,
   loadRemoteUserData,
@@ -76,7 +77,6 @@ import {
   getDoneMonsterPath,
   getFirstMonsterDoneVisualId,
 } from './src/lib/doneStampVisual';
-import { getCompletionMonsterInventory } from './src/lib/monsterInventory';
 import {
   getAppDayKey,
   getNextAppDayBoundary,
@@ -456,6 +456,7 @@ export default function App() {
   const [mathKeyboardKeys, setMathKeyboardKeys] = useState(() => normalizeMathKeyboardKeys([]));
   const [currentDayReference, setCurrentDayReference] = useState(() => Date.now());
   const [treeCompletionCanvas, setTreeCompletionCanvas] = useState(EMPTY_TREE_COMPLETION_CANVAS);
+  const [collections, setCollections] = useState([]);
   const [previousDayTreeCompletionCanvas, setPreviousDayTreeCompletionCanvas] = useState(
     EMPTY_TREE_COMPLETION_CANVAS,
   );
@@ -493,12 +494,14 @@ export default function App() {
     [currentDayReference],
   );
   const treasureInventory = useMemo(
-    () => getCompletionMonsterInventory(treeCompletionCanvas, currentDayReference)
-      .map((inventoryMonster) => ({
-        ...inventoryMonster,
-        imageUri: resolveApiAssetUrl(getDoneMonsterPath(inventoryMonster.monsterVisualId)),
+    () => collections
+      .filter((collection) => collection.available && collection.type === 'monster')
+      .map((collection) => ({
+        id: collection.id,
+        imageUri: resolveApiAssetUrl(getDoneMonsterPath(collection.itemId)),
+        monsterVisualId: collection.itemId,
       })),
-    [currentDayReference, treeCompletionCanvas],
+    [collections],
   );
   const previousTreeCompletionCanvasKey = useMemo(
     () => `${TREE_COMPLETION_CANVAS_KEY}:${getPreviousAppDayKey(currentDayReference)}`,
@@ -764,6 +767,7 @@ export default function App() {
     setCollapsedNodeIds(new Set());
     setTreeCompletionCanvas(EMPTY_TREE_COMPLETION_CANVAS);
     setPreviousDayTreeCompletionCanvas(EMPTY_TREE_COMPLETION_CANVAS);
+    setCollections([]);
     hasLoadedDefaultStack.current = false;
     hasLoadedRemoteCards.current = false;
     restoredUiStateUserIdRef.current = null;
@@ -863,11 +867,12 @@ export default function App() {
     async function loadCardsForUser() {
       try {
         const [
-          [cardsResult, todayCanvasResult, previousDayCanvasResult],
+          [cardsResult, collectionsResult, todayCanvasResult, previousDayCanvasResult],
           localUiStateResult,
         ] = await Promise.all([
           Promise.all([
             loadRemoteCards(authToken),
+            loadRemoteCollections(authToken),
             loadRemoteUserData(authToken, currentTreeCompletionCanvasKey),
             loadRemoteUserData(authToken, previousTreeCompletionCanvasKey),
           ]),
@@ -879,6 +884,9 @@ export default function App() {
         }
 
         const nextCards = Array.isArray(cardsResult.cards) ? cardsResult.cards : [];
+        const nextCollections = Array.isArray(collectionsResult.collections)
+          ? collectionsResult.collections
+          : [];
         const restoredUiState = localUiStateResult.state;
 
         isApplyingRemoteCards.current = true;
@@ -887,6 +895,7 @@ export default function App() {
         isApplyingRemoteCards.current = false;
         const loadedCards = getSnapshot();
         setTreeCompletionCanvas(todayCanvasResult.value || EMPTY_TREE_COMPLETION_CANVAS);
+        setCollections(nextCollections);
         setPreviousDayTreeCompletionCanvas(
           previousDayCanvasResult.value || EMPTY_TREE_COMPLETION_CANVAS,
         );
@@ -1125,7 +1134,12 @@ export default function App() {
         authToken,
         completionCanvasKey,
         nextCanvas,
-      ).catch(() => {});
+      )
+        .then(() => loadRemoteCollections(authToken))
+        .then((result) => {
+          setCollections(Array.isArray(result.collections) ? result.collections : []);
+        })
+        .catch(() => {});
     }
   }
 

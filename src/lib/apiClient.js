@@ -144,6 +144,29 @@ export function saveRemoteCards(token, cards) {
   });
 }
 
+export function loadRemoteCollections(token) {
+  return requestJson(`${API_BASE_URL}/api/collections`, {
+    headers: authHeaders(token),
+  });
+}
+
+export function consumeRemoteCollection(
+  token,
+  collectionId,
+  actionType,
+  actionReference = null,
+) {
+  return requestJson(`${API_BASE_URL}/api/collections/consume`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify({
+      actionReference,
+      actionType,
+      collectionId,
+    }),
+  });
+}
+
 export function loadRemoteUserData(token, key) {
   return requestJson(`${API_BASE_URL}/api/user-data?key=${encodeURIComponent(key)}`, {
     headers: authHeaders(token),

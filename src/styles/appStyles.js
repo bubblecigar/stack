@@ -667,8 +667,8 @@ export const styles = StyleSheet.create({
   treasureInventoryHeadingText: {
     color: '#94A3B8',
     fontFamily: 'Kalam_400Regular',
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: 18,
+    lineHeight: 23,
   },
   treasureInventoryGrid: {
     position: 'absolute',

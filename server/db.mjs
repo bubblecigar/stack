@@ -44,6 +44,20 @@ db.exec(`
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   );
 
+  CREATE TABLE IF NOT EXISTS collection_consumptions (
+    id TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    collection_id TEXT NOT NULL,
+    consumed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    action_type TEXT NOT NULL,
+    action_reference TEXT,
+    UNIQUE (user_id, collection_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS collection_consumptions_user_idx
+  ON collection_consumptions (user_id, consumed_at);
+
   CREATE TABLE IF NOT EXISTS password_reset_tokens (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
@@ -436,6 +450,145 @@ export function deleteUserData(userId, key) {
     DELETE FROM user_data
     WHERE user_id = ? AND data_key = ?
   `).run(userId, key);
+}
+
+const MONSTER_COLLECTION_ITEM_PATTERN = /^monster-[a-f0-9]{16}$/;
+
+function normalizeCollectionText(value, maximumLength) {
+  return String(value || '').trim().slice(0, maximumLength);
+}
+
+function getDerivedCollections(userId) {
+  const completionRows = db.prepare(`
+    SELECT data_key, data_json
+    FROM user_data
+    WHERE user_id = ? AND data_key LIKE 'treeCompletionCanvas:%'
+    ORDER BY data_key ASC
+  `).all(userId);
+  const collections = [];
+
+  completionRows.forEach((row) => {
+    let canvas;
+    try {
+      canvas = JSON.parse(row.data_json);
+    } catch {
+      return;
+    }
+
+    const nodes = Array.isArray(canvas?.nodes) ? canvas.nodes : [];
+    nodes.forEach((node, nodeIndex) => {
+      const itemId = normalizeCollectionText(node?.monsterVisualId, 128);
+      const collectedAt = Number(node?.completedAt);
+      if (!MONSTER_COLLECTION_ITEM_PATTERN.test(itemId) || !Number.isFinite(collectedAt)) {
+        return;
+      }
+
+      const sourceId = normalizeCollectionText(node?.id, 256)
+        || `node-${collectedAt}-${nodeIndex}`;
+      collections.push({
+        collectedAt,
+        id: `${row.data_key}:${sourceId}`,
+        itemId,
+        sourceId,
+        sourceKey: row.data_key,
+        type: 'monster',
+      });
+    });
+  });
+
+  return collections.sort((left, right) => (
+    left.collectedAt - right.collectedAt || left.id.localeCompare(right.id)
+  ));
+}
+
+export function listCollections(userId) {
+  const consumptions = db.prepare(`
+    SELECT collection_id, consumed_at, action_type, action_reference
+    FROM collection_consumptions
+    WHERE user_id = ?
+  `).all(userId);
+  const consumptionByCollectionId = new Map(consumptions.map((consumption) => [
+    consumption.collection_id,
+    consumption,
+  ]));
+
+  return getDerivedCollections(userId).map((collection) => {
+    const consumption = consumptionByCollectionId.get(collection.id);
+    return {
+      ...collection,
+      available: !consumption,
+      consumedAt: consumption?.consumed_at ?? null,
+      actionType: consumption?.action_type ?? null,
+      actionReference: consumption?.action_reference ?? null,
+    };
+  });
+}
+
+export function consumeCollection(userId, collectionId, actionType, actionReference = null) {
+  const normalizedCollectionId = normalizeCollectionText(collectionId, 512);
+  const normalizedActionType = normalizeCollectionText(actionType, 80);
+  const normalizedActionReference = normalizeCollectionText(actionReference, 256) || null;
+  if (!normalizedCollectionId || !normalizedActionType) {
+    const error = new Error('Collection ID and action type are required.');
+    error.status = 400;
+    throw error;
+  }
+
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    const collection = getDerivedCollections(userId).find((item) => (
+      item.id === normalizedCollectionId
+    ));
+    if (!collection) {
+      const error = new Error('Collection item not found.');
+      error.status = 404;
+      throw error;
+    }
+
+    const existingConsumption = db.prepare(`
+      SELECT id
+      FROM collection_consumptions
+      WHERE user_id = ? AND collection_id = ?
+    `).get(userId, normalizedCollectionId);
+    if (existingConsumption) {
+      const error = new Error('Collection item has already been consumed.');
+      error.status = 409;
+      throw error;
+    }
+
+    db.prepare(`
+      INSERT INTO collection_consumptions (
+        id,
+        user_id,
+        collection_id,
+        action_type,
+        action_reference
+      ) VALUES (?, ?, ?, ?, ?)
+    `).run(
+      randomBytes(16).toString('hex'),
+      userId,
+      normalizedCollectionId,
+      normalizedActionType,
+      normalizedActionReference,
+    );
+    const consumption = db.prepare(`
+      SELECT consumed_at, action_type, action_reference
+      FROM collection_consumptions
+      WHERE user_id = ? AND collection_id = ?
+    `).get(userId, normalizedCollectionId);
+    db.exec('COMMIT');
+
+    return {
+      ...collection,
+      available: false,
+      consumedAt: consumption.consumed_at,
+      actionType: consumption.action_type,
+      actionReference: consumption.action_reference,
+    };
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
+  }
 }
 
 function scanJobView(row) {
