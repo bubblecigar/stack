@@ -7,8 +7,8 @@
     "quality": 82,
     "size": 768
   },
-  "uniqueAssetCount": 13,
-  "sourceCount": 14,
+  "uniqueAssetCount": 19,
+  "sourceCount": 20,
   "files": [
     {
       "assetId": "monster-626c03f45fafd12a",
@@ -135,6 +135,60 @@
       "width": 768,
       "source": "OpenAI Playground 2026-08-15 at 16.58.43 (4).png",
       "sourceSha256": "dda0be0133a27bc497807ab7aa25854711a371759a9a65a5052ea116b41169b7"
+    },
+    {
+      "assetId": "food-04f5ad5288f12b51",
+      "bytes": 68502,
+      "file": "food-04f5ad5288f12b51.webp",
+      "height": 768,
+      "width": 768,
+      "source": "OpenAI Playground 2026-08-17 at 16.21.03 (0).png",
+      "sourceSha256": "a111821c1a984e0b8f5b5d7e79bfb0e87beb5605587bb272c485b5e107f360d0"
+    },
+    {
+      "assetId": "food-059b7f69c637a36e",
+      "bytes": 63018,
+      "file": "food-059b7f69c637a36e.webp",
+      "height": 768,
+      "width": 768,
+      "source": "OpenAI Playground 2026-08-17 at 16.21.56.png",
+      "sourceSha256": "f1dba658d1e2b46352ecf0b1b98f7514e7d48426f231cbfc4e0437ba08fa4893"
+    },
+    {
+      "assetId": "food-6d0636129f44c267",
+      "bytes": 125406,
+      "file": "food-6d0636129f44c267.webp",
+      "height": 768,
+      "width": 768,
+      "source": "OpenAI Playground 2026-08-17 at 16.22.55.png",
+      "sourceSha256": "fae9a9f946e85e7abeea992b6d07ab7ebd4853d44c5b1c6528f416b07edbad7c"
+    },
+    {
+      "assetId": "food-55d0a9915f1cc66f",
+      "bytes": 79926,
+      "file": "food-55d0a9915f1cc66f.webp",
+      "height": 768,
+      "width": 768,
+      "source": "OpenAI Playground 2026-08-17 at 16.23.32.png",
+      "sourceSha256": "480960abe9993de74e5b377b5f472ea440e82955fcbb0797cc50e51660b84c32"
+    },
+    {
+      "assetId": "food-ad8410fb0ea7e6f8",
+      "bytes": 174474,
+      "file": "food-ad8410fb0ea7e6f8.webp",
+      "height": 768,
+      "width": 768,
+      "source": "OpenAI Playground 2026-08-17 at 16.24.16.png",
+      "sourceSha256": "86b1681265df8fbb352a32f9a878f3fa976cdaaf9836b9937b000b000250e938"
+    },
+    {
+      "assetId": "food-d5e5cbe061e631cb",
+      "bytes": 61132,
+      "file": "food-d5e5cbe061e631cb.webp",
+      "height": 768,
+      "width": 768,
+      "source": "OpenAI Playground 2026-08-17 at 16.26.36.png",
+      "sourceSha256": "48a09230398ffdb6c47d6ca8123cbb8e73721a445fc74fa58990fac2d2ca1f03"
     }
   ]
 }
