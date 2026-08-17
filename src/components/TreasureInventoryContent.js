@@ -17,7 +17,7 @@ export function TreasureInventoryContent({ monsters = [] }) {
       </View>
       <View style={styles.treasureInventoryHeading}>
         <Text style={styles.treasureInventoryHeadingText}>
-          Collections
+          Compendium
         </Text>
       </View>
       <View style={styles.treasureInventoryGrid}>
