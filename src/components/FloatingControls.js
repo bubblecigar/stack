@@ -21,7 +21,6 @@ import {
   MATH_KEYBOARD_GRID_ROWS,
 } from '../lib/mathKeyboardConfig';
 import { styles } from '../styles/appStyles';
-import { TreasureInventoryContent } from './TreasureInventoryContent';
 
 const voidStampBlueImage = require('../../assets/card/void_stamp_blue.png');
 const voidStampRedImage = require('../../assets/card/void_stamp_red.png');
@@ -207,7 +206,6 @@ export function FloatingControls({
   childInsertionOnly = false,
   disableCardInsertion = false,
   focusedSystemCardType = null,
-  treasureInventory = [],
   rootDoubleTapEnabled = false,
 }) {
   const shouldShowDelete = canDeleteCurrentCard;
@@ -428,10 +426,6 @@ export function FloatingControls({
   function renderSystemCardMainContent() {
     if (!systemCardExplanation) {
       return null;
-    }
-
-    if (focusedSystemCardType === 'treasure') {
-      return <TreasureInventoryContent monsters={treasureInventory} />;
     }
 
     return (
