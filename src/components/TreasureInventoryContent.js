@@ -1,5 +1,6 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Image as CachedImage } from 'expo-image';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 import { getCardImageSource } from '../lib/cardImageCache';
 import { styles } from '../styles/appStyles';
 
@@ -15,10 +16,30 @@ export function TreasureInventoryContent({ monsters = [] }) {
         <View style={styles.treasureInventoryRing} />
         <View style={styles.treasureInventoryRing} />
       </View>
-      <View style={styles.treasureInventoryHeading}>
-        <Text style={styles.treasureInventoryHeadingText}>
-          Compendium
-        </Text>
+      <View
+        accessibilityLabel="Treasure collection"
+        accessible
+        style={styles.treasureInventoryHeading}
+      >
+        <View style={styles.treasureCardIconWrap}>
+          <MaterialCommunityIcons
+            color="#F8FAFC"
+            name="treasure-chest-outline"
+            size={30}
+            style={styles.treasureCardIconHighlight}
+          />
+          <MaterialCommunityIcons
+            color="#6B7280"
+            name="treasure-chest-outline"
+            size={30}
+            style={styles.treasureCardIconShadow}
+          />
+          <MaterialCommunityIcons
+            color="#9CA3AF"
+            name="treasure-chest-outline"
+            size={30}
+          />
+        </View>
       </View>
       <View style={styles.treasureInventoryGrid}>
         {Array.from({ length: cellCount }, (_, index) => {

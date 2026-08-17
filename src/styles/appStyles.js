@@ -627,7 +627,7 @@ export const styles = StyleSheet.create({
   leafTreasureInventoryCard: {
     padding: 0,
     overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#D9DEE5',
   },
   treasureInventoryContent: {
     position: 'absolute',
@@ -636,7 +636,7 @@ export const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
   },
   treasureInventoryBinding: {
     position: 'absolute',
@@ -647,6 +647,7 @@ export const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
+    opacity: 0,
   },
   treasureInventoryRingRow: {
     position: 'absolute',
@@ -655,6 +656,7 @@ export const styles = StyleSheet.create({
     top: 9.5,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    opacity: 0,
   },
   treasureInventoryRing: {
     width: 8,
@@ -666,8 +668,10 @@ export const styles = StyleSheet.create({
   },
   treasureInventoryHeading: {
     position: 'absolute',
-    left: 34,
-    top: 44,
+    left: 0,
+    right: 0,
+    top: 24,
+    alignItems: 'center',
   },
   treasureInventoryHeadingText: {
     color: '#94A3B8',
@@ -689,17 +693,14 @@ export const styles = StyleSheet.create({
   treasureInventoryCell: {
     width: '13.1%',
     borderRadius: 3,
-    borderWidth: 1,
-    borderColor: '#D8DEE8',
-    backgroundColor: 'rgba(226, 232, 240, 0.55)',
+    backgroundColor: 'rgba(248, 250, 252, 0.42)',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
   treasureInventoryCellEmpty: {
-    borderColor: '#E2E8F0',
-    backgroundColor: 'rgba(248, 250, 252, 0.46)',
-    opacity: 0.5,
+    backgroundColor: 'rgba(148, 163, 184, 0.42)',
+    opacity: 0.65,
   },
   treasureInventoryMonster: {
     width: '94%',
