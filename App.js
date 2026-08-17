@@ -76,6 +76,7 @@ import {
   getDoneMonsterPath,
   getFirstMonsterDoneVisualId,
 } from './src/lib/doneStampVisual';
+import { getCompletionMonsterInventory } from './src/lib/monsterInventory';
 import {
   getAppDayKey,
   getNextAppDayBoundary,
@@ -490,6 +491,14 @@ export default function App() {
   const currentTreeCompletionCanvasKey = useMemo(
     () => getTreeCompletionCanvasKey(currentDayReference),
     [currentDayReference],
+  );
+  const treasureInventory = useMemo(
+    () => getCompletionMonsterInventory(treeCompletionCanvas, currentDayReference)
+      .map((inventoryMonster) => ({
+        ...inventoryMonster,
+        imageUri: resolveApiAssetUrl(getDoneMonsterPath(inventoryMonster.monsterVisualId)),
+      })),
+    [currentDayReference, treeCompletionCanvas],
   );
   const previousTreeCompletionCanvasKey = useMemo(
     () => `${TREE_COMPLETION_CANVAS_KEY}:${getPreviousAppDayKey(currentDayReference)}`,
@@ -2148,6 +2157,7 @@ export default function App() {
         childInsertionOnly={isChildOnlyInsertionTarget}
         focusedSystemCardType={focusedSystemCardType}
         mathKeyboardKeys={mathKeyboardKeys}
+        treasureInventory={treasureInventory}
         user={authUser}
         layoutMode={layoutMode}
         onAudioEnabledChange={setIsAudioEnabled}

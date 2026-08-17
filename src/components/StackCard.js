@@ -14,6 +14,7 @@ import { Image as CachedImage } from 'expo-image';
 import { useEffect, useRef, useState } from 'react';
 import { DeleteHoldIndicator } from './DeleteHoldIndicator';
 import { DoneStampArtwork } from './DoneStampArtwork';
+import { TreasureInventoryContent } from './TreasureInventoryContent';
 import { getCardImageSource } from '../lib/cardImageCache';
 import { styles } from '../styles/appStyles';
 
@@ -87,6 +88,7 @@ export function StackCard({
     doneStampUri = null,
     isImageUploading = false,
     imageUri,
+    inventoryMonsters = [],
     monsterImageUri = null,
     text,
   } = card;
@@ -308,6 +310,7 @@ export function StackCard({
         isTreeCard && styles.treeCard,
         isTreeCard && isSystem && styles.treasureCard,
         isLeafCard && isSystem && styles.leafTreasureCard,
+        isLeafCard && isTreasure && styles.leafTreasureInventoryCard,
         isTreeCard && isPreviewCard && styles.treePreviewCard,
         isTreeCard && isCollapsedStacked && styles.treeCollapsedCard,
         isEditing && isLeafCard && styles.leafEditingCard,
@@ -485,6 +488,8 @@ export function StackCard({
                 imageUri={monsterImageUri}
                 layout="leaf"
               />
+            ) : isTreasure ? (
+              <TreasureInventoryContent monsters={inventoryMonsters} />
             ) : isSystem ? (
               <View style={[
                 styles.leafContentLayer,
