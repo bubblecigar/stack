@@ -238,6 +238,47 @@ describe('system cards', () => {
     ]);
   });
 
+  it('keeps promoted children in a deleted root parent\'s position', () => {
+    loadCards([
+      {
+        childIds: [3, 4],
+        id: 1,
+        parentIds: [],
+        text: 'Parent',
+      },
+      {
+        childIds: [],
+        id: 2,
+        parentIds: [],
+        text: 'Following root',
+      },
+      {
+        childIds: [],
+        id: 3,
+        parentIds: [1],
+        text: 'First child',
+      },
+      {
+        childIds: [],
+        id: 4,
+        parentIds: [1],
+        text: 'Second child',
+      },
+    ]);
+
+    const parentIndex = getSnapshot().findIndex((card) => card.id === 1);
+    removeAt(parentIndex);
+
+    const activeRootIds = getSnapshot()
+      .filter((card) => (
+        card.id !== MISSION_CARD_ID
+        && card.id !== TREASURE_CARD_ID
+        && card.parentIds.length === 0
+      ))
+      .map((card) => card.id);
+    expect(activeRootIds).toEqual([3, 4, 2]);
+  });
+
   it('preserves whitespace when editing an existing card', () => {
     const cardIndex = push('Formula');
 

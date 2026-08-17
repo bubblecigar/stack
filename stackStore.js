@@ -570,7 +570,7 @@ function removeCardAtIndex(index) {
   const removedParentIds = Array.isArray(removedCard.parentIds) ? removedCard.parentIds : [];
   const removedCards = [removedCard];
 
-  stack = stack
+  const linkedStack = stack
     .filter((_, itemIndex) => itemIndex !== index)
     .map((card) => ({
       ...card,
@@ -587,6 +587,37 @@ function removeCardAtIndex(index) {
         card.id,
       ),
     }));
+
+  if (removedParentIds.length === 0) {
+    const cardById = new Map(linkedStack.map((card) => [card.id, card]));
+    const promotedChildIds = removedChildIds.filter((childId) => {
+      const childCard = cardById.get(childId);
+      return childCard && childCard.parentIds.length === 0;
+    });
+    const promotedChildIdSet = new Set(promotedChildIds);
+
+    if (promotedChildIds.length > 0) {
+      const promotedChildrenBeforeParent = linkedStack
+        .slice(0, index)
+        .filter((card) => promotedChildIdSet.has(card.id))
+        .length;
+      const remainingCards = linkedStack.filter((card) => !promotedChildIdSet.has(card.id));
+      const insertionIndex = Math.min(
+        Math.max(index - promotedChildrenBeforeParent, 0),
+        remainingCards.length,
+      );
+
+      stack = [
+        ...remainingCards.slice(0, insertionIndex),
+        ...promotedChildIds.map((childId) => cardById.get(childId)),
+        ...remainingCards.slice(insertionIndex),
+      ];
+    } else {
+      stack = linkedStack;
+    }
+  } else {
+    stack = linkedStack;
+  }
   emitChange();
   return removedCards;
 }
