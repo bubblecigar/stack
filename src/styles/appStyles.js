@@ -624,11 +624,6 @@ export const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 14,
   },
-  leafTreasureInventoryCard: {
-    padding: 0,
-    overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
-  },
   treasureInventoryContent: {
     position: 'absolute',
     left: 0,
