@@ -1,12 +1,14 @@
 import { createServer } from 'node:http';
 import {
   acknowledgeScanJob,
+  consumeCollection,
   createScanJob,
   deleteUserData,
   getDatabasePath,
   getScanJob,
   getSessionUser,
   getUserData,
+  listCollections,
   failScanJobUpload,
   listUnacknowledgedScanJobs,
   setUserData,
@@ -140,6 +142,43 @@ async function handleRequest(request, response) {
       sendJson(response, 405, {
         error: 'Method not allowed.',
       });
+      return;
+    }
+
+    if (url.pathname === '/api/collections') {
+      const user = getAuthenticatedUser(request, response);
+      if (!user) {
+        return;
+      }
+
+      if (!requireMethod(request, response, ['GET'])) {
+        return;
+      }
+
+      sendJson(response, 200, {
+        collections: listCollections(user.id),
+      });
+      return;
+    }
+
+    if (url.pathname === '/api/collections/consume') {
+      const user = getAuthenticatedUser(request, response);
+      if (!user) {
+        return;
+      }
+
+      if (!requireMethod(request, response, ['POST'])) {
+        return;
+      }
+
+      const body = await readJson(request);
+      const collection = consumeCollection(
+        user.id,
+        body.collectionId,
+        body.actionType,
+        body.actionReference,
+      );
+      sendJson(response, 200, { collection });
       return;
     }
 
