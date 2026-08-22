@@ -45,7 +45,6 @@ import {
   getCardImageResize,
 } from './src/lib/cardImageProcessing';
 import { prefetchCardImages } from './src/lib/cardImageCache';
-import defaultStackData from './defaultStack.json';
 import { CompletionProgressTree } from './src/components/CompletionProgressTree';
 import { FloatingControls } from './src/components/FloatingControls';
 import { AuthScreen } from './src/views/AuthScreen';
@@ -614,7 +613,6 @@ export default function App() {
     );
   }, [leafCards, leafTopPosition]);
 
-  const hasLoadedDefaultStack = useRef(false);
   const hasLoadedRemoteCards = useRef(false);
   const isApplyingRemoteCards = useRef(false);
   const authUserRef = useRef(null);
@@ -733,31 +731,6 @@ export default function App() {
     }
   }, [focusedCardId, hiddenSystemCardIds, leafFocusedCardId]);
 
-  useEffect(() => {
-    if (!__DEV__) {
-      return;
-    }
-
-    if (!authUser || !hasLoadedRemoteCards.current) {
-      return;
-    }
-
-    const hasUserCards = stack.some((card) => !isSystemCard(card));
-    if (hasLoadedDefaultStack.current || hasUserCards) {
-      return;
-    }
-
-    const seedCards = Array.isArray(defaultStackData?.cards)
-      ? defaultStackData.cards
-      : [];
-
-    if (seedCards.length > 0) {
-      loadCards(seedCards);
-    }
-
-    hasLoadedDefaultStack.current = true;
-  }, [stack.length]);
-
   function resetSession() {
     clearStoredAuthToken();
     setAuthToken(null);
@@ -777,7 +750,6 @@ export default function App() {
     setTreeCompletionCanvas(EMPTY_TREE_COMPLETION_CANVAS);
     setPreviousDayTreeCompletionCanvas(EMPTY_TREE_COMPLETION_CANVAS);
     setCollections([]);
-    hasLoadedDefaultStack.current = false;
     hasLoadedRemoteCards.current = false;
     restoredUiStateUserIdRef.current = null;
     isApplyingRemoteCards.current = true;
@@ -795,7 +767,6 @@ export default function App() {
     setAuthUser(result.user);
     setHasLoadedUserData(false);
     setSyncError('');
-    hasLoadedDefaultStack.current = false;
     hasLoadedRemoteCards.current = false;
     restoredUiStateUserIdRef.current = null;
   }

@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomBytes, pbkdf2Sync, timingSafeEqual } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
+import { createInitialCards } from './initialCards.mjs';
 
 const serverDir = dirname(fileURLToPath(import.meta.url));
 const defaultDataDir = join(serverDir, '..', 'data');
@@ -245,19 +246,34 @@ export function createUser(email, password) {
   }
 
   const { passwordHash, passwordSalt } = hashPassword(password);
+  let transactionStarted = false;
 
   try {
+    db.exec('BEGIN IMMEDIATE');
+    transactionStarted = true;
+
     const result = db.prepare(`
       INSERT INTO users (email, password_hash, password_salt)
       VALUES (?, ?, ?)
     `).run(normalizedEmail, passwordHash, passwordSalt);
 
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(result.lastInsertRowid);
-    return {
+    setUserData(user.id, 'cards', createInitialCards());
+    const createdUser = {
       user: userView(user),
       session: createSession(user.id),
     };
+    db.exec('COMMIT');
+    transactionStarted = false;
+    return createdUser;
   } catch (error) {
+    if (transactionStarted) {
+      try {
+        db.exec('ROLLBACK');
+      } catch {
+      }
+    }
+
     if (String(error.message).includes('UNIQUE')) {
       const conflict = new Error('Email is already registered.');
       conflict.status = 409;
