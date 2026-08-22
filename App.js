@@ -445,7 +445,7 @@ export default function App() {
   const [suppressEditingKeyboard, setSuppressEditingKeyboard] = useState(false);
   const [editingKeyboardOpenRequest, setEditingKeyboardOpenRequest] = useState(0);
   const [focusedCardIndex, setFocusedCardIndex] = useState(null);
-  const [layoutMode, setLayoutMode] = useState('leaf');
+  const [layoutMode, setLayoutMode] = useState('tree');
   const [collapsedNodeIds, setCollapsedNodeIds] = useState(() => new Set());
   const [leafTopIndex, setLeafTopIndex] = useState(null);
   const [leafFocusedCardId, setLeafFocusedCardId] = useState(null);
@@ -900,6 +900,7 @@ export default function App() {
             setLeafTopIndex(nextLeafFocusedIndex);
           }
         } else {
+          setLayoutMode('tree');
           setCollapsedNodeIds(new Set());
         }
 
