@@ -1399,10 +1399,9 @@ export default function App() {
     }
 
     const traversalDirection = getOppositeSwipeDirection(direction);
-    const traversalMode = direction === 'left' || direction === 'right' ? 'dfs' : 'bfs';
     const nextCard = traversalCards.length === 1
       ? traversalCards[0]
-      : moveInTraversal(traversalCards, currentCardId, traversalDirection, traversalMode);
+      : moveInTraversal(traversalCards, currentCardId, traversalDirection, 'dfs');
 
     if (!nextCard || nextCard.index === undefined) {
       return false;
