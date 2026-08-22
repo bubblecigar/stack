@@ -15,4 +15,11 @@ describe('constrainAddRelation', () => {
     expect(constrainAddRelation('nextSibling')).toBe('nextSibling');
     expect(constrainAddRelation('parent')).toBe('parent');
   });
+
+  it('blocks a treasure parent, allows up, and preserves down as child insertion', () => {
+    expect(constrainAddRelation('parent', false, true)).toBeNull();
+    expect(constrainAddRelation('child', false, true)).toBe('child');
+    expect(constrainAddRelation('previousSibling', false, true)).toBe('previousSibling');
+    expect(constrainAddRelation('nextSibling', false, true)).toBe('child');
+  });
 });

@@ -29,6 +29,18 @@ export function hasChildOnlyInsertion(card) {
   return Boolean(isMissionCard(card) || isTreasureCard(card));
 }
 
+export function canInsertRelativeTo(card, relation) {
+  if (isMissionCard(card)) {
+    return relation === 'child';
+  }
+
+  if (isTreasureCard(card)) {
+    return relation === 'child' || relation === 'previousSibling';
+  }
+
+  return true;
+}
+
 function createMissionCard(childIds = []) {
   return {
     childIds,
@@ -155,7 +167,7 @@ export function insertRelativeTo(targetIndex, relation, value = '') {
   }
 
   const targetCard = stack[targetIndex];
-  if (hasChildOnlyInsertion(targetCard) && relation !== 'child') {
+  if (!canInsertRelativeTo(targetCard, relation)) {
     return targetIndex;
   }
 

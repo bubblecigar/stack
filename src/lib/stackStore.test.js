@@ -1,6 +1,7 @@
 import {
   adoptMissionRoot,
   archiveRootTree,
+  canInsertRelativeTo,
   clearCardImageAt,
   ensureSystemCards,
   getSnapshot,
@@ -23,6 +24,24 @@ import { getMonsterDoneVisualIds } from './doneStampVisual';
 describe('system cards', () => {
   beforeEach(() => {
     loadCards([]);
+  });
+
+  it('allows treasure siblings while blocking a treasure parent', () => {
+    ensureSystemCards();
+    const treasureIndex = getSnapshot().findIndex((card) => card.id === TREASURE_CARD_ID);
+    const treasureCard = getSnapshot()[treasureIndex];
+
+    expect(canInsertRelativeTo(treasureCard, 'parent')).toBe(false);
+    expect(canInsertRelativeTo(treasureCard, 'previousSibling')).toBe(true);
+    expect(canInsertRelativeTo(treasureCard, 'nextSibling')).toBe(false);
+
+    const newRootIndex = insertRelativeTo(treasureIndex, 'previousSibling', 'New root');
+    expect(newRootIndex).toBe(treasureIndex);
+    expect(getSnapshot()[newRootIndex]).toMatchObject({
+      parentIds: [],
+      text: 'New root',
+    });
+    expect(getSnapshot()[newRootIndex + 1].id).toBe(TREASURE_CARD_ID);
   });
 
   it('adds one mission card and one treasure card to existing data', () => {

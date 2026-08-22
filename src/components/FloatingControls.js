@@ -204,6 +204,7 @@ export function FloatingControls({
   canDeleteCurrentCard = false,
   deleteTargetDone = false,
   childInsertionOnly = false,
+  parentInsertionBlocked = false,
   disableCardInsertion = false,
   focusedSystemCardType = null,
   rootDoubleTapEnabled = false,
@@ -352,6 +353,7 @@ export function FloatingControls({
         addRelationRef.current,
       ),
       childInsertionOnly,
+      parentInsertionBlocked,
     );
 
     if (relation === addRelationRef.current) {
@@ -498,6 +500,7 @@ export function FloatingControls({
           addRelationRef.current,
         ),
         childInsertionOnly,
+        parentInsertionBlocked,
       );
       resetAddPointing();
 
@@ -518,6 +521,7 @@ export function FloatingControls({
     onAddHoldChange,
     onAddPreviewChange,
     onCreateCard,
+    parentInsertionBlocked,
     onRootDoubleTap,
     onToggleMode,
     rootDoubleTapEnabled,

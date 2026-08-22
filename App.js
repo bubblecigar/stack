@@ -19,6 +19,7 @@ import {
 import {
   adoptMissionRoot,
   archiveRootTree,
+  canInsertRelativeTo,
   clearCardImageAt,
   ensureSystemCards,
   getSnapshot,
@@ -1007,17 +1008,13 @@ export default function App() {
     const currentCard = currentIndex === null || currentIndex < 0
       ? null
       : cards[currentIndex];
-    if (hasChildOnlyInsertion(currentCard) && relation !== 'child') {
+    if (!canInsertRelativeTo(currentCard, relation)) {
       return;
     }
 
     const nextIndex = currentIndex === null || currentIndex < 0
       ? push('')
       : insertRelativeTo(currentIndex, relation, '');
-
-    if (nextIndex === currentIndex && hasChildOnlyInsertion(currentCard)) {
-      return;
-    }
 
     setEditingIndex(nextIndex);
     setSuppressEditingKeyboard(false);
@@ -1455,7 +1452,8 @@ export default function App() {
   const insertionTargetCard = insertionTargetIndex === null || insertionTargetIndex < 0
     ? null
     : cards[insertionTargetIndex];
-  const isChildOnlyInsertionTarget = hasChildOnlyInsertion(insertionTargetCard);
+  const isChildOnlyInsertionTarget = Boolean(insertionTargetCard?.isMissionCard);
+  const isParentInsertionBlocked = Boolean(insertionTargetCard?.isTreasureCard);
   const nodeMapFocusedCardId = shouldRenderLeaf ? leafFocusedCardId : focusedCardId;
   const focusedSystemRootId = shouldRenderLeaf
     ? getFocusedSystemRootId(systemTreeCards, nodeMapFocusedCardId)
@@ -2177,6 +2175,7 @@ export default function App() {
         )}
         audioEnabled={isAudioEnabled}
         childInsertionOnly={isChildOnlyInsertionTarget}
+        parentInsertionBlocked={isParentInsertionBlocked}
         focusedSystemCardType={focusedSystemCardType}
         mathKeyboardKeys={mathKeyboardKeys}
         user={authUser}
