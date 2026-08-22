@@ -16,7 +16,8 @@
         "NSCameraUsageDescription": "Allow Papers to take photos for image cards.",
         "NSPhotoLibraryUsageDescription": "Allow Papers to scan selected images into cards.",
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "buildNumber": "2"
     },
     "android": {
       "adaptiveIcon": {

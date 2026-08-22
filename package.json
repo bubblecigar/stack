@@ -33,6 +33,7 @@
     "evaluate:scan": "node scripts/evaluate-scan-quality.mjs",
     "export:web": "expo export --platform web --output-dir dist --clear",
     "build-internal": "npx eas-cli build --profile internal --platform ios",
+    "deploy:ios": "npx eas-cli build --platform ios --profile production --auto-submit",
     "deploy:vultr": "bash scripts/deploy-vultr.sh",
     "authserver": "AUTH_HOST=0.0.0.0 node server/authserver.mjs",
     "apiserver": "API_HOST=0.0.0.0 node server/apiserver.mjs"
