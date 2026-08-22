@@ -545,24 +545,9 @@ export function FloatingControls({
           style: 'cancel',
         },
         {
-          text: 'Continue',
-          onPress: () => {
-            Alert.alert(
-              'Confirm logout',
-              'Are you sure you want to log out?',
-              [
-                {
-                  text: 'Cancel',
-                  style: 'cancel',
-                },
-                {
-                  text: 'Log out',
-                  style: 'destructive',
-                  onPress: () => onLogout?.(),
-                },
-              ],
-            );
-          },
+          text: 'Log out',
+          style: 'destructive',
+          onPress: () => onLogout?.(),
         },
       ],
     );
