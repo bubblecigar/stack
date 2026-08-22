@@ -19,10 +19,24 @@ test.after(() => {
 
 test('registering a user persists the initial cards and creates a session', () => {
   const result = database.createUser('new-user@example.com', 'test-password');
+  const initialCards = createInitialCards();
 
   assert.deepEqual(
     database.getUserData(result.user.id, 'cards')?.value,
-    createInitialCards(),
+    initialCards,
+  );
+  assert.deepEqual(
+    initialCards.find((card) => card.id === 4)?.childIds,
+    [1, 2, 3],
+  );
+  assert.deepEqual(
+    initialCards.filter((card) => typeof card.id === 'number').map((card) => card.text),
+    [
+      'Swipe the white card to add a new card.',
+      'Double-tap the white card to switch between leaf and tree views.',
+      'Press and hold the stamp to delete the selected card.',
+      'Welcome to Stack\nStart with these three gestures.',
+    ],
   );
   assert.equal(database.getSessionUser(result.session.token)?.id, result.user.id);
 });
