@@ -20,6 +20,9 @@
       "buildNumber": "2"
     },
     "android": {
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -35,7 +38,17 @@
       "expo-font",
       "expo-asset",
       "expo-notifications",
-      "expo-image-picker"
+      "expo-image-picker",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": false
+        }
+      ],
+      "expo-image",
+      "expo-status-bar"
     ],
     "extra": {
       "eas": {
