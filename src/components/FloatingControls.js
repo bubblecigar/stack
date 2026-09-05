@@ -47,9 +47,9 @@ const SYSTEM_CARD_EXPLANATIONS = {
     body: 'Print these cards to your card list. Use them to give your day a clear direction and a simple place to begin.',
     title: 'Printer',
   },
-  monster: {
+  collection: {
     body: '“Hello! Nice to meet you.”',
-    title: 'Mysterious Monster',
+    title: 'Mysterious Collection',
   },
   treasure: {
     body: 'All ideas are treasures.\nWrite them down, think and drop.',

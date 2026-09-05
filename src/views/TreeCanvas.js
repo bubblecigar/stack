@@ -220,7 +220,7 @@ export function TreeCanvas({
               const isPreviewCard = card.id === PREVIEW_CARD_ID;
               const isRootCard = !Array.isArray(card.parentIds) || card.parentIds.length === 0;
               const isSystemCard = Boolean(
-                card.isMissionCard || card.isTreasureCard || card.isMonsterCard,
+                card.isMissionCard || card.isTreasureCard || card.isCollectionCard,
               );
 
               return (

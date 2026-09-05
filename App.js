@@ -31,7 +31,7 @@ import {
   push,
   removeAt,
   removeDoneCascadeAt,
-  replaceDoneCascadeWithMonsterAt,
+  replaceDoneCascadeWithCollectionAt,
   restoreRootTree,
   setCardImageAt,
   setScanStateAt,
@@ -74,8 +74,8 @@ import {
 import { getDailyVisibleCards } from './src/lib/cardVisibility';
 import {
   chooseDoneVisualId,
-  getDoneMonsterPath,
-  getFirstMonsterDoneVisualId,
+  getDoneCollectionPath,
+  getFirstCollectionDoneVisualId,
 } from './src/lib/doneStampVisual';
 import {
   getAppDayKey,
@@ -382,7 +382,7 @@ function getSystemTreeCards(cards, treasureInventory = [], hasCollectionHistory 
     ...card,
     ...(card.isTreasureCard ? {
       hasCollectionHistory,
-      inventoryMonsters: treasureInventory,
+      inventoryCollections: treasureInventory,
     } : {}),
     isArchivedRoot: (
       card.id !== TREASURE_CARD_ID
@@ -472,7 +472,7 @@ export default function App() {
     isImageUpdating: updatingCardImageIds.has(card.id),
     isImageUploading: uploadingCardImageIds.has(card.id),
     imageUri: resolveApiAssetUrl(card.imagePath),
-    monsterImageUri: resolveApiAssetUrl(getDoneMonsterPath(card.monsterVisualId)),
+    collectionImageUri: resolveApiAssetUrl(getDoneCollectionPath(card.collectionVisualId)),
     index,
   })), [stack, updatingCardImageIds, uploadingCardImageIds]);
   useEffect(() => {
@@ -502,13 +502,13 @@ export default function App() {
     () => collections
       .filter((collection) => (
         collection.available
-        && collection.type === 'monster'
+        && collection.type === 'collection'
         && isTimestampInAppWeek(collection.collectedAt, currentDayReference)
       ))
       .map((collection) => ({
         id: collection.id,
-        imageUri: resolveApiAssetUrl(getDoneMonsterPath(collection.itemId)),
-        monsterVisualId: collection.itemId,
+        collectionVisualId: collection.itemId,
+        imageUri: resolveApiAssetUrl(getDoneCollectionPath(collection.itemId)),
       })),
     [collections, currentDayReference],
   );
@@ -539,8 +539,8 @@ export default function App() {
     ? 'mission'
     : focusedControlCard?.isTreasureCard
       ? 'treasure'
-      : focusedControlCard?.isMonsterCard
-        ? 'monster'
+      : focusedControlCard?.isCollectionCard
+        ? 'collection'
         : null;
   const doneCleanupPreviewCardIds = useMemo(() => {
     if (!isDeleteHoldActive || !focusedControlCardId) {
@@ -1080,8 +1080,8 @@ export default function App() {
             .map((childId) => nodeIdByCardId.get(childId))
           : [],
         completedAt,
-        ...(card.isMonsterCard && card.monsterVisualId
-          ? { monsterVisualId: card.monsterVisualId }
+        ...(card.isCollectionCard && card.collectionVisualId
+          ? { collectionVisualId: card.collectionVisualId }
           : {}),
         groupId: completionGroupId,
         id: nodeIdByCardId.get(card.id),
@@ -1139,17 +1139,17 @@ export default function App() {
     const removedCards = removedCard.done
       ? cards.filter((card) => doneCleanupCardIds.has(card.id))
       : [removedCard];
-    const summonedMonsterVisualId = getFirstMonsterDoneVisualId(removedCards);
-    const willSummonMonster = Boolean(removedCard.done && summonedMonsterVisualId);
+    const summonedCollectionVisualId = getFirstCollectionDoneVisualId(removedCards);
+    const willSummonCollection = Boolean(removedCard.done && summonedCollectionVisualId);
     const removedCardIds = new Set(removedCards.map((card) => card.id));
     const removedIndexes = removedCards
       .map((card) => card.index)
       .filter((itemIndex) => Number.isInteger(itemIndex))
       .sort((left, right) => left - right);
-    const actuallyRemovedIndexes = willSummonMonster
+    const actuallyRemovedIndexes = willSummonCollection
       ? removedIndexes.filter((itemIndex) => itemIndex !== index)
       : removedIndexes;
-    const summonedMonsterIndex = willSummonMonster
+    const summonedCollectionIndex = willSummonCollection
       ? index - actuallyRemovedIndexes.filter((itemIndex) => itemIndex < index).length
       : null;
     const nextCardCount = Math.max(cards.length - actuallyRemovedIndexes.length, 0);
@@ -1161,8 +1161,8 @@ export default function App() {
 
       const currentCard = cards[currentIndex];
       if (currentCard && removedCardIds.has(currentCard.id)) {
-        return willSummonMonster && currentCard.id === removedCard.id
-          ? summonedMonsterIndex
+        return willSummonCollection && currentCard.id === removedCard.id
+          ? summonedCollectionIndex
           : null;
       }
 
@@ -1214,8 +1214,8 @@ export default function App() {
     }
 
     if (removedCard.done) {
-      if (willSummonMonster) {
-        replaceDoneCascadeWithMonsterAt(index, summonedMonsterVisualId);
+      if (willSummonCollection) {
+        replaceDoneCascadeWithCollectionAt(index, summonedCollectionVisualId);
       } else {
         removeDoneCascadeAt(index);
       }
@@ -1224,7 +1224,7 @@ export default function App() {
     }
 
     removeAt(index);
-    if (removedCard.isMonsterCard) {
+    if (removedCard.isCollectionCard) {
       writeRemovedCardsToTreeCanvas(removedCards);
     }
   }
@@ -2147,7 +2147,7 @@ export default function App() {
         canDeleteCurrentCard={!shouldRenderLeaf && canDeleteCurrentCard}
         deleteTargetDone={Boolean(
           !shouldRenderLeaf
-          && (insertionTargetCard?.done || insertionTargetCard?.isMonsterCard)
+          && (insertionTargetCard?.done || insertionTargetCard?.isCollectionCard)
         )}
         audioEnabled={isAudioEnabled}
         childInsertionOnly={isChildOnlyInsertionTarget}

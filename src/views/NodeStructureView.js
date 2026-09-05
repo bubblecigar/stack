@@ -24,7 +24,7 @@ const LEAF_STACK_HEIGHT = 360;
 const LEAF_ADD_CARD_VISIBLE_TOP_OFFSET = 90;
 
 function SystemMapNode({ entry }) {
-  if (entry.card.isMonsterCard) {
+  if (entry.card.isCollectionCard) {
     return (
       <FontAwesome
         color={entry.isSystemFocusActive ? '#0EA5E9' : '#94A3B8'}
@@ -250,11 +250,11 @@ export function NodeStructureView({
           isPreview: entry.card.id === PREVIEW_CARD_ID,
           isDone: Boolean(entry.card.done),
           isSystem: Boolean(
-            entry.card.isMissionCard || entry.card.isTreasureCard || entry.card.isMonsterCard,
+            entry.card.isMissionCard || entry.card.isTreasureCard || entry.card.isCollectionCard,
           ),
           isSystemFocusActive: (
             activeSystemCardIds.has(entry.card.id)
-            || (entry.card.isMonsterCard && entry.card.id === focusedCardId)
+            || (entry.card.isCollectionCard && entry.card.id === focusedCardId)
           ),
           isDeleteTarget: deleteTargetActive && entry.card.id === focusedCardId,
         };

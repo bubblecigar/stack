@@ -4,8 +4,8 @@ import { View } from 'react-native';
 import { getCardImageSource } from '../lib/cardImageCache';
 import { styles } from '../styles/appStyles';
 
-export function TreasureInventoryContent({ monsters = [] }) {
-  const rowCount = Math.max(6, Math.ceil(monsters.length / 7));
+export function TreasureInventoryContent({ collections = [] }) {
+  const rowCount = Math.max(6, Math.ceil(collections.length / 7));
   const cellCount = rowCount * 7;
   const cellHeight = `${91.2 / rowCount}%`;
 
@@ -43,23 +43,23 @@ export function TreasureInventoryContent({ monsters = [] }) {
       </View>
       <View style={styles.treasureInventoryGrid}>
         {Array.from({ length: cellCount }, (_, index) => {
-          const monster = monsters[index];
+          const collection = collections[index];
 
           return (
             <View
-              key={monster?.id || `treasure-inventory-empty-${index}`}
+              key={collection?.id || `treasure-inventory-empty-${index}`}
               style={[
                 styles.treasureInventoryCell,
-                !monster && styles.treasureInventoryCellEmpty,
+                !collection && styles.treasureInventoryCellEmpty,
                 { height: cellHeight },
               ]}
             >
-              {monster ? (
+              {collection ? (
                 <CachedImage
-                  accessibilityLabel={`Collected monster ${index + 1}`}
+                  accessibilityLabel={`Collected item ${index + 1}`}
                   cachePolicy="memory-disk"
                   contentFit="contain"
-                  source={getCardImageSource(monster.imageUri)}
+                  source={getCardImageSource(collection.imageUri)}
                   style={styles.treasureInventoryMonster}
                 />
               ) : null}

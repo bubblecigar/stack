@@ -25,7 +25,7 @@ import {
 import { scanImageToCards } from './openaiVision.mjs';
 import { scheduleScanJobWorker, startScanJobWorker } from './scanJobWorker.mjs';
 import { storeScanJobUpload } from './scanUpload.mjs';
-import { serveMonsterStamp } from './monsterStamps.mjs';
+import { serveCollectionAsset } from './collectionAssets.mjs';
 import {
   pruneCardImages,
   removeCardImages,
@@ -182,13 +182,15 @@ async function handleRequest(request, response) {
       return;
     }
 
-    const monsterStampMatch = url.pathname.match(/^\/api\/monster-stamps\/([^/]+)$/);
-    if (monsterStampMatch) {
+    const collectionAssetMatch = url.pathname.match(
+      /^\/api\/(?:collection-assets|monster-stamps)\/([^/]+)$/,
+    );
+    if (collectionAssetMatch) {
       if (!requireMethod(request, response, ['GET'])) {
         return;
       }
 
-      await serveMonsterStamp(response, decodeURIComponent(monsterStampMatch[1]));
+      await serveCollectionAsset(response, decodeURIComponent(collectionAssetMatch[1]));
       return;
     }
 

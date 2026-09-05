@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useWindowDimensions, View } from 'react-native';
 import { resolveApiAssetUrl } from '../lib/apiClient';
 import { isTimestampInAppDay } from '../lib/appDay';
-import { getDoneMonsterPath } from '../lib/doneStampVisual';
+import { getDoneCollectionPath } from '../lib/doneStampVisual';
 import { styles } from '../styles/appStyles';
 import { DoneStampArtwork } from './DoneStampArtwork';
 
@@ -56,7 +56,9 @@ export function CompletionProgressTree({
           <DoneStampArtwork
             defaultArtworkStyle={styles.completionProgressDoneArtwork}
             key={entry.card.id || `completion-stamp-${entryIndex}`}
-            uri={resolveApiAssetUrl(getDoneMonsterPath(entry.card.monsterVisualId))}
+            uri={resolveApiAssetUrl(getDoneCollectionPath(
+              entry.card.collectionVisualId ?? entry.card.monsterVisualId,
+            ))}
             style={[
               styles.completionProgressStamp,
               {

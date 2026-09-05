@@ -3,31 +3,32 @@ import { stat } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pipeline } from 'node:stream/promises';
+import { collectionAssets } from './collectionManifest.mjs';
 
 const projectDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const monsterStampDirectory = join(projectDirectory, 'assets', 'collections', 'mobile');
-const MONSTER_STAMP_FILE_PATTERN = /^monster-[a-f0-9]{16}\.webp$/;
+const collectionAssetDirectory = join(projectDirectory, 'assets', 'collections', 'mobile');
+const collectionAssetFiles = new Set(collectionAssets.map((asset) => asset.file));
 
 function createNotFoundError() {
-  const error = new Error('Monster stamp not found.');
+  const error = new Error('Collection asset not found.');
   error.status = 404;
   return error;
 }
 
-export function resolveMonsterStampPath(fileName) {
-  if (!MONSTER_STAMP_FILE_PATTERN.test(fileName)) {
+export function resolveCollectionAssetPath(fileName) {
+  if (!collectionAssetFiles.has(fileName)) {
     throw createNotFoundError();
   }
 
-  const filePath = resolve(monsterStampDirectory, fileName);
-  if (!filePath.startsWith(`${monsterStampDirectory}/`)) {
+  const filePath = resolve(collectionAssetDirectory, fileName);
+  if (!filePath.startsWith(`${collectionAssetDirectory}/`)) {
     throw createNotFoundError();
   }
   return filePath;
 }
 
-export async function serveMonsterStamp(response, fileName) {
-  const filePath = resolveMonsterStampPath(fileName);
+export async function serveCollectionAsset(response, fileName) {
+  const filePath = resolveCollectionAssetPath(fileName);
   const fileStat = await stat(filePath).catch((error) => {
     if (error?.code === 'ENOENT') {
       throw createNotFoundError();

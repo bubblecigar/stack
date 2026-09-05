@@ -36,8 +36,8 @@ test('derives user-scoped collections from completion history', () => {
     nodes: [
       {
         completedAt: 300,
-        id: 'monster-2',
-        monsterVisualId: 'monster-626c03f45fafd12a',
+        collectionVisualId: 'food-04f5ad5288f12b51',
+        id: 'collection-2',
       },
     ],
   });
@@ -55,10 +55,10 @@ test('derives user-scoped collections from completion history', () => {
   assert.equal(collections.length, 2);
   assert.deepEqual(collections.map((collection) => collection.itemId), [
     'monster-626c03f45fafd12a',
-    'monster-626c03f45fafd12a',
+    'food-04f5ad5288f12b51',
   ]);
   assert.ok(collections.every((collection) => collection.available));
-  assert.ok(collections.every((collection) => collection.type === 'monster'));
+  assert.ok(collections.every((collection) => collection.type === 'collection'));
 });
 
 test('consumes a collection once and keeps an audit trail', () => {

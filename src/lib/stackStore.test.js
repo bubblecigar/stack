@@ -12,14 +12,14 @@ import {
   push,
   removeAt,
   restoreRootTree,
-  replaceDoneCascadeWithMonsterAt,
+  replaceDoneCascadeWithCollectionAt,
   setCardImageAt,
   setDoneAt,
   setScanStateAt,
   TREASURE_CARD_ID,
   updateAt,
 } from '../../stackStore';
-import { getMonsterDoneVisualIds } from './doneStampVisual';
+import { getCollectionDoneVisualIds } from './doneStampVisual';
 
 describe('system cards', () => {
   beforeEach(() => {
@@ -68,7 +68,7 @@ describe('system cards', () => {
   it('persists a validated Done visual without changing toggle semantics', () => {
     const cardIndex = push('Hatch me');
     const cardId = getSnapshot()[cardIndex].id;
-    const [doneVisualId] = getMonsterDoneVisualIds();
+    const [doneVisualId] = getCollectionDoneVisualIds();
 
     setDoneAt(cardIndex, true, doneVisualId);
     expect(getSnapshot()[cardIndex]).toMatchObject({
@@ -89,7 +89,7 @@ describe('system cards', () => {
     });
   });
 
-  it('replaces a completed cascade root with a persistent locked monster card', () => {
+  it('replaces a completed cascade root with a persistent locked collection card', () => {
     const parentIndex = push('Parent');
     const parentId = getSnapshot()[parentIndex].id;
     const targetIndex = insertRelativeTo(parentIndex, 'child', 'Void target');
@@ -98,36 +98,37 @@ describe('system cards', () => {
     const childId = getSnapshot()[childIndex].id;
     const survivingIndex = insertRelativeTo(childIndex, 'child', 'Not done');
     const survivingId = getSnapshot()[survivingIndex].id;
-    const [monsterVisualId] = getMonsterDoneVisualIds();
+    const collectionVisualId = getCollectionDoneVisualIds()
+      .find((visualId) => visualId.startsWith('food-'));
 
-    setDoneAt(targetIndex, true, monsterVisualId);
+    setDoneAt(targetIndex, true, collectionVisualId);
     setDoneAt(childIndex, true);
-    const removedCards = replaceDoneCascadeWithMonsterAt(targetIndex, monsterVisualId);
+    const removedCards = replaceDoneCascadeWithCollectionAt(targetIndex, collectionVisualId);
 
     expect(removedCards.map((card) => card.id)).toEqual([targetId, childId]);
     expect(getSnapshot().find((card) => card.id === targetId)).toMatchObject({
       childIds: [survivingId],
       done: false,
-      isMonsterCard: true,
+      collectionVisualId,
+      isCollectionCard: true,
       locked: true,
-      monsterVisualId,
       parentIds: [parentId],
-      systemType: 'monster',
+      systemType: 'collection',
       text: '',
     });
     expect(getSnapshot().find((card) => card.id === parentId).childIds).toEqual([targetId]);
     expect(getSnapshot().find((card) => card.id === survivingId).parentIds).toEqual([targetId]);
 
-    const monsterIndex = getSnapshot().findIndex((card) => card.id === targetId);
-    updateAt(monsterIndex, 'Edited');
-    setDoneAt(monsterIndex, true);
-    expect(getSnapshot()[monsterIndex]).toMatchObject({
+    const collectionIndex = getSnapshot().findIndex((card) => card.id === targetId);
+    updateAt(collectionIndex, 'Edited');
+    setDoneAt(collectionIndex, true);
+    expect(getSnapshot()[collectionIndex]).toMatchObject({
       done: false,
       text: '',
     });
-    expect(hasChildOnlyInsertion(getSnapshot()[monsterIndex])).toBe(false);
+    expect(hasChildOnlyInsertion(getSnapshot()[collectionIndex])).toBe(false);
 
-    const insertedParentIndex = insertRelativeTo(monsterIndex, 'parent', 'Monster keeper');
+    const insertedParentIndex = insertRelativeTo(collectionIndex, 'parent', 'Collection keeper');
     const insertedParent = getSnapshot()[insertedParentIndex];
     expect(insertedParent.id).not.toBe(targetId);
     expect(insertedParent.childIds).toEqual([targetId]);
@@ -137,13 +138,13 @@ describe('system cards', () => {
 
     loadCards(getSnapshot());
     expect(getSnapshot().find((card) => card.id === targetId)).toMatchObject({
-      isMonsterCard: true,
-      monsterVisualId,
-      systemType: 'monster',
+      collectionVisualId,
+      isCollectionCard: true,
+      systemType: 'collection',
     });
 
-    const reloadedMonsterIndex = getSnapshot().findIndex((card) => card.id === targetId);
-    expect(removeAt(reloadedMonsterIndex)).toHaveLength(1);
+    const reloadedCollectionIndex = getSnapshot().findIndex((card) => card.id === targetId);
+    expect(removeAt(reloadedCollectionIndex)).toHaveLength(1);
     expect(getSnapshot().some((card) => card.id === targetId)).toBe(false);
     expect(getSnapshot().find((card) => card.id === insertedParent.id).childIds).toEqual([
       survivingId,
@@ -151,6 +152,26 @@ describe('system cards', () => {
     expect(getSnapshot().find((card) => card.id === survivingId).parentIds).toEqual([
       insertedParent.id,
     ]);
+  });
+
+  it('normalizes legacy monster cards into collection cards', () => {
+    const monsterVisualId = getCollectionDoneVisualIds()
+      .find((visualId) => visualId.startsWith('monster-'));
+
+    loadCards([{
+      childIds: [],
+      id: 42,
+      isMonsterCard: true,
+      monsterVisualId,
+      parentIds: [],
+      systemType: 'monster',
+    }]);
+
+    expect(getSnapshot().find((card) => card.id === 42)).toMatchObject({
+      collectionVisualId: monsterVisualId,
+      isCollectionCard: true,
+      systemType: 'collection',
+    });
   });
 
   it('adopts a mission root and its descendants as an independent user tree', () => {

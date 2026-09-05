@@ -1,7 +1,6 @@
 import collectionManifest from '../../assets/collections/mobile/collection-manifest.json';
 
 export const DEFAULT_DONE_VISUAL_ID = 'done';
-const MONSTER_VISUAL_ID_PATTERN = /^monster-[a-f0-9]{16}$/;
 const configuredSummonChance = Number(collectionManifest?.summonChance);
 export const SUMMON_CHANCE = Number.isFinite(configuredSummonChance)
   && configuredSummonChance >= 0
@@ -9,54 +8,54 @@ export const SUMMON_CHANCE = Number.isFinite(configuredSummonChance)
   ? configuredSummonChance
   : 0;
 
-const monsterAssets = [...new Map(
+const collectionAssets = [...new Map(
   (Array.isArray(collectionManifest?.files) ? collectionManifest.files : [])
     .filter((asset) => (
       typeof asset?.assetId === 'string'
       && typeof asset?.file === 'string'
-      && MONSTER_VISUAL_ID_PATTERN.test(asset.assetId)
     ))
     .map((asset) => [asset.assetId, {
       assetId: asset.assetId,
       file: asset.file,
     }]),
 ).values()];
+const collectionAssetIds = new Set(collectionAssets.map((asset) => asset.assetId));
 
 export function normalizeDoneVisualId(value) {
   const visualId = typeof value === 'string' ? value.trim() : '';
-  if (visualId === DEFAULT_DONE_VISUAL_ID || MONSTER_VISUAL_ID_PATTERN.test(visualId)) {
+  if (visualId === DEFAULT_DONE_VISUAL_ID || collectionAssetIds.has(visualId)) {
     return visualId;
   }
   return null;
 }
 
 export function chooseDoneVisualId(random = Math.random) {
-  if (monsterAssets.length === 0 || random() >= SUMMON_CHANCE) {
+  if (collectionAssets.length === 0 || random() >= SUMMON_CHANCE) {
     return DEFAULT_DONE_VISUAL_ID;
   }
 
   const randomIndex = Math.min(
-    Math.floor(Math.max(random(), 0) * monsterAssets.length),
-    monsterAssets.length - 1,
+    Math.floor(Math.max(random(), 0) * collectionAssets.length),
+    collectionAssets.length - 1,
   );
-  return monsterAssets[randomIndex].assetId;
+  return collectionAssets[randomIndex].assetId;
 }
 
-export function getDoneMonsterPath(visualId) {
+export function getDoneCollectionPath(visualId) {
   const normalizedVisualId = normalizeDoneVisualId(visualId);
   return normalizedVisualId && normalizedVisualId !== DEFAULT_DONE_VISUAL_ID
-    ? `/api/monster-stamps/${normalizedVisualId}.webp`
+    ? `/api/collection-assets/${normalizedVisualId}.webp`
     : null;
 }
 
-export function getMonsterDoneVisualIds() {
-  return monsterAssets.map((asset) => asset.assetId);
+export function getCollectionDoneVisualIds() {
+  return collectionAssets.map((asset) => asset.assetId);
 }
 
-export function getFirstMonsterDoneVisualId(cards = []) {
-  const firstMonsterCard = (Array.isArray(cards) ? cards : []).find((card) => (
-    Boolean(getDoneMonsterPath(card?.doneVisualId))
+export function getFirstCollectionDoneVisualId(cards = []) {
+  const firstCollectionCard = (Array.isArray(cards) ? cards : []).find((card) => (
+    Boolean(getDoneCollectionPath(card?.doneVisualId))
   ));
 
-  return firstMonsterCard?.doneVisualId ?? null;
+  return firstCollectionCard?.doneVisualId ?? null;
 }

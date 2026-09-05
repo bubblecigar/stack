@@ -316,13 +316,13 @@ export function LeafDeck({
     activeCard?.index >= 0
     && !activeCard?.isMissionCard
     && !activeCard?.isTreasureCard
-    && !activeCard?.isMonsterCard
+    && !activeCard?.isCollectionCard
   );
   const canUseMathNotationPalette = (
     activeCard?.index >= 0
     && !activeCard?.isMissionCard
     && !activeCard?.isTreasureCard
-    && !activeCard?.isMonsterCard
+    && !activeCard?.isCollectionCard
   );
   const canSwipeDeck = visualSlots.length > 1 || activeCardDone;
   const effectiveFocusedCardId = controlledFocusedCardId ?? topCard?.id ?? null;

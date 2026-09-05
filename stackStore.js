@@ -17,12 +17,15 @@ function isTreasureCard(card) {
   return card?.id === TREASURE_CARD_ID || card?.systemType === 'treasure' || card?.isTreasureCard;
 }
 
-function isMonsterCard(card) {
-  return card?.systemType === 'monster' || card?.isMonsterCard;
+function isCollectionCard(card) {
+  return card?.systemType === 'collection'
+    || card?.systemType === 'monster'
+    || card?.isCollectionCard
+    || card?.isMonsterCard;
 }
 
 export function isSystemCard(card) {
-  return isMissionCard(card) || isTreasureCard(card) || isMonsterCard(card);
+  return isMissionCard(card) || isTreasureCard(card) || isCollectionCard(card);
 }
 
 export function hasChildOnlyInsertion(card) {
@@ -293,9 +296,11 @@ function normalizeIncomingCard(rawCard, nextGeneratedId) {
     ? rawCard.imageMimeType
     : null;
   const doneVisualId = normalizeDoneVisualId(rawCard?.doneVisualId);
-  const normalizedMonsterVisualId = normalizeDoneVisualId(rawCard?.monsterVisualId);
-  const monsterVisualId = normalizedMonsterVisualId !== DEFAULT_DONE_VISUAL_ID
-    ? normalizedMonsterVisualId
+  const normalizedCollectionVisualId = normalizeDoneVisualId(
+    rawCard?.collectionVisualId ?? rawCard?.monsterVisualId,
+  );
+  const collectionVisualId = normalizedCollectionVisualId !== DEFAULT_DONE_VISUAL_ID
+    ? normalizedCollectionVisualId
     : null;
 
   function normalizeLinkedId(id) {
@@ -323,8 +328,8 @@ function normalizeIncomingCard(rawCard, nextGeneratedId) {
     : (
       rawId === TREASURE_CARD_ID || rawCard?.systemType === 'treasure' || rawCard?.isTreasureCard
         ? 'treasure'
-        : (rawCard?.systemType === 'monster' || rawCard?.isMonsterCard) && monsterVisualId
-          ? 'monster'
+        : isCollectionCard(rawCard) && collectionVisualId
+          ? 'collection'
           : null
     );
   const numericId = Number(rawId);
@@ -357,8 +362,8 @@ function normalizeIncomingCard(rawCard, nextGeneratedId) {
         : systemType === 'treasure'
           ? { isTreasureCard: true }
           : {
-            isMonsterCard: true,
-            monsterVisualId,
+            collectionVisualId,
+            isCollectionCard: true,
           }),
       locked: true,
       ...(isAnchoredSystem ? { parentIds: [] } : {}),
@@ -836,13 +841,13 @@ export function removeDoneCascadeAt(index) {
   return removedCards;
 }
 
-export function replaceDoneCascadeWithMonsterAt(index, monsterVisualId) {
+export function replaceDoneCascadeWithCollectionAt(index, collectionVisualId) {
   if (index < 0 || index >= stack.length || !stack[index]?.done) {
     return [];
   }
 
-  const normalizedMonsterVisualId = normalizeDoneVisualId(monsterVisualId);
-  if (!normalizedMonsterVisualId || normalizedMonsterVisualId === DEFAULT_DONE_VISUAL_ID) {
+  const normalizedCollectionVisualId = normalizeDoneVisualId(collectionVisualId);
+  if (!normalizedCollectionVisualId || normalizedCollectionVisualId === DEFAULT_DONE_VISUAL_ID) {
     return [];
   }
 
@@ -881,10 +886,10 @@ export function replaceDoneCascadeWithMonsterAt(index, monsterVisualId) {
       ? {
         ...rootCard,
         done: false,
-        isMonsterCard: true,
+        collectionVisualId: normalizedCollectionVisualId,
+        isCollectionCard: true,
         locked: true,
-        monsterVisualId: normalizedMonsterVisualId,
-        systemType: 'monster',
+        systemType: 'collection',
         text: '',
       }
       : card

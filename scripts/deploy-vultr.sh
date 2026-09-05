@@ -109,7 +109,7 @@ rsync -az --delete -e "${RSYNC_SSH_CMD[*]}" "$BUILD_DIR"/ "$SSH_TARGET:$WEB_ROOT
 echo "Uploading Node servers"
 rsync -az --delete -e "${RSYNC_SSH_CMD[*]}" server/ "$SSH_TARGET:$REMOTE_APP_DIR/server"/
 
-echo "Uploading monster stamp assets"
+echo "Uploading collection assets"
 rsync -az --delete -e "${RSYNC_SSH_CMD[*]}" assets/collections/mobile/ "$SSH_TARGET:$REMOTE_APP_DIR/assets/collections/mobile"/
 
 tmp_dir="$(mktemp -d)"

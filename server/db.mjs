@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { randomBytes, pbkdf2Sync, timingSafeEqual } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import { createInitialCards } from './initialCards.mjs';
+import { normalizeCollectionAssetId } from './collectionManifest.mjs';
 
 const serverDir = dirname(fileURLToPath(import.meta.url));
 const defaultDataDir = join(serverDir, '..', 'data');
@@ -468,8 +469,6 @@ export function deleteUserData(userId, key) {
   `).run(userId, key);
 }
 
-const MONSTER_COLLECTION_ITEM_PATTERN = /^monster-[a-f0-9]{16}$/;
-
 function normalizeCollectionText(value, maximumLength) {
   return String(value || '').trim().slice(0, maximumLength);
 }
@@ -493,9 +492,11 @@ function getDerivedCollections(userId) {
 
     const nodes = Array.isArray(canvas?.nodes) ? canvas.nodes : [];
     nodes.forEach((node, nodeIndex) => {
-      const itemId = normalizeCollectionText(node?.monsterVisualId, 128);
+      const itemId = normalizeCollectionAssetId(
+        node?.collectionVisualId ?? node?.monsterVisualId,
+      );
       const collectedAt = Number(node?.completedAt);
-      if (!MONSTER_COLLECTION_ITEM_PATTERN.test(itemId) || !Number.isFinite(collectedAt)) {
+      if (!itemId || !Number.isFinite(collectedAt)) {
         return;
       }
 
@@ -507,7 +508,7 @@ function getDerivedCollections(userId) {
         itemId,
         sourceId,
         sourceKey: row.data_key,
-        type: 'monster',
+        type: 'collection',
       });
     });
   });

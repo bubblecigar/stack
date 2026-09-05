@@ -21,7 +21,7 @@ import { styles } from '../styles/appStyles';
 const voidStampBlueImage = require('../../assets/card/void_stamp_blue.png');
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-function MonsterCardContent({ imageUri, layout }) {
+function CollectionCardContent({ imageUri, layout }) {
   const isLeaf = layout === 'leaf';
 
   return (
@@ -31,7 +31,7 @@ function MonsterCardContent({ imageUri, layout }) {
     ]}
     >
       <CachedImage
-        accessibilityLabel="Summoned monster"
+        accessibilityLabel="Summoned collection"
         cachePolicy="memory-disk"
         contentFit="contain"
         source={getCardImageSource(imageUri)}
@@ -90,8 +90,8 @@ export function StackCard({
     hasCollectionHistory = false,
     isImageUploading = false,
     imageUri,
-    inventoryMonsters = [],
-    monsterImageUri = null,
+    collectionImageUri = null,
+    inventoryCollections = [],
     text,
   } = card;
 
@@ -99,8 +99,8 @@ export function StackCard({
   const isTreeCard = layout === 'tree';
   const isMission = isMissionCard || Boolean(card?.isMissionCard);
   const isTreasure = isTreasureCard || Boolean(card?.isTreasureCard);
-  const isMonster = Boolean(card?.isMonsterCard || card?.systemType === 'monster');
-  const isSystem = isMission || isTreasure || isMonster;
+  const isCollection = Boolean(card?.isCollectionCard || card?.systemType === 'collection');
+  const isSystem = isMission || isTreasure || isCollection;
   const SystemCardIcon = isMission ? AntDesign : MaterialCommunityIcons;
   const systemCardIconName = isMission ? 'printer' : 'treasure-chest-outline';
   const isMissionRootCard = isMissionRoot || Boolean(card?.isMissionRoot);
@@ -140,19 +140,19 @@ export function StackCard({
   );
   const isDoneCleanupProgressVisible = isDoneCleanupPreviewCard;
   const isBlueDeleteTheme = isDoneCleanupPreviewCard || (
-    isMonster && isPrimaryDeleteHoldCard
+    isCollection && isPrimaryDeleteHoldCard
   );
   const isDoneCleanupChromeVisible = isBlueDeleteTheme && isPrimaryDeleteHoldCard;
   const isDeleteProgressVisible = (
     isTreeDeleteHoldActive
     && !isDoneCleanupProgressVisible
-    && !isMonster
+    && !isCollection
   );
   const editButtonColor = isTreeDeleteHoldActive
-    ? (done || isMonster ? '#0EA5E9' : '#DC2626')
+    ? (done || isCollection ? '#0EA5E9' : '#DC2626')
     : (isTreeCard ? '#0EA5E9' : '#0F172A');
   const editButtonPressedColor = isTreeDeleteHoldActive
-    ? (done || isMonster ? '#0284C7' : '#B91C1C')
+    ? (done || isCollection ? '#0284C7' : '#B91C1C')
     : (isTreeCard ? '#0284C7' : '#2563EB');
   const treasureIconSize = isLeafCard ? 40 : 30;
   const canShowDoneStamp = done && !isSystem;
@@ -496,13 +496,13 @@ export function StackCard({
             imageUri && styles.leafImageContentSurface,
           ]}
           >
-            {isMonster ? (
-              <MonsterCardContent
-                imageUri={monsterImageUri}
+            {isCollection ? (
+              <CollectionCardContent
+                imageUri={collectionImageUri}
                 layout="leaf"
               />
             ) : isTreasure && hasCollectionHistory ? (
-              <TreasureInventoryContent monsters={inventoryMonsters} />
+              <TreasureInventoryContent collections={inventoryCollections} />
             ) : isSystem ? (
               <View style={[
                 styles.leafContentLayer,
@@ -628,9 +628,9 @@ export function StackCard({
           </View>
         ) : (
           <Animated.View style={{ opacity: 1 }}>
-            {isMonster ? (
-              <MonsterCardContent
-                imageUri={monsterImageUri}
+            {isCollection ? (
+              <CollectionCardContent
+                imageUri={collectionImageUri}
                 layout="tree"
               />
             ) : isSystem ? (
