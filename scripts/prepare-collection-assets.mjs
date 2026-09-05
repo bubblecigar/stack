@@ -216,6 +216,23 @@ async function main() {
   }
 
   await mkdir(outputDirectory, { recursive: true });
+  const manifestPath = join(outputDirectory, 'collection-manifest.json');
+  let summonChance;
+  try {
+    const existingManifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+    const configuredSummonChance = Number(existingManifest?.summonChance);
+    if (
+      Number.isFinite(configuredSummonChance)
+      && configuredSummonChance >= 0
+      && configuredSummonChance <= 1
+    ) {
+      summonChance = configuredSummonChance;
+    }
+  } catch (error) {
+    if (error?.code !== 'ENOENT') {
+      throw error;
+    }
+  }
   const workDirectory = await mkdtemp(join(tmpdir(), 'prepare-collection-assets-'));
   const assetBySourceHash = new Map();
   const files = [];
@@ -272,6 +289,7 @@ async function main() {
   const manifest = {
     format: 'webp',
     pipelineVersion: PIPELINE_VERSION,
+    ...(summonChance === undefined ? {} : { summonChance }),
     settings: {
       contentSize: options.contentSize,
       noiseFloorPercent: options.noiseFloor,
@@ -282,7 +300,6 @@ async function main() {
     sourceCount: files.length,
     files,
   };
-  const manifestPath = join(outputDirectory, 'collection-manifest.json');
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 
   const sourceBytes = (await Promise.all(sourceNames.map(async (name) => (

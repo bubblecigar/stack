@@ -5,19 +5,21 @@ import {
   getFirstMonsterDoneVisualId,
   getMonsterDoneVisualIds,
   normalizeDoneVisualId,
+  SUMMON_CHANCE,
 } from './doneStampVisual';
 
 describe('done stamp visuals', () => {
   it('uses the classic Done stamp for the common outcome', () => {
-    expect(chooseDoneVisualId(() => 0.5)).toBe(DEFAULT_DONE_VISUAL_ID);
+    expect(chooseDoneVisualId(() => SUMMON_CHANCE)).toBe(DEFAULT_DONE_VISUAL_ID);
   });
 
   it('chooses and resolves a persisted monster for a rare hatch', () => {
     const monsterIds = getMonsterDoneVisualIds();
-    const randomValues = [0.01, 0];
+    const randomValues = [SUMMON_CHANCE / 2, 0];
     const visualId = chooseDoneVisualId(() => randomValues.shift());
 
     expect(monsterIds.length).toBeGreaterThan(0);
+    expect(monsterIds.every((monsterId) => monsterId.startsWith('monster-'))).toBe(true);
     expect(visualId).toBe(monsterIds[0]);
     expect(getDoneMonsterPath(visualId)).toBe(`/api/monster-stamps/${visualId}.webp`);
   });

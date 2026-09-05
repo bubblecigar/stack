@@ -1,6 +1,7 @@
 {
   "format": "webp",
   "pipelineVersion": 1,
+  "summonChance": 0.1,
   "settings": {
     "contentSize": 680,
     "noiseFloorPercent": 6,

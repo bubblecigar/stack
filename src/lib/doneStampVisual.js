@@ -1,14 +1,20 @@
 import collectionManifest from '../../assets/collections/mobile/collection-manifest.json';
 
 export const DEFAULT_DONE_VISUAL_ID = 'done';
-export const MONSTER_HATCH_CHANCE = 0.1;
 const MONSTER_VISUAL_ID_PATTERN = /^monster-[a-f0-9]{16}$/;
+const configuredSummonChance = Number(collectionManifest?.summonChance);
+export const SUMMON_CHANCE = Number.isFinite(configuredSummonChance)
+  && configuredSummonChance >= 0
+  && configuredSummonChance <= 1
+  ? configuredSummonChance
+  : 0;
 
 const monsterAssets = [...new Map(
   (Array.isArray(collectionManifest?.files) ? collectionManifest.files : [])
     .filter((asset) => (
       typeof asset?.assetId === 'string'
       && typeof asset?.file === 'string'
+      && MONSTER_VISUAL_ID_PATTERN.test(asset.assetId)
     ))
     .map((asset) => [asset.assetId, {
       assetId: asset.assetId,
@@ -25,7 +31,7 @@ export function normalizeDoneVisualId(value) {
 }
 
 export function chooseDoneVisualId(random = Math.random) {
-  if (monsterAssets.length === 0 || random() >= MONSTER_HATCH_CHANCE) {
+  if (monsterAssets.length === 0 || random() >= SUMMON_CHANCE) {
     return DEFAULT_DONE_VISUAL_ID;
   }
 
