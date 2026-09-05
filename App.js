@@ -81,6 +81,7 @@ import {
   getAppDayKey,
   getNextAppDayBoundary,
   getPreviousAppDayKey,
+  isTimestampInAppWeek,
 } from './src/lib/appDay';
 import {
   getHiddenSystemCardIds,
@@ -499,13 +500,17 @@ export default function App() {
   );
   const treasureInventory = useMemo(
     () => collections
-      .filter((collection) => collection.available && collection.type === 'monster')
+      .filter((collection) => (
+        collection.available
+        && collection.type === 'monster'
+        && isTimestampInAppWeek(collection.collectedAt, currentDayReference)
+      ))
       .map((collection) => ({
         id: collection.id,
         imageUri: resolveApiAssetUrl(getDoneMonsterPath(collection.itemId)),
         monsterVisualId: collection.itemId,
       })),
-    [collections],
+    [collections, currentDayReference],
   );
   const previousTreeCompletionCanvasKey = useMemo(
     () => `${TREE_COMPLETION_CANVAS_KEY}:${getPreviousAppDayKey(currentDayReference)}`,

@@ -4,6 +4,7 @@ import {
   getNextAppDayBoundary,
   getPreviousAppDayKey,
   isTimestampInAppDay,
+  isTimestampInAppWeek,
 } from './appDay';
 
 describe('app day', () => {
@@ -55,5 +56,19 @@ describe('app day', () => {
     expect(isTimestampInAppDay(evening, nextMorning)).toBe(true);
     expect(isTimestampInAppDay(undefined, nextMorning)).toBe(false);
     expect(getAppDayKey(Number.NaN)).toBeNull();
+  });
+
+  it('treats Sunday at 04:30 as the start of the app week', () => {
+    const reference = new Date(2026, 7, 19, 12, 0, 0).getTime();
+    const beforeWeek = new Date(2026, 7, 16, 4, 29, 59).getTime();
+    const weekStart = new Date(2026, 7, 16, 4, 30, 0).getTime();
+    const beforeNextWeek = new Date(2026, 7, 23, 4, 29, 59).getTime();
+    const nextWeek = new Date(2026, 7, 23, 4, 30, 0).getTime();
+
+    expect(isTimestampInAppWeek(beforeWeek, reference)).toBe(false);
+    expect(isTimestampInAppWeek(weekStart, reference)).toBe(true);
+    expect(isTimestampInAppWeek(beforeNextWeek, reference)).toBe(true);
+    expect(isTimestampInAppWeek(nextWeek, reference)).toBe(false);
+    expect(isTimestampInAppWeek(undefined, reference)).toBe(false);
   });
 });

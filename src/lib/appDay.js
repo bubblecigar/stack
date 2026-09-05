@@ -79,6 +79,29 @@ export function isTimestampInAppDay(timestamp, referenceTimestamp = Date.now()) 
   return timestampKey !== null && timestampKey === referenceKey;
 }
 
+export function isTimestampInAppWeek(timestamp, referenceTimestamp = Date.now()) {
+  const date = getValidDate(timestamp);
+  const referenceAppDay = getAppDayDate(referenceTimestamp);
+  if (!date || !referenceAppDay) {
+    return false;
+  }
+
+  const weekStart = new Date(
+    referenceAppDay.getFullYear(),
+    referenceAppDay.getMonth(),
+    referenceAppDay.getDate() - referenceAppDay.getDay(),
+    APP_DAY_START_HOUR,
+    APP_DAY_START_MINUTE,
+    0,
+    0,
+  );
+  const nextWeekStart = new Date(weekStart);
+  nextWeekStart.setDate(nextWeekStart.getDate() + 7);
+
+  return date.getTime() >= weekStart.getTime()
+    && date.getTime() < nextWeekStart.getTime();
+}
+
 export function getNextAppDayBoundary(timestamp = Date.now()) {
   const current = getValidDate(timestamp) || new Date();
   const boundary = new Date(
