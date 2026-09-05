@@ -19,6 +19,7 @@ import { getCardImageSource } from '../lib/cardImageCache';
 import { styles } from '../styles/appStyles';
 
 const voidStampBlueImage = require('../../assets/card/void_stamp_blue.png');
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 function MonsterCardContent({ imageUri, layout }) {
   const isLeaf = layout === 'leaf';
@@ -230,6 +231,11 @@ export function StackCard({
     outputRange: [0, 0, 0.8, 0],
     extrapolate: 'clamp',
   });
+  const treeDeleteFadeOpacity = deleteHoldProgress.interpolate({
+    inputRange: [0, 0.64, 0.99, 1],
+    outputRange: [1, 1, 0, 1],
+    extrapolate: 'clamp',
+  });
   const deleteStampAnimatedStyle = isDoneCleanupPreviewCard
     ? {
       transform: [
@@ -300,7 +306,7 @@ export function StackCard({
   );
 
   return (
-    <Pressable
+    <AnimatedPressable
       disabled={isLeafCard || isPreviewCard}
       onPressIn={onPressIn}
       onPress={onPress}
@@ -327,6 +333,9 @@ export function StackCard({
         isFocusedCard && isSystem && styles.focusedTreasureCard,
         isDeleteProgressVisible && styles.deleteFocusedCard,
         isDoneCleanupChromeVisible && styles.doneCleanupFocusedCard,
+        isTreeCard
+          && (isPrimaryDeleteHoldCard || isDoneCleanupPreviewCard)
+          && { opacity: treeDeleteFadeOpacity },
         zLayer != null ? { zIndex: zLayer } : null,
       ]}
     >
@@ -356,7 +365,7 @@ export function StackCard({
         />
       ) : null}
 
-      {(isTreeCard || isLeafCard) && (isPrimaryDeleteHoldCard || isDoneCleanupPreviewCard) ? (
+      {isLeafCard && (isPrimaryDeleteHoldCard || isDoneCleanupPreviewCard) ? (
         <Animated.View
           pointerEvents="none"
           style={[
@@ -710,6 +719,6 @@ export function StackCard({
           {dependencyText}
         </Text>
       </View>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
