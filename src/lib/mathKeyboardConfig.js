@@ -1,5 +1,3 @@
-const MAX_KEY_LABEL_LENGTH = 32;
-const MAX_KEY_INSERT_LENGTH = 200;
 export const MATH_KEYBOARD_GRID_COLUMNS = 7;
 export const MATH_KEYBOARD_GRID_ROWS = 6;
 export const MATH_KEYBOARD_GRID_SIZE = MATH_KEYBOARD_GRID_COLUMNS * MATH_KEYBOARD_GRID_ROWS;
@@ -48,29 +46,6 @@ export const SYSTEM_MATH_KEY_DEFINITIONS = [
 const SYSTEM_MATH_KEY_BY_ID = new Map(
   SYSTEM_MATH_KEY_DEFINITIONS.map((definition) => [definition.systemKeyId, definition]),
 );
-
-function normalizeText(value, maxLength) {
-  if (value === null || value === undefined) {
-    return '';
-  }
-
-  return String(value).trim().slice(0, maxLength);
-}
-
-export function createMathKeyboardKey(value) {
-  const label = normalizeText(value, MAX_KEY_LABEL_LENGTH);
-  const insert = normalizeText(value, MAX_KEY_INSERT_LENGTH);
-
-  if (!label || !insert) {
-    return null;
-  }
-
-  return {
-    id: `math-key-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    insert,
-    label,
-  };
-}
 
 function createEmptyMathKeyboardSlot(index) {
   return {
@@ -161,43 +136,8 @@ export function normalizeMathKeyboardKeys(rawKeys) {
     if (systemDefinition) {
       pendingKeys.push({
         definition: systemDefinition,
-        type: 'system',
       });
-      return;
     }
-
-    const rawLabel = typeof rawKey === 'object' && rawKey !== null
-      ? rawKey.label
-      : rawKey;
-    const rawInsert = typeof rawKey === 'object' && rawKey !== null
-      ? rawKey.insert ?? rawKey.label
-      : rawKey;
-    const label = normalizeText(rawLabel, MAX_KEY_LABEL_LENGTH);
-    const insert = normalizeText(rawInsert, MAX_KEY_INSERT_LENGTH);
-    const slotIndex = normalizeSlotIndex(rawKey, fallbackIndex);
-
-    if (
-      !label
-      || !insert
-      || !isValidMathKeyboardSlotIndex(slotIndex)
-    ) {
-      if (label && insert) {
-        pendingKeys.push({
-          insert,
-          label,
-          type: 'custom',
-        });
-      }
-      return;
-    }
-
-    normalizedKeys[slotIndex] = {
-      id: `math-key-slot-${slotIndex}`,
-      insert,
-      isEmpty: false,
-      label,
-      slotIndex,
-    };
   });
 
   pendingKeys.forEach((pendingKey) => {
@@ -206,23 +146,12 @@ export function normalizeMathKeyboardKeys(rawKeys) {
       return;
     }
 
-    if (pendingKey.type === 'system') {
-      if (placedSystemKeyIds.has(pendingKey.definition.systemKeyId)) {
-        return;
-      }
-
-      normalizedKeys[slotIndex] = createSystemMathKeyboardSlot(pendingKey.definition, slotIndex);
-      placedSystemKeyIds.add(pendingKey.definition.systemKeyId);
+    if (placedSystemKeyIds.has(pendingKey.definition.systemKeyId)) {
       return;
     }
 
-    normalizedKeys[slotIndex] = {
-      id: `math-key-slot-${slotIndex}`,
-      insert: pendingKey.insert,
-      isEmpty: false,
-      label: pendingKey.label,
-      slotIndex,
-    };
+    normalizedKeys[slotIndex] = createSystemMathKeyboardSlot(pendingKey.definition, slotIndex);
+    placedSystemKeyIds.add(pendingKey.definition.systemKeyId);
   });
 
   SYSTEM_MATH_KEY_DEFINITIONS.forEach((definition) => {
@@ -252,12 +181,7 @@ export function getActiveMathKeyboardKeys(keys = []) {
 
 export function serializeMathKeyboardKeys(keys = []) {
   return getActiveMathKeyboardKeys(keys).map((key) => ({
-    ...(key.isSystem ? {
-      systemKeyId: key.systemKeyId,
-    } : {
-      insert: key.insert,
-      label: key.label,
-    }),
+    systemKeyId: key.systemKeyId,
     slotIndex: key.slotIndex,
   }));
 }
@@ -276,39 +200,7 @@ function withSlotIndex(key, slotIndex) {
     );
   }
 
-  return {
-    id: `math-key-slot-${slotIndex}`,
-    insert: key.insert,
-    isEmpty: false,
-    label: key.label,
-    slotIndex,
-  };
-}
-
-export function updateMathKeyboardKeyAt(keys = [], index, value) {
-  if (index < 0 || index >= MATH_KEYBOARD_GRID_SIZE) {
-    return normalizeMathKeyboardKeys(keys);
-  }
-
-  const normalizedKeys = normalizeMathKeyboardKeys(keys);
-  if (normalizedKeys[index]?.isSystem || normalizedKeys[index]?.isReserved) {
-    return normalizedKeys;
-  }
-
-  const label = normalizeText(value, MAX_KEY_LABEL_LENGTH);
-  const insert = normalizeText(value, MAX_KEY_INSERT_LENGTH);
-
-  normalizedKeys[index] = label && insert
-    ? {
-      id: `math-key-slot-${index}`,
-      insert,
-      isEmpty: false,
-      label,
-      slotIndex: index,
-    }
-    : createEmptyMathKeyboardSlot(index);
-
-  return normalizedKeys;
+  return createEmptyMathKeyboardSlot(slotIndex);
 }
 
 export function moveMathKeyboardKey(keys = [], sourceIndex, targetIndex) {

@@ -103,7 +103,6 @@ import { ensureDailyReminderScheduled } from './src/lib/dailyReminder';
 import {
   moveMathKeyboardKey,
   normalizeMathKeyboardKeys,
-  updateMathKeyboardKeyAt,
 } from './src/lib/mathKeyboardConfig';
 import {
   getStoredMathKeyboardKeys,
@@ -1527,10 +1526,6 @@ export default function App() {
     setStoredMathKeyboardKeys(nextKeys).catch(() => {});
   }
 
-  function handleUpdateMathKeyboardKey(index, value) {
-    persistMathKeyboardKeys(updateMathKeyboardKeyAt(mathKeyboardKeys, index, value));
-  }
-
   function handleMoveMathKeyboardKey(sourceIndex, targetIndex) {
     persistMathKeyboardKeys(moveMathKeyboardKey(mathKeyboardKeys, sourceIndex, targetIndex));
   }
@@ -2164,7 +2159,6 @@ export default function App() {
         onMoveMathKeyboardKey={handleMoveMathKeyboardKey}
         onRootDoubleTap={handleToggleAllTreeCards}
         rootDoubleTapEnabled={!shouldRenderLeaf && focusedCardIndex === null}
-        onUpdateMathKeyboardKey={handleUpdateMathKeyboardKey}
         settingsPanelCloseRequest={settingsPanelCloseRequest}
         onToggleMode={handleToggleLayout}
         onCreateCard={handleCreateCard}

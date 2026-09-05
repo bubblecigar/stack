@@ -1,6 +1,5 @@
 import {
   Pressable,
-  Text,
   View,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -43,7 +42,7 @@ export function MathNotationPalette({
   onOpenSystemKeyboard,
   textEntryDisabled = false,
 }) {
-  const customKeys = Array.isArray(keys) ? keys : [];
+  const paletteKeys = Array.isArray(keys) ? keys : [];
 
   return (
     <View
@@ -58,8 +57,8 @@ export function MathNotationPalette({
         pointerEvents="box-none"
         style={styles.mathNotationGrid}
       >
-        {customKeys.map((key, keyIndex) => {
-          if (key?.isEmpty) {
+        {paletteKeys.map((key, keyIndex) => {
+          if (!key?.isSystem) {
             return (
               <View
                 key={`math-notation-slot-${key.slotIndex ?? keyIndex}`}
@@ -112,12 +111,12 @@ export function MathNotationPalette({
               }}
               style={({ pressed }) => [
                 styles.mathNotationGridKey,
-                key.isSystem && styles.mathNotationGridSystemKey,
+                styles.mathNotationGridSystemKey,
                 isKeyDisabled && !locked && styles.mathNotationTextKeyDisabled,
                 pressed && styles.mathNotationKeyPressed,
               ]}
             >
-              {key.isSystem ? (() => {
+              {(() => {
                 const SystemIcon = SYSTEM_KEY_ICONS[key.systemKeyId]?.Icon
                   ?? MaterialCommunityIcons;
                 const systemIconName = SYSTEM_KEY_ICONS[key.systemKeyId]?.name;
@@ -129,15 +128,7 @@ export function MathNotationPalette({
                     size={16}
                   />
                 );
-              })() : (
-                <Text
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  style={styles.mathNotationKeyText}
-                >
-                  {key.label}
-                </Text>
-              )}
+              })()}
             </Pressable>
           );
         })}

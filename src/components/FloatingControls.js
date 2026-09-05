@@ -7,7 +7,6 @@ import {
   PanResponder,
   Pressable,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -181,10 +180,6 @@ function getCalendarDays(date) {
   return [...cells, ...trailingBlankCells];
 }
 
-function getMathKeyboardDraftValues(keys) {
-  return (Array.isArray(keys) ? keys : []).map((key) => key?.label || '');
-}
-
 export function FloatingControls({
   layoutMode,
   user = null,
@@ -199,7 +194,6 @@ export function FloatingControls({
   onRootDoubleTap,
   onLogout,
   onMoveMathKeyboardKey,
-  onUpdateMathKeyboardKey,
   settingsPanelCloseRequest = 0,
   canDeleteCurrentCard = false,
   deleteTargetDone = false,
@@ -219,9 +213,6 @@ export function FloatingControls({
   const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(false);
   const [settingsPanelOffsetX, setSettingsPanelOffsetX] = useState(0);
   const [settingsPanelOffsetY, setSettingsPanelOffsetY] = useState(0);
-  const [mathKeyboardDraftValues, setMathKeyboardDraftValues] = useState(
-    () => getMathKeyboardDraftValues(mathKeyboardKeys),
-  );
   const [mathKeyboardDragState, setMathKeyboardDragState] = useState({
     sourceIndex: null,
     targetIndex: null,
@@ -248,7 +239,6 @@ export function FloatingControls({
     pageX: 0,
     pageY: 0,
   });
-  const mathKeyboardInputRefs = useRef([]);
 
   useEffect(() => {
     Animated.timing(flipProgress, {
@@ -261,10 +251,6 @@ export function FloatingControls({
     flipProgress,
     layoutMode,
   ]);
-
-  useEffect(() => {
-    setMathKeyboardDraftValues(getMathKeyboardDraftValues(mathKeyboardKeys));
-  }, [mathKeyboardKeys]);
 
   useEffect(() => {
     if (shouldShowDelete) {
@@ -595,7 +581,7 @@ export function FloatingControls({
     }
 
     function canDragMathKeyboardKey(key) {
-      return canEditMathKeyboardConfig && !key?.isReserved;
+      return canEditMathKeyboardConfig && key?.isSystem;
     }
 
     function handleMathKeyboardKeyDragStart(event, keyIndex) {
@@ -667,12 +653,7 @@ export function FloatingControls({
         event.nativeEvent.pageX - mathKeyboardDragStartRef.current.pageX,
         event.nativeEvent.pageY - mathKeyboardDragStartRef.current.pageY,
       );
-      const sourceKey = mathKeyboardKeys[sourceIndex];
-
       if (dragDistance < MATH_KEYBOARD_DRAG_THRESHOLD) {
-        if (!sourceKey?.isSystem && !sourceKey?.isReserved) {
-          mathKeyboardInputRefs.current[sourceIndex]?.focus?.();
-        }
         return;
       }
 
@@ -686,29 +667,6 @@ export function FloatingControls({
       }
 
       onMoveMathKeyboardKey?.(sourceIndex, targetIndex);
-    }
-
-    function updateDraftKey(keyIndex, nextValue) {
-      if (!canEditMathKeyboardConfig) {
-        return;
-      }
-
-      setMathKeyboardDraftValues((currentValues) => {
-        const nextValues = [...currentValues];
-        nextValues[keyIndex] = nextValue;
-        return nextValues;
-      });
-    }
-
-    function commitDraftKey(keyIndex) {
-      if (!canEditMathKeyboardConfig) {
-        return;
-      }
-
-      onUpdateMathKeyboardKey?.(
-        keyIndex,
-        mathKeyboardDraftValues[keyIndex] ?? '',
-      );
     }
 
     return (
@@ -748,7 +706,7 @@ export function FloatingControls({
               }}
               onStartShouldSetResponder={() => canDragMathKeyboardKey(key)}
             >
-              {key.isReserved ? null : key.isSystem ? (() => {
+              {key.isSystem ? (() => {
                 const SystemIcon = SYSTEM_MATH_KEY_ICONS[key.systemKeyId]?.Icon
                   ?? MaterialCommunityIcons;
                 const systemIconName = SYSTEM_MATH_KEY_ICONS[key.systemKeyId]?.name;
@@ -760,28 +718,7 @@ export function FloatingControls({
                     size={16}
                   />
                 );
-              })() : (
-                <TextInput
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  numberOfLines={1}
-                  onBlur={() => commitDraftKey(keyIndex)}
-                  onChangeText={(nextValue) => updateDraftKey(keyIndex, nextValue)}
-                  onSubmitEditing={() => commitDraftKey(keyIndex)}
-                  editable={canEditMathKeyboardConfig}
-                  pointerEvents="none"
-                  ref={(inputRef) => {
-                    mathKeyboardInputRefs.current[keyIndex] = inputRef;
-                  }}
-                  returnKeyType="done"
-                  selectTextOnFocus
-                  style={[
-                    styles.addCardMathKeyboardKeyInput,
-                    key.isEmpty && styles.addCardMathKeyboardEmptyKeyInput,
-                  ]}
-                  value={mathKeyboardDraftValues[keyIndex] ?? key.label}
-                />
-              )}
+              })() : null}
             </View>
           ))}
         </View>
