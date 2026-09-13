@@ -1,7 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import {
-  DEFAULT_CARD_BACKGROUND_COLOR,
-  normalizeCardBackgroundColor,
+  normalizeNewCardBackgroundColor,
 } from './cardBackground';
 
 const UI_STATE_KEY_PREFIX = 'stack.uiState';
@@ -53,8 +52,7 @@ export function normalizeUiState(rawState) {
     focusedCardId: normalizeCardId(rawState.focusedCardId),
     layoutMode,
     leafFocusedCardId: normalizeCardId(rawState.leafFocusedCardId),
-    newCardBackgroundColor: normalizeCardBackgroundColor(rawState.newCardBackgroundColor)
-      || DEFAULT_CARD_BACKGROUND_COLOR,
+    newCardBackgroundColor: normalizeNewCardBackgroundColor(rawState.newCardBackgroundColor),
   };
 }
 

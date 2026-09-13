@@ -6,7 +6,6 @@ export const CARD_BACKGROUND_OPTIONS = [
   { color: '#DCFCE7', label: 'Soft green' },
   { color: '#DBEAFE', label: 'Soft blue' },
   { color: '#FCE7F3', label: 'Soft pink' },
-  { color: '#EDE9FE', label: 'Soft violet' },
 ];
 
 export function normalizeCardBackgroundColor(value) {
@@ -16,4 +15,11 @@ export function normalizeCardBackgroundColor(value) {
 
   const normalizedColor = value.trim().toUpperCase();
   return /^#[0-9A-F]{6}$/.test(normalizedColor) ? normalizedColor : null;
+}
+
+export function normalizeNewCardBackgroundColor(value) {
+  const normalizedColor = normalizeCardBackgroundColor(value);
+  return CARD_BACKGROUND_OPTIONS.some(({ color }) => color === normalizedColor)
+    ? normalizedColor
+    : DEFAULT_CARD_BACKGROUND_COLOR;
 }

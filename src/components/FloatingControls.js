@@ -120,6 +120,12 @@ export function FloatingControls({
     pageX: 0,
     pageY: 0,
   });
+  const selectedColorIndex = CARD_BACKGROUND_OPTIONS.findIndex(
+    ({ color }) => color === newCardBackgroundColor,
+  );
+  const secondaryCardColor = CARD_BACKGROUND_OPTIONS[
+    (selectedColorIndex + 1) % CARD_BACKGROUND_OPTIONS.length
+  ];
 
   useEffect(() => {
     Animated.timing(flipProgress, {
@@ -363,29 +369,27 @@ export function FloatingControls({
         style={styles.settingsColorPicker}
       >
         <Text style={styles.settingsColorPickerTitle}>New card color</Text>
-        <View style={styles.settingsColorSwatches}>
-          {CARD_BACKGROUND_OPTIONS.map(({ color, label }) => {
-            const isSelected = color === newCardBackgroundColor;
-
-            return (
-              <Pressable
-                key={color}
-                accessibilityLabel={`${label} card background`}
-                accessibilityRole="button"
-                accessibilityState={{ selected: isSelected }}
-                onPress={() => onNewCardBackgroundColorChange?.(color)}
-                style={({ pressed }) => [
-                  styles.settingsColorSwatch,
-                  { backgroundColor: color },
-                  isSelected && styles.settingsColorSwatchSelected,
-                  pressed && styles.settingsColorSwatchPressed,
-                ]}
-              >
-                {isSelected ? <View style={styles.settingsColorSwatchIndicator} /> : null}
-              </Pressable>
-            );
-          })}
-        </View>
+        <Pressable
+          accessibilityHint="Moves to the next card color"
+          accessibilityLabel={`Switch to ${secondaryCardColor.label} card background`}
+          accessibilityRole="button"
+          onPress={() => onNewCardBackgroundColorChange?.(secondaryCardColor.color)}
+          style={({ pressed }) => [
+            styles.settingsColorCorner,
+            styles.settingsColorCornerBottomRight,
+            pressed && styles.settingsColorCornerPressed,
+          ]}
+        >
+          <View
+            pointerEvents="none"
+            style={[
+              styles.settingsColorCornerTriangle,
+              styles.settingsColorTriangleBottomRight,
+              { borderBottomColor: secondaryCardColor.color },
+            ]}
+          />
+          <View pointerEvents="none" style={styles.settingsColorCutEdge} />
+        </Pressable>
       </View>
     );
   }
@@ -496,9 +500,7 @@ export function FloatingControls({
             <Animated.View
               pointerEvents={layoutMode === 'leaf' ? 'box-none' : 'none'}
               style={[
-                styles.addCardButton,
                 styles.addCardFace,
-                { backgroundColor: newCardBackgroundColor },
                 {
                   transform: [
                     { perspective: 900 },
@@ -512,14 +514,26 @@ export function FloatingControls({
                 },
               ]}
             >
-              {renderColorPicker(isSettingsPanelOpen && layoutMode === 'leaf')}
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.settingsSecondaryCard,
+                  { backgroundColor: secondaryCardColor.color },
+                ]}
+              />
+              <View
+                style={[
+                  styles.addCardButton,
+                  { backgroundColor: newCardBackgroundColor },
+                ]}
+              >
+                {renderColorPicker(isSettingsPanelOpen && layoutMode === 'leaf')}
+              </View>
             </Animated.View>
             <Animated.View
               pointerEvents={layoutMode === 'tree' ? 'box-none' : 'none'}
               style={[
-                styles.addCardButton,
                 styles.addCardFace,
-                { backgroundColor: newCardBackgroundColor },
                 {
                   transform: [
                     { perspective: 900 },
@@ -533,7 +547,21 @@ export function FloatingControls({
                 },
               ]}
             >
-              {renderColorPicker(isSettingsPanelOpen && layoutMode === 'tree')}
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.settingsSecondaryCard,
+                  { backgroundColor: secondaryCardColor.color },
+                ]}
+              />
+              <View
+                style={[
+                  styles.addCardButton,
+                  { backgroundColor: newCardBackgroundColor },
+                ]}
+              >
+                {renderColorPicker(isSettingsPanelOpen && layoutMode === 'tree')}
+              </View>
             </Animated.View>
           </Animated.View>
         </View>

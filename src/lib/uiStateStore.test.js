@@ -32,8 +32,11 @@ test('normalizes mixed card IDs and collapsed nodes', () => {
   });
 });
 
-test('normalizes legacy UI state without collapsed nodes', () => {
-  expect(normalizeUiState({ layoutMode: 'leaf' })).toEqual({
+test('normalizes legacy UI state and retired palette colors', () => {
+  expect(normalizeUiState({
+    layoutMode: 'leaf',
+    newCardBackgroundColor: '#EDE9FE',
+  })).toEqual({
     archivedRootIds: [],
     collapsedNodeIds: [],
     focusedCardId: null,
