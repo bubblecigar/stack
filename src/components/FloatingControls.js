@@ -1,24 +1,20 @@
 import {
-  Alert,
   Animated,
   Dimensions,
   Easing,
   Image,
   PanResponder,
   Pressable,
-  Text,
   View,
 } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   useEffect, useMemo, useRef, useState,
 } from 'react';
 import { constrainAddRelation } from '../lib/cardInsertion';
-import { getAppDayDate } from '../lib/appDay';
 import {
-  MATH_KEYBOARD_GRID_COLUMNS,
-  MATH_KEYBOARD_GRID_ROWS,
-} from '../lib/mathKeyboardConfig';
+  CARD_BACKGROUND_OPTIONS,
+  DEFAULT_CARD_BACKGROUND_COLOR,
+} from '../lib/cardBackground';
 import { styles } from '../styles/appStyles';
 
 const voidStampBlueImage = require('../../assets/card/void_stamp_blue.png');
@@ -40,44 +36,6 @@ const SETTINGS_PANEL_TRIGGER_DRAG_Y = -160;
 const SETTINGS_PANEL_CENTER_OFFSET_X = 0;
 const SETTINGS_PANEL_CENTER_OFFSET_Y = -(SCREEN_HEIGHT / 2 + 150);
 const SETTINGS_PANEL_TOGGLE_DURATION_MS = 260;
-const MATH_KEYBOARD_DRAG_THRESHOLD = 8;
-const SYSTEM_CARD_EXPLANATIONS = {
-  mission: {
-    body: 'Print these cards to your card list. Use them to give your day a clear direction and a simple place to begin.',
-    title: 'Printer',
-  },
-  collection: {
-    body: '“Hello! Nice to meet you.”',
-    title: 'Mysterious Collection',
-  },
-  treasure: {
-    body: 'All ideas are treasures.\nWrite them down, think and drop.',
-    title: 'Treasure',
-  },
-};
-const SYSTEM_MATH_KEY_ICONS = {
-  camera: {
-    Icon: Ionicons,
-    name: 'camera-outline',
-  },
-  delete: {
-    Icon: MaterialCommunityIcons,
-    name: 'backspace-outline',
-  },
-  keyboard: {
-    Icon: Ionicons,
-    name: 'keypad-outline',
-  },
-  newline: {
-    Icon: MaterialCommunityIcons,
-    name: 'keyboard-return',
-  },
-  space: {
-    Icon: MaterialCommunityIcons,
-    name: 'keyboard-space',
-  },
-};
-
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
@@ -126,85 +84,24 @@ function getAddRelationFromPoint(dx, dy, fallbackRelation = null) {
   return fallbackRelation;
 }
 
-function padTimePart(value) {
-  return String(value).padStart(2, '0');
-}
-
-const MONTH_LABELS = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
-
-function formatControlDate(date) {
-  return `${date.getFullYear()} ${MONTH_LABELS[date.getMonth()]} ${date.getDate()}`;
-}
-
-function formatControlTime(date) {
-  return [
-    padTimePart(date.getHours()),
-    padTimePart(date.getMinutes()),
-    padTimePart(date.getSeconds()),
-  ].join(' : ');
-}
-
-function getCalendarDays(date) {
-  const year = date.getFullYear();
-  const month = date.getMonth();
-  const firstWeekday = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const dayCells = Array.from(
-    { length: daysInMonth },
-    (_, dayIndex) => ({ day: dayIndex + 1, isBlank: false }),
-  );
-  const leadingBlankCells = Array.from(
-    { length: firstWeekday },
-    (_, blankIndex) => ({ day: `leading-${blankIndex}`, isBlank: true }),
-  );
-  const cells = [...leadingBlankCells, ...dayCells];
-  const trailingBlankCount = Math.max(42 - cells.length, 0);
-  const trailingBlankCells = Array.from(
-    { length: trailingBlankCount },
-    (_, blankIndex) => ({ day: `trailing-${blankIndex}`, isBlank: true }),
-  );
-
-  return [...cells, ...trailingBlankCells];
-}
-
 export function FloatingControls({
   layoutMode,
-  user = null,
-  audioEnabled = true,
-  mathKeyboardKeys = [],
   onToggleMode,
   onCreateCard,
-  onAudioEnabledChange,
   onAddPreviewChange,
   onAddHoldChange,
   onDeleteHoldChange,
+  newCardBackgroundColor = DEFAULT_CARD_BACKGROUND_COLOR,
+  onNewCardBackgroundColorChange,
   onRootDoubleTap,
-  onLogout,
-  onMoveMathKeyboardKey,
-  settingsPanelCloseRequest = 0,
   canDeleteCurrentCard = false,
   deleteTargetDone = false,
   childInsertionOnly = false,
   parentInsertionBlocked = false,
   disableCardInsertion = false,
-  focusedSystemCardType = null,
   rootDoubleTapEnabled = false,
 }) {
   const shouldShowDelete = canDeleteCurrentCard;
-  const systemCardExplanation = SYSTEM_CARD_EXPLANATIONS[focusedSystemCardType] ?? null;
   const [isAddPressed, setIsAddPressed] = useState(false);
   const [addCardRotation, setAddCardRotation] = useState(ADD_CARD_BASE_ROTATION);
   const [addCardOffsetX, setAddCardOffsetX] = useState(0);
@@ -213,11 +110,6 @@ export function FloatingControls({
   const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(false);
   const [settingsPanelOffsetX, setSettingsPanelOffsetX] = useState(0);
   const [settingsPanelOffsetY, setSettingsPanelOffsetY] = useState(0);
-  const [mathKeyboardDragState, setMathKeyboardDragState] = useState({
-    sourceIndex: null,
-    targetIndex: null,
-  });
-  const [currentTime, setCurrentTime] = useState(() => new Date());
   const flipProgress = useRef(new Animated.Value(layoutMode === 'tree' ? 1 : 0)).current;
   const deleteSlideProgress = useRef(new Animated.Value(shouldShowDelete ? 1 : 0)).current;
   const settingsPanelProgress = useRef(new Animated.Value(0)).current;
@@ -227,18 +119,12 @@ export function FloatingControls({
     pageX: 0,
     pageY: 0,
   });
-  const mathKeyboardGridRef = useRef(null);
-  const mathKeyboardGridLayoutRef = useRef({
-    height: 0,
-    pageX: 0,
-    pageY: 0,
-    width: 0,
-  });
-  const mathKeyboardDragSourceIndexRef = useRef(null);
-  const mathKeyboardDragStartRef = useRef({
-    pageX: 0,
-    pageY: 0,
-  });
+  const selectedColorIndex = CARD_BACKGROUND_OPTIONS.findIndex(
+    ({ color }) => color === newCardBackgroundColor,
+  );
+  const secondaryCardColor = CARD_BACKGROUND_OPTIONS[
+    (selectedColorIndex + 1) % CARD_BACKGROUND_OPTIONS.length
+  ];
 
   useEffect(() => {
     Animated.timing(flipProgress, {
@@ -286,22 +172,6 @@ export function FloatingControls({
     isSettingsPanelOpen,
     settingsPanelProgress,
   ]);
-
-  useEffect(() => {
-    if (settingsPanelCloseRequest > 0) {
-      setIsSettingsPanelOpen(false);
-    }
-  }, [settingsPanelCloseRequest]);
-
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, []);
 
   function getAddGestureDelta(event, gestureState) {
     const { pageX, pageY } = event.nativeEvent;
@@ -400,39 +270,6 @@ export function FloatingControls({
     );
   }
 
-  function closeSettingsPanel() {
-    setIsSettingsPanelOpen(false);
-  }
-
-  const userLabel = user?.email || 'Unknown user';
-  const appDayDate = getAppDayDate(currentTime) || currentTime;
-  const controlDateLabel = formatControlDate(appDayDate);
-  const controlTimeLabel = formatControlTime(currentTime);
-  const calendarDays = getCalendarDays(appDayDate);
-  const currentDay = appDayDate.getDate();
-
-  function renderSystemCardMainContent() {
-    if (!systemCardExplanation) {
-      return null;
-    }
-
-    return (
-      <>
-        <View
-          pointerEvents="none"
-          style={styles.addCardSystemExplanation}
-        >
-          <Text style={styles.addCardSystemExplanationTitle}>
-            {systemCardExplanation.title}
-          </Text>
-          <Text style={styles.addCardSystemExplanationBody}>
-            {systemCardExplanation.body}
-          </Text>
-        </View>
-      </>
-    );
-  }
-
   const addPanResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => !isSettingsPanelOpen,
     onMoveShouldSetPanResponder: () => !isSettingsPanelOpen,
@@ -491,7 +328,7 @@ export function FloatingControls({
       resetAddPointing();
 
       if (!disableCardInsertion && relation) {
-        onCreateCard?.(relation);
+        onCreateCard?.(relation, newCardBackgroundColor);
         return;
       }
 
@@ -511,6 +348,7 @@ export function FloatingControls({
     onRootDoubleTap,
     onToggleMode,
     rootDoubleTapEnabled,
+    newCardBackgroundColor,
   ]);
 
   function handleDeletePressIn() {
@@ -521,207 +359,35 @@ export function FloatingControls({
     onDeleteHoldChange?.(false);
   }
 
-  function handleLogoutPress() {
-    Alert.alert(
-      'Log out?',
-      'You will need to sign in again to access your cards.',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Log out',
-          style: 'destructive',
-          onPress: () => onLogout?.(),
-        },
-      ],
-    );
-  }
-
-  function renderMathKeyboardConfig() {
-    const canEditMathKeyboardConfig = isSettingsPanelOpen;
-
-    function updateGridLayoutFromRef() {
-      mathKeyboardGridRef.current?.measureInWindow?.((pageX, pageY, width, height) => {
-        mathKeyboardGridLayoutRef.current = {
-          height,
-          pageX,
-          pageY,
-          width,
-        };
-      });
-    }
-
-    function getMathKeyboardSlotIndexFromPoint(pageX, pageY) {
-      const layout = mathKeyboardGridLayoutRef.current;
-      if (
-        !layout.width
-        || !layout.height
-        || pageX < layout.pageX
-        || pageX > layout.pageX + layout.width
-        || pageY < layout.pageY
-        || pageY > layout.pageY + layout.height
-      ) {
-        return null;
-      }
-
-      const column = clamp(
-        Math.floor(((pageX - layout.pageX) / layout.width) * MATH_KEYBOARD_GRID_COLUMNS),
-        0,
-        MATH_KEYBOARD_GRID_COLUMNS - 1,
-      );
-      const row = clamp(
-        Math.floor(((pageY - layout.pageY) / layout.height) * MATH_KEYBOARD_GRID_ROWS),
-        0,
-        MATH_KEYBOARD_GRID_ROWS - 1,
-      );
-
-      return (row * MATH_KEYBOARD_GRID_COLUMNS) + column;
-    }
-
-    function canDragMathKeyboardKey(key) {
-      return canEditMathKeyboardConfig && key?.isSystem;
-    }
-
-    function handleMathKeyboardKeyDragStart(event, keyIndex) {
-      if (!canEditMathKeyboardConfig) {
-        return;
-      }
-
-      mathKeyboardDragSourceIndexRef.current = keyIndex;
-      mathKeyboardDragStartRef.current = {
-        pageX: event.nativeEvent.pageX,
-        pageY: event.nativeEvent.pageY,
-      };
-      setMathKeyboardDragState({
-        sourceIndex: keyIndex,
-        targetIndex: keyIndex,
-      });
-      updateGridLayoutFromRef();
-    }
-
-    function handleMathKeyboardKeyDragMove(event) {
-      if (!canEditMathKeyboardConfig) {
-        return;
-      }
-
-      const sourceIndex = mathKeyboardDragSourceIndexRef.current;
-      if (sourceIndex === null) {
-        return;
-      }
-
-      const targetIndex = getMathKeyboardSlotIndexFromPoint(
-        event.nativeEvent.pageX,
-        event.nativeEvent.pageY,
-      );
-      const targetKey = targetIndex === null
-        ? null
-        : mathKeyboardKeys[targetIndex];
-      const nextTargetIndex = targetIndex !== null && !targetKey?.isReserved
-        ? targetIndex
-        : null;
-
-      setMathKeyboardDragState((currentState) => (
-        currentState.sourceIndex === sourceIndex
-        && currentState.targetIndex === nextTargetIndex
-          ? currentState
-          : {
-            sourceIndex,
-            targetIndex: nextTargetIndex,
-          }
-      ));
-    }
-
-    function handleMathKeyboardKeyDragRelease(event) {
-      const sourceIndex = mathKeyboardDragSourceIndexRef.current;
-      mathKeyboardDragSourceIndexRef.current = null;
-      setMathKeyboardDragState({
-        sourceIndex: null,
-        targetIndex: null,
-      });
-
-      if (sourceIndex === null) {
-        return;
-      }
-
-      if (!canEditMathKeyboardConfig) {
-        return;
-      }
-
-      const dragDistance = Math.hypot(
-        event.nativeEvent.pageX - mathKeyboardDragStartRef.current.pageX,
-        event.nativeEvent.pageY - mathKeyboardDragStartRef.current.pageY,
-      );
-      if (dragDistance < MATH_KEYBOARD_DRAG_THRESHOLD) {
-        return;
-      }
-
-      const targetIndex = getMathKeyboardSlotIndexFromPoint(
-        event.nativeEvent.pageX,
-        event.nativeEvent.pageY,
-      );
-
-      if (targetIndex === null) {
-        return;
-      }
-
-      onMoveMathKeyboardKey?.(sourceIndex, targetIndex);
-    }
-
+  function renderColorPicker(isInteractive = false) {
     return (
       <View
-        onStartShouldSetResponder={() => canEditMathKeyboardConfig}
-        style={styles.addCardMathKeyboardConfig}
+        accessibilityElementsHidden={!isInteractive}
+        importantForAccessibility={isInteractive ? 'auto' : 'no-hide-descendants'}
+        pointerEvents={isInteractive ? 'auto' : 'none'}
+        style={styles.settingsColorPicker}
       >
-        <View
-          onLayout={updateGridLayoutFromRef}
-          ref={mathKeyboardGridRef}
-          style={styles.addCardMathKeyboardGrid}
+        <Pressable
+          accessibilityHint="Moves to the next card color"
+          accessibilityLabel={`Switch to ${secondaryCardColor.label} card background`}
+          accessibilityRole="button"
+          onPress={() => onNewCardBackgroundColorChange?.(secondaryCardColor.color)}
+          style={({ pressed }) => [
+            styles.settingsColorCorner,
+            styles.settingsColorCornerBottomRight,
+            pressed && styles.settingsColorCornerPressed,
+          ]}
         >
-          {mathKeyboardKeys.map((key, keyIndex) => (
-            <View
-              key={`math-keyboard-config-slot-${keyIndex}`}
-              style={[
-                styles.addCardMathKeyboardKey,
-                key.isEmpty && styles.addCardMathKeyboardEmptyKey,
-                key.isReserved && styles.addCardMathKeyboardReservedKey,
-                key.isSystem && styles.addCardMathKeyboardSystemKey,
-                mathKeyboardDragState.targetIndex === keyIndex
-                  && mathKeyboardDragState.sourceIndex !== keyIndex
-                  && styles.addCardMathKeyboardDropTargetKey,
-                mathKeyboardDragState.sourceIndex === keyIndex
-                  && styles.addCardMathKeyboardDraggingKey,
-              ]}
-              onResponderGrant={(event) => handleMathKeyboardKeyDragStart(event, keyIndex)}
-              onResponderMove={handleMathKeyboardKeyDragMove}
-              onResponderRelease={handleMathKeyboardKeyDragRelease}
-              onResponderTerminationRequest={() => false}
-              onResponderTerminate={() => {
-                mathKeyboardDragSourceIndexRef.current = null;
-                setMathKeyboardDragState({
-                  sourceIndex: null,
-                  targetIndex: null,
-                });
-              }}
-              onStartShouldSetResponder={() => canDragMathKeyboardKey(key)}
-            >
-              {key.isSystem ? (() => {
-                const SystemIcon = SYSTEM_MATH_KEY_ICONS[key.systemKeyId]?.Icon
-                  ?? MaterialCommunityIcons;
-                const systemIconName = SYSTEM_MATH_KEY_ICONS[key.systemKeyId]?.name;
-
-                return (
-                  <SystemIcon
-                    color="#94A3B8"
-                    name={systemIconName}
-                    size={16}
-                  />
-                );
-              })() : null}
-            </View>
-          ))}
-        </View>
+          <View
+            pointerEvents="none"
+            style={[
+              styles.settingsColorCornerTriangle,
+              styles.settingsColorTriangleBottomRight,
+              { borderBottomColor: secondaryCardColor.color },
+            ]}
+          />
+          <View pointerEvents="none" style={styles.settingsColorCutEdge} />
+        </Pressable>
       </View>
     );
   }
@@ -771,7 +437,7 @@ export function FloatingControls({
         <Pressable
           accessibilityLabel="Close settings panel"
           accessibilityRole="button"
-          onPress={closeSettingsPanel}
+          onPress={() => setIsSettingsPanelOpen(false)}
           style={styles.settingsPanelBackdrop}
         />
       ) : null}
@@ -832,7 +498,6 @@ export function FloatingControls({
             <Animated.View
               pointerEvents={layoutMode === 'leaf' ? 'box-none' : 'none'}
               style={[
-                styles.addCardButton,
                 styles.addCardFace,
                 {
                   transform: [
@@ -849,31 +514,23 @@ export function FloatingControls({
             >
               <View
                 pointerEvents="none"
-                style={styles.addCardCalendarSurface}
+                style={[
+                  styles.settingsSecondaryCard,
+                  { backgroundColor: secondaryCardColor.color },
+                ]}
+              />
+              <View
+                style={[
+                  styles.addCardButton,
+                  { backgroundColor: newCardBackgroundColor },
+                ]}
               >
-                <View style={styles.addCardCalendarBinding} />
-                <View style={styles.addCardCalendarRingRow}>
-                  <View style={styles.addCardCalendarRing} />
-                  <View style={styles.addCardCalendarRing} />
-                </View>
+                {renderColorPicker(isSettingsPanelOpen && layoutMode === 'leaf')}
               </View>
-              {systemCardExplanation ? (
-                renderSystemCardMainContent()
-              ) : (
-                <>
-                  <View style={styles.addCardButtonChrono}>
-                    <Text style={styles.addCardButtonChronoText}>
-                      {controlTimeLabel}
-                    </Text>
-                  </View>
-                  {renderMathKeyboardConfig()}
-                </>
-              )}
             </Animated.View>
             <Animated.View
               pointerEvents={layoutMode === 'tree' ? 'box-none' : 'none'}
               style={[
-                styles.addCardButton,
                 styles.addCardFace,
                 {
                   transform: [
@@ -890,86 +547,20 @@ export function FloatingControls({
             >
               <View
                 pointerEvents="none"
-                style={styles.addCardCalendarSurface}
+                style={[
+                  styles.settingsSecondaryCard,
+                  { backgroundColor: secondaryCardColor.color },
+                ]}
+              />
+              <View
+                style={[
+                  styles.addCardButton,
+                  { backgroundColor: newCardBackgroundColor },
+                ]}
               >
-                <View style={styles.addCardCalendarBinding} />
-                <View style={styles.addCardCalendarRingRow}>
-                  <View style={styles.addCardCalendarRing} />
-                  <View style={styles.addCardCalendarRing} />
-                </View>
+                {renderColorPicker(isSettingsPanelOpen && layoutMode === 'tree')}
               </View>
-              {systemCardExplanation ? (
-                renderSystemCardMainContent()
-              ) : (
-                <>
-                  <View style={styles.addCardButtonChrono}>
-                    <Text style={styles.addCardButtonChronoText}>
-                      {controlDateLabel}
-                    </Text>
-                  </View>
-                  <View
-                    pointerEvents="none"
-                    style={styles.addCardCalendarGrid}
-                  >
-                    {calendarDays.map((cell) => (
-                      <View
-                        key={`calendar-day-${cell.day}`}
-                        style={[
-                          styles.addCardCalendarDateSquare,
-                          cell.isBlank && styles.addCardCalendarDateSquareBlank,
-                          cell.day === currentDay && styles.addCardCalendarDateSquareToday,
-                        ]}
-                      />
-                    ))}
-                  </View>
-                </>
-              )}
             </Animated.View>
-            <View
-              pointerEvents="box-none"
-              style={styles.settingsPanelContent}
-            >
-              <Text
-                numberOfLines={1}
-                pointerEvents="none"
-                style={styles.settingsPanelUserName}
-              >
-                {userLabel}
-              </Text>
-
-              <View style={styles.settingsPanelAudioRow}>
-                <Pressable
-                  accessibilityLabel={audioEnabled ? 'Turn audio off' : 'Turn audio on'}
-                  accessibilityRole="button"
-                  onPress={() => onAudioEnabledChange?.(!audioEnabled)}
-                  style={({ pressed }) => [
-                    styles.settingsIconButton,
-                    pressed && styles.settingsIconButtonPressed,
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    color="#CBD5E1"
-                    name={audioEnabled ? 'volume-high' : 'volume-off'}
-                    size={24}
-                  />
-                </Pressable>
-                <Pressable
-                  accessibilityLabel="Log out"
-                  accessibilityRole="button"
-                  onPress={handleLogoutPress}
-                  style={({ pressed }) => [
-                    styles.settingsIconButton,
-                    pressed && styles.settingsIconButtonPressed,
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    color="#CBD5E1"
-                    name="logout"
-                    size={24}
-                  />
-                </Pressable>
-              </View>
-            </View>
           </Animated.View>
         </View>
       </Animated.View>

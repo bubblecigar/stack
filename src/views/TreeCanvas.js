@@ -31,6 +31,7 @@ export function TreeCanvas({
   onCanvasBlur,
   isDeleteHoldActive = false,
   addPreviewRelation = null,
+  newCardBackgroundColor,
 }) {
   const treeHorizontalScrollRef = useRef(null);
   const treeVerticalScrollRef = useRef(null);
@@ -73,9 +74,10 @@ export function TreeCanvas({
         cards,
         localFocusedPosition >= 0 ? localFocusedPosition : null,
         addPreviewRelation,
+        newCardBackgroundColor,
       );
     },
-    [addPreviewRelation, cards, focusedCardIndex],
+    [addPreviewRelation, cards, focusedCardIndex, newCardBackgroundColor],
   );
 
   const {

@@ -14,7 +14,6 @@ import { Image as CachedImage } from 'expo-image';
 import { useEffect, useRef, useState } from 'react';
 import { DeleteHoldIndicator } from './DeleteHoldIndicator';
 import { DoneStampArtwork } from './DoneStampArtwork';
-import { TreasureInventoryContent } from './TreasureInventoryContent';
 import { getCardImageSource } from '../lib/cardImageCache';
 import { styles } from '../styles/appStyles';
 
@@ -45,13 +44,12 @@ function CollectionCardContent({ imageUri, layout }) {
 }
 
 export function StackCard({
+  audioEnabled = true,
   card,
   visibleIndex,
   layout,
   editingIndex,
   editingValue,
-  suppressEditingKeyboard = false,
-  editingKeyboardOpenRequest = 0,
   focusedCardIndex,
   focusedCardId = null,
   isLeafTopCard = false,
@@ -67,6 +65,7 @@ export function StackCard({
   onPressIn,
   onCreateEdit,
   onAdoptMissionRoot,
+  onAudioEnabledChange,
   onArchiveRootTree,
   onRestoreRootTree,
   onDeleteCard,
@@ -75,6 +74,8 @@ export function StackCard({
   onEditingSelectionChange,
   onCompleteEdit,
   onFocusCard,
+  onLogout,
+  userName = '',
   editingSelection,
   isDeleteHoldActive = false,
   doneCleanupPreviewCardIds = new Set(),
@@ -83,15 +84,14 @@ export function StackCard({
   collapsedNodeIds = new Set(),
 }) {
   const {
+    backgroundColor,
     id,
     index,
     done = false,
     doneStampUri = null,
-    hasCollectionHistory = false,
     isImageUploading = false,
     imageUri,
     collectionImageUri = null,
-    inventoryCollections = [],
     text,
   } = card;
 
@@ -246,15 +246,13 @@ export function StackCard({
     : null;
 
   useEffect(() => {
-    if (!isEditing || suppressEditingKeyboard) {
+    if (!isEditing) {
       return;
     }
 
     editingInputRef.current?.focus?.();
   }, [
-    editingKeyboardOpenRequest,
     isEditing,
-    suppressEditingKeyboard,
   ]);
 
   function handleControlPressIn(event) {
@@ -283,7 +281,6 @@ export function StackCard({
       multiline
       returnKeyType="done"
       scrollEnabled={isLeafCard}
-      showSoftInputOnFocus={!suppressEditingKeyboard}
       onChangeText={onEditingValueChange}
       onSelectionChange={(event) => {
         onEditingSelectionChange?.(event.nativeEvent.selection);
@@ -315,12 +312,9 @@ export function StackCard({
         isLeafCard && styles.leafCard,
         isLeafCard && imageUri && styles.leafImageCard,
         isTreeCard && styles.treeCard,
+        !isSystem && backgroundColor ? { backgroundColor } : null,
         isTreeCard && isSystem && styles.treasureCard,
         isLeafCard && isSystem && styles.leafTreasureCard,
-        isLeafCard
-          && isTreasure
-          && hasCollectionHistory
-          && styles.leafTreasureInventoryCard,
         isTreeCard && isPreviewCard && styles.treePreviewCard,
         isTreeCard && isCollapsedStacked && styles.treeCollapsedCard,
         isEditing && isLeafCard && styles.leafEditingCard,
@@ -501,8 +495,37 @@ export function StackCard({
                 imageUri={collectionImageUri}
                 layout="leaf"
               />
-            ) : isTreasure && hasCollectionHistory ? (
-              <TreasureInventoryContent collections={inventoryCollections} />
+            ) : isTreasure ? (
+              <View style={styles.leafTreasureProfile}>
+                <View style={[
+                  styles.treasureCardIconWrap,
+                  styles.leafTreasureIconWrap,
+                ]}
+                >
+                  <SystemCardIcon
+                    color="#F8FAFC"
+                    name={systemCardIconName}
+                    size={treasureIconSize}
+                    style={styles.treasureCardIconHighlight}
+                  />
+                  <SystemCardIcon
+                    color="#6B7280"
+                    name={systemCardIconName}
+                    size={treasureIconSize}
+                    style={styles.treasureCardIconShadow}
+                  />
+                  <SystemCardIcon
+                    color="#9CA3AF"
+                    name={systemCardIconName}
+                    size={treasureIconSize}
+                  />
+                </View>
+                {userName ? (
+                  <Text numberOfLines={1} style={styles.leafTreasureUserName}>
+                    {userName}
+                  </Text>
+                ) : null}
+              </View>
             ) : isSystem ? (
               <View style={[
                 styles.leafContentLayer,
@@ -625,6 +648,41 @@ export function StackCard({
                 />
               </>
             ) : null}
+            {isTreasure && isLeafTopCard ? (
+              <View style={styles.leafTreasureSettingsRow}>
+                <Pressable
+                  accessibilityLabel={audioEnabled ? 'Turn audio off' : 'Turn audio on'}
+                  accessibilityRole="button"
+                  onPressIn={handleControlPressIn}
+                  onPress={(event) => handleControlPress(
+                    event,
+                    () => onAudioEnabledChange?.(!audioEnabled),
+                  )}
+                  style={({ pressed }) => [
+                    styles.leafTreasureSettingsButton,
+                    pressed && styles.leafTreasureSettingsButtonPressed,
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    color="#6B7280"
+                    name={audioEnabled ? 'volume-high' : 'volume-off'}
+                    size={24}
+                  />
+                </Pressable>
+                <Pressable
+                  accessibilityLabel="Log out"
+                  accessibilityRole="button"
+                  onPressIn={handleControlPressIn}
+                  onPress={(event) => handleControlPress(event, onLogout)}
+                  style={({ pressed }) => [
+                    styles.leafTreasureSettingsButton,
+                    pressed && styles.leafTreasureSettingsButtonPressed,
+                  ]}
+                >
+                  <MaterialCommunityIcons color="#6B7280" name="logout" size={24} />
+                </Pressable>
+              </View>
+            ) : null}
           </View>
         ) : (
           <Animated.View style={{ opacity: 1 }}>
@@ -674,7 +732,6 @@ export function StackCard({
               <Text style={[
                 styles.cardText,
                 isTreeCard && styles.treeCardText,
-                isTreeCard && isPreviewCard && styles.treePreviewCardText,
                 done && styles.doneCardText,
                 !text && styles.emptyCardText,
               ]}

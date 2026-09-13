@@ -48,6 +48,7 @@ const ADD_PREVIEW_END_Y = 24;
 const ADD_PREVIEW_DOWN_END_Y = 76;
 const ADD_PREVIEW_PULSE_DURATION = 900;
 const DONE_STAMP_DRAG_THRESHOLD = 6;
+const SHOW_LEAF_CAMERA_KEY = false;
 
 function normalizeTopIndex(cards, topIndex) {
   if (cards.length === 0) {
@@ -226,16 +227,14 @@ function getAddPreviewEndRotation(relation) {
 }
 
 export function LeafDeck({
+  audioEnabled = true,
   cards,
   topIndex,
   visibleCount = DEFAULT_VISIBLE_COUNT,
   editingIndex,
   editingValue,
-  suppressEditingKeyboard = false,
-  editingKeyboardOpenRequest = 0,
   focusedCardIndex,
   focusedCardId: controlledFocusedCardId,
-  mathKeyboardKeys = [],
   collapsedNodeIds,
   doneCleanupPreviewCardIds = new Set(),
   onCreateEdit,
@@ -244,15 +243,15 @@ export function LeafDeck({
   onEditingSelectionChange,
   onCompleteEdit,
   onCameraPress,
-  onDeleteImage,
-  onDeleteMathNotation,
-  onInsertMathNotation,
-  onOpenSystemKeyboard,
+  onAudioEnabledChange,
+  onLogout,
+  userName,
   editingSelection,
   onLeafSwipe,
   isDeleteHoldActive = false,
   isAddHoldActive = false,
   addPreviewRelation = null,
+  newCardBackgroundColor,
   onDeleteCurrentCard,
   onDoneCurrentCard,
   swipeDisabled,
@@ -331,6 +330,10 @@ export function LeafDeck({
     index: -1,
     childIds: [],
     text: '',
+  };
+  const addPreviewCard = {
+    ...visualCard,
+    backgroundColor: newCardBackgroundColor,
   };
 
   const swipeProgress = swipeProgressValue;
@@ -1084,12 +1087,11 @@ export function LeafDeck({
               onLayout={shouldRenderActiveTopSlot ? reportTopCardFrame : undefined}
             >
               <StackCard
+                audioEnabled={audioEnabled}
                 card={shouldRenderActiveTopSlot ? activeCard : visualCard}
                 collapsedNodeIds={collapsedNodeIds}
                 editingIndex={shouldRenderActiveTopSlot ? editingIndex : null}
                 editingValue={shouldRenderActiveTopSlot ? editingValue : ''}
-                suppressEditingKeyboard={shouldRenderActiveTopSlot && suppressEditingKeyboard}
-                editingKeyboardOpenRequest={shouldRenderActiveTopSlot ? editingKeyboardOpenRequest : 0}
                 focusedCardIndex={focusedCardIndex}
                 focusedCardId={effectiveFocusedCardId}
                 hideControls
@@ -1108,6 +1110,9 @@ export function LeafDeck({
                 onEditingValueChange={onEditingValueChange}
                 onEditingSelectionChange={onEditingSelectionChange}
                 onCompleteEdit={onCompleteEdit}
+                onAudioEnabledChange={onAudioEnabledChange}
+                onLogout={onLogout}
+                userName={userName}
                 onDeleteHoldComplete={animateDeleteSwipeAway}
                 editingSelection={shouldRenderActiveTopSlot ? editingSelection : undefined}
                 onPressIn={() => {
@@ -1140,7 +1145,7 @@ export function LeafDeck({
                 >
                   <View style={styles.leafAddPreviewCardFrame}>
                     <StackCard
-                      card={visualCard}
+                      card={addPreviewCard}
                       collapsedNodeIds={collapsedNodeIds}
                       editingIndex={null}
                       editingValue=""
@@ -1283,22 +1288,17 @@ export function LeafDeck({
           />
         </>
       ) : null}
-      <MathNotationPalette
-        cameraDisabled={Boolean(activeCard?.isImageUpdating)}
-        disabled={!canUseMathNotationPalette}
-        hasImage={Boolean(activeCard?.imagePath)}
-        keys={mathKeyboardKeys}
-        locked={Boolean(activeCard?.isImageUpdating || activeCardDone)}
-        onCameraPress={() => onCameraPress?.(activeCard)}
-        onDeleteImage={() => onDeleteImage?.(activeCard)}
-        onDeleteNotation={onDeleteMathNotation}
-        onInsertNotation={onInsertMathNotation}
-        onOpenSystemKeyboard={onOpenSystemKeyboard}
-        textEntryDisabled={Boolean(activeCard?.imagePath)}
-        onTouchStart={() => {
-          inputTouchRef.current = true;
-        }}
-      />
+      {SHOW_LEAF_CAMERA_KEY ? (
+        <MathNotationPalette
+          cameraDisabled={Boolean(activeCard?.isImageUpdating)}
+          disabled={!canUseMathNotationPalette}
+          locked={Boolean(activeCard?.isImageUpdating || activeCardDone)}
+          onCameraPress={() => onCameraPress?.(activeCard)}
+          onTouchStart={() => {
+            inputTouchRef.current = true;
+          }}
+        />
+      ) : null}
       </View>
       <Modal
         animationType="fade"

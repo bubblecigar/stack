@@ -1,4 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
+import {
+  normalizeNewCardBackgroundColor,
+} from './cardBackground';
 
 const UI_STATE_KEY_PREFIX = 'stack.uiState';
 const pendingWritesByKey = new Map();
@@ -49,6 +52,7 @@ export function normalizeUiState(rawState) {
     focusedCardId: normalizeCardId(rawState.focusedCardId),
     layoutMode,
     leafFocusedCardId: normalizeCardId(rawState.leafFocusedCardId),
+    newCardBackgroundColor: normalizeNewCardBackgroundColor(rawState.newCardBackgroundColor),
   };
 }
 
