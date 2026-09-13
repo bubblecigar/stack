@@ -1920,6 +1920,7 @@ export default function App() {
             isDeleteHoldActive={isDeleteHoldActive}
             isAddHoldActive={isAddHoldActive}
             addPreviewRelation={addPreviewRelation}
+            newCardBackgroundColor={newCardBackgroundColor}
             onDeleteCurrentCard={handleDeleteCurrentLeafCard}
             onDoneCurrentCard={handleDoneCurrentLeafCard}
             swipeDisabled={editingIndex !== null}

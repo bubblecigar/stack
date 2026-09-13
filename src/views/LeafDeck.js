@@ -249,6 +249,7 @@ export function LeafDeck({
   isDeleteHoldActive = false,
   isAddHoldActive = false,
   addPreviewRelation = null,
+  newCardBackgroundColor,
   onDeleteCurrentCard,
   onDoneCurrentCard,
   swipeDisabled,
@@ -327,6 +328,10 @@ export function LeafDeck({
     index: -1,
     childIds: [],
     text: '',
+  };
+  const addPreviewCard = {
+    ...visualCard,
+    backgroundColor: newCardBackgroundColor,
   };
 
   const swipeProgress = swipeProgressValue;
@@ -1137,7 +1142,7 @@ export function LeafDeck({
                 >
                   <View style={styles.leafAddPreviewCardFrame}>
                     <StackCard
-                      card={visualCard}
+                      card={addPreviewCard}
                       collapsedNodeIds={collapsedNodeIds}
                       editingIndex={null}
                       editingValue=""
