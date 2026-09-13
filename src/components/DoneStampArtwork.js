@@ -1,7 +1,7 @@
 import { Animated, Image } from 'react-native';
 import { Image as CachedImage } from 'expo-image';
 import { useState } from 'react';
-import { STAMP_ASSETS } from '../config/stampAssets';
+import { STAMP_ASSETS, STAMP_RENDER_SCALE } from '../config/stampAssets';
 import { getCardImageSource } from '../lib/cardImageCache';
 import { styles } from '../styles/appStyles';
 
@@ -17,7 +17,13 @@ export function DoneStampArtwork({
   if (overrideSource) {
     return (
       <Animated.View pointerEvents="none" style={style}>
-        <Image source={overrideSource} style={styles.doneStampFullArtwork} />
+        <Image
+          source={overrideSource}
+          style={[
+            styles.doneStampFullArtwork,
+            { transform: [{ scale: STAMP_RENDER_SCALE }] },
+          ]}
+        />
       </Animated.View>
     );
   }
@@ -31,6 +37,7 @@ export function DoneStampArtwork({
             styles.doneStampFullArtwork,
             styles.doneStampDefaultArtwork,
             defaultArtworkStyle,
+            { transform: [{ scale: STAMP_RENDER_SCALE }] },
           ]}
         />
       </Animated.View>

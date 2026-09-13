@@ -8,3 +8,5 @@ export const STAMP_ASSETS = Object.freeze({
     doneCard: require('../../assets/collections/mobile/monster-blue-f70c8ce7fea5d0ef.webp'),
   }),
 });
+
+export const STAMP_RENDER_SCALE = 1.3;

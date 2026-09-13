@@ -15,7 +15,7 @@ import {
   CARD_BACKGROUND_OPTIONS,
   DEFAULT_CARD_BACKGROUND_COLOR,
 } from '../lib/cardBackground';
-import { STAMP_ASSETS } from '../config/stampAssets';
+import { STAMP_ASSETS, STAMP_RENDER_SCALE } from '../config/stampAssets';
 import { styles } from '../styles/appStyles';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -427,7 +427,15 @@ export function FloatingControls({
               source={deleteTargetDone
                 ? STAMP_ASSETS.void.doneCard
                 : STAMP_ASSETS.void.default}
-              style={styles.deleteStampIcon}
+              style={[
+                styles.deleteStampIcon,
+                {
+                  transform: [
+                    { rotate: '-8deg' },
+                    { scale: STAMP_RENDER_SCALE },
+                  ],
+                },
+              ]}
             />
           </Pressable>
         </Animated.View>

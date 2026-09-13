@@ -16,7 +16,7 @@ import { Image as CachedImage } from 'expo-image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MathNotationPalette } from '../components/MathNotationPalette';
 import { StackCard } from '../components/StackCard';
-import { STAMP_ASSETS } from '../config/stampAssets';
+import { STAMP_ASSETS, STAMP_RENDER_SCALE } from '../config/stampAssets';
 import { getCardImageSource } from '../lib/cardImageCache';
 import { styles } from '../styles/appStyles';
 
@@ -1263,6 +1263,7 @@ export function LeafDeck({
               style={[
                 styles.leafDoneStampIcon,
                 activeCardDone && styles.leafDoneStampIconToggleOff,
+                { transform: [{ scale: STAMP_RENDER_SCALE }] },
               ]}
             />
           </View>
