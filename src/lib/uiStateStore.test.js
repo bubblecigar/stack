@@ -28,6 +28,7 @@ test('normalizes mixed card IDs and collapsed nodes', () => {
     focusedCardId: 'treasure-card',
     layoutMode: 'tree',
     leafFocusedCardId: 4,
+    newCardBackgroundColor: '#FFFFFF',
   });
 });
 
@@ -38,6 +39,7 @@ test('normalizes legacy UI state without collapsed nodes', () => {
     focusedCardId: null,
     layoutMode: 'leaf',
     leafFocusedCardId: null,
+    newCardBackgroundColor: '#FFFFFF',
   });
 });
 
@@ -45,17 +47,20 @@ test('reads and writes per-user UI state through SecureStore', async () => {
   mockSecureStore.getItemAsync.mockResolvedValue(JSON.stringify({
     collapsedNodeIds: ['treasure-card', 7],
     layoutMode: 'tree',
+    newCardBackgroundColor: '#dbeafe',
   }));
   mockSecureStore.setItemAsync.mockResolvedValue();
 
   await expect(getStoredUiState(42)).resolves.toMatchObject({
     collapsedNodeIds: ['treasure-card', 7],
     layoutMode: 'tree',
+    newCardBackgroundColor: '#DBEAFE',
   });
 
   await setStoredUiState(42, {
     collapsedNodeIds: [1, 'treasure-card'],
     layoutMode: 'tree',
+    newCardBackgroundColor: '#fce7f3',
   });
 
   expect(mockSecureStore.getItemAsync).toHaveBeenCalledWith('stack.uiState.42');
@@ -67,6 +72,7 @@ test('reads and writes per-user UI state through SecureStore', async () => {
       focusedCardId: null,
       layoutMode: 'tree',
       leafFocusedCardId: null,
+      newCardBackgroundColor: '#FCE7F3',
     }),
   );
 });

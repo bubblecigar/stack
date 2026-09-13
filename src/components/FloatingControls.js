@@ -92,6 +92,8 @@ export function FloatingControls({
   onAddPreviewChange,
   onAddHoldChange,
   onDeleteHoldChange,
+  newCardBackgroundColor = DEFAULT_CARD_BACKGROUND_COLOR,
+  onNewCardBackgroundColorChange,
   onRootDoubleTap,
   canDeleteCurrentCard = false,
   deleteTargetDone = false,
@@ -109,9 +111,6 @@ export function FloatingControls({
   const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(false);
   const [settingsPanelOffsetX, setSettingsPanelOffsetX] = useState(0);
   const [settingsPanelOffsetY, setSettingsPanelOffsetY] = useState(0);
-  const [selectedCardBackgroundColor, setSelectedCardBackgroundColor] = useState(
-    DEFAULT_CARD_BACKGROUND_COLOR,
-  );
   const flipProgress = useRef(new Animated.Value(layoutMode === 'tree' ? 1 : 0)).current;
   const deleteSlideProgress = useRef(new Animated.Value(shouldShowDelete ? 1 : 0)).current;
   const settingsPanelProgress = useRef(new Animated.Value(0)).current;
@@ -324,7 +323,7 @@ export function FloatingControls({
       resetAddPointing();
 
       if (!disableCardInsertion && relation) {
-        onCreateCard?.(relation, selectedCardBackgroundColor);
+        onCreateCard?.(relation, newCardBackgroundColor);
         return;
       }
 
@@ -344,7 +343,7 @@ export function FloatingControls({
     onRootDoubleTap,
     onToggleMode,
     rootDoubleTapEnabled,
-    selectedCardBackgroundColor,
+    newCardBackgroundColor,
   ]);
 
   function handleDeletePressIn() {
@@ -361,7 +360,7 @@ export function FloatingControls({
         <Text style={styles.settingsColorPickerTitle}>New card color</Text>
         <View style={styles.settingsColorSwatches}>
           {CARD_BACKGROUND_OPTIONS.map(({ color, label }) => {
-            const isSelected = color === selectedCardBackgroundColor;
+            const isSelected = color === newCardBackgroundColor;
 
             return (
               <Pressable
@@ -369,7 +368,7 @@ export function FloatingControls({
                 accessibilityLabel={`${label} card background`}
                 accessibilityRole="button"
                 accessibilityState={{ selected: isSelected }}
-                onPress={() => setSelectedCardBackgroundColor(color)}
+                onPress={() => onNewCardBackgroundColorChange?.(color)}
                 style={({ pressed }) => [
                   styles.settingsColorSwatch,
                   { backgroundColor: color },
@@ -494,7 +493,7 @@ export function FloatingControls({
               style={[
                 styles.addCardButton,
                 styles.addCardFace,
-                { backgroundColor: selectedCardBackgroundColor },
+                { backgroundColor: newCardBackgroundColor },
                 {
                   transform: [
                     { perspective: 900 },
@@ -515,7 +514,7 @@ export function FloatingControls({
               style={[
                 styles.addCardButton,
                 styles.addCardFace,
-                { backgroundColor: selectedCardBackgroundColor },
+                { backgroundColor: newCardBackgroundColor },
                 {
                   transform: [
                     { perspective: 900 },

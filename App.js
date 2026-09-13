@@ -85,6 +85,7 @@ import {
   getHiddenSystemCardIds,
   getVisibleCardsExcludingIds,
 } from './src/lib/systemVisibility';
+import { DEFAULT_CARD_BACKGROUND_COLOR } from './src/lib/cardBackground';
 import {
   playDoneStampSound,
   playLeafSwipeSound,
@@ -430,6 +431,9 @@ export default function App() {
   const [editingSelection, setEditingSelection] = useState(null);
   const [focusedCardIndex, setFocusedCardIndex] = useState(null);
   const [layoutMode, setLayoutMode] = useState('tree');
+  const [newCardBackgroundColor, setNewCardBackgroundColor] = useState(
+    DEFAULT_CARD_BACKGROUND_COLOR,
+  );
   const [collapsedNodeIds, setCollapsedNodeIds] = useState(() => new Set());
   const [leafTopIndex, setLeafTopIndex] = useState(null);
   const [leafFocusedCardId, setLeafFocusedCardId] = useState(null);
@@ -708,6 +712,7 @@ export default function App() {
     setLeafFocusedCardId(null);
     setIsDeleteHoldActive(false);
     setCollapsedNodeIds(new Set());
+    setNewCardBackgroundColor(DEFAULT_CARD_BACKGROUND_COLOR);
     setTreeCompletionCanvas(EMPTY_TREE_COMPLETION_CANVAS);
     setPreviousDayTreeCompletionCanvas(EMPTY_TREE_COMPLETION_CANVAS);
     setCollections([]);
@@ -801,6 +806,7 @@ export default function App() {
     setHasLoadedUserData(false);
     setIsLoadingUserData(true);
     setSyncError('');
+    setNewCardBackgroundColor(DEFAULT_CARD_BACKGROUND_COLOR);
 
     const localUiStateResultPromise = getStoredUiState(userId).then(
       (state) => ({ error: null, state }),
@@ -814,6 +820,7 @@ export default function App() {
 
       setLayoutMode(state.layoutMode);
       setCollapsedNodeIds(new Set(state.collapsedNodeIds));
+      setNewCardBackgroundColor(state.newCardBackgroundColor);
     });
 
     async function loadCardsForUser() {
@@ -855,6 +862,7 @@ export default function App() {
         if (restoredUiState) {
           const loadedCardIds = new Set(loadedCards.map((card) => card.id));
           setLayoutMode(restoredUiState.layoutMode);
+          setNewCardBackgroundColor(restoredUiState.newCardBackgroundColor);
           setCollapsedNodeIds(new Set(
             restoredUiState.collapsedNodeIds.filter((cardId) => loadedCardIds.has(cardId)),
           ));
@@ -874,6 +882,7 @@ export default function App() {
         } else {
           setLayoutMode('tree');
           setCollapsedNodeIds(new Set());
+          setNewCardBackgroundColor(DEFAULT_CARD_BACKGROUND_COLOR);
         }
 
         hasLoadedRemoteCards.current = true;
@@ -1434,6 +1443,7 @@ export default function App() {
       focusedCardId,
       layoutMode,
       leafFocusedCardId,
+      newCardBackgroundColor,
     }).catch(() => {
       if (authUserRef.current?.id === userId) {
         setSyncError('Could not save local UI state.');
@@ -1447,6 +1457,7 @@ export default function App() {
     focusedCardId,
     layoutMode,
     leafFocusedCardId,
+    newCardBackgroundColor,
   ]);
 
   function handleDeleteCurrentLeafCard() {
@@ -1966,6 +1977,8 @@ export default function App() {
         rootDoubleTapEnabled={!shouldRenderLeaf && focusedCardIndex === null}
         onToggleMode={handleToggleLayout}
         onCreateCard={handleCreateCard}
+        newCardBackgroundColor={newCardBackgroundColor}
+        onNewCardBackgroundColorChange={setNewCardBackgroundColor}
         disableCardInsertion={insertionTargetCard === null}
       />
 
