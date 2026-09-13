@@ -1190,12 +1190,6 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 30,
   },
-  settingsColorPickerTitle: {
-    color: '#0F172A',
-    fontFamily: 'Kalam_400Regular',
-    fontSize: 24,
-    lineHeight: 30,
-  },
   settingsColorCorner: {
     position: 'absolute',
     width: 74,

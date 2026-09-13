@@ -5,7 +5,6 @@ import {
   Image,
   PanResponder,
   Pressable,
-  Text,
   View,
 } from 'react-native';
 import {
@@ -368,7 +367,6 @@ export function FloatingControls({
         pointerEvents={isInteractive ? 'auto' : 'none'}
         style={styles.settingsColorPicker}
       >
-        <Text style={styles.settingsColorPickerTitle}>New card color</Text>
         <Pressable
           accessibilityHint="Moves to the next card color"
           accessibilityLabel={`Switch to ${secondaryCardColor.label} card background`}
