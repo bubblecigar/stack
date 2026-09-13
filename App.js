@@ -516,14 +516,6 @@ export default function App() {
     ? leafFocusedCardId
     : focusedCardId;
   const focusedControlCardId = shouldRenderLeaf ? leafFocusedCardId : focusedCardId;
-  const focusedControlCard = cards.find((card) => card.id === focusedControlCardId);
-  const focusedSystemCardType = focusedControlCard?.isMissionCard
-    ? 'mission'
-    : focusedControlCard?.isTreasureCard
-      ? 'treasure'
-      : focusedControlCard?.isCollectionCard
-        ? 'collection'
-        : null;
   const doneCleanupPreviewCardIds = useMemo(() => {
     if (!isDeleteHoldActive || !focusedControlCardId) {
       return new Set();
@@ -1955,7 +1947,6 @@ export default function App() {
         audioEnabled={isAudioEnabled}
         childInsertionOnly={isChildOnlyInsertionTarget}
         parentInsertionBlocked={isParentInsertionBlocked}
-        focusedSystemCardType={focusedSystemCardType}
         user={authUser}
         layoutMode={layoutMode}
         onAudioEnabledChange={setIsAudioEnabled}

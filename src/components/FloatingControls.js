@@ -14,7 +14,6 @@ import {
   useEffect, useMemo, useRef, useState,
 } from 'react';
 import { constrainAddRelation } from '../lib/cardInsertion';
-import { getAppDayDate } from '../lib/appDay';
 import { styles } from '../styles/appStyles';
 
 const voidStampBlueImage = require('../../assets/card/void_stamp_blue.png');
@@ -36,21 +35,6 @@ const SETTINGS_PANEL_TRIGGER_DRAG_Y = -160;
 const SETTINGS_PANEL_CENTER_OFFSET_X = 0;
 const SETTINGS_PANEL_CENTER_OFFSET_Y = -(SCREEN_HEIGHT / 2 + 150);
 const SETTINGS_PANEL_TOGGLE_DURATION_MS = 260;
-const SYSTEM_CARD_EXPLANATIONS = {
-  mission: {
-    body: 'Print these cards to your card list. Use them to give your day a clear direction and a simple place to begin.',
-    title: 'Printer',
-  },
-  collection: {
-    body: '“Hello! Nice to meet you.”',
-    title: 'Mysterious Collection',
-  },
-  treasure: {
-    body: 'All ideas are treasures.\nWrite them down, think and drop.',
-    title: 'Treasure',
-  },
-};
-
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
@@ -99,60 +83,6 @@ function getAddRelationFromPoint(dx, dy, fallbackRelation = null) {
   return fallbackRelation;
 }
 
-function padTimePart(value) {
-  return String(value).padStart(2, '0');
-}
-
-const MONTH_LABELS = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
-
-function formatControlDate(date) {
-  return `${date.getFullYear()} ${MONTH_LABELS[date.getMonth()]} ${date.getDate()}`;
-}
-
-function formatControlTime(date) {
-  return [
-    padTimePart(date.getHours()),
-    padTimePart(date.getMinutes()),
-    padTimePart(date.getSeconds()),
-  ].join(' : ');
-}
-
-function getCalendarDays(date) {
-  const year = date.getFullYear();
-  const month = date.getMonth();
-  const firstWeekday = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const dayCells = Array.from(
-    { length: daysInMonth },
-    (_, dayIndex) => ({ day: dayIndex + 1, isBlank: false }),
-  );
-  const leadingBlankCells = Array.from(
-    { length: firstWeekday },
-    (_, blankIndex) => ({ day: `leading-${blankIndex}`, isBlank: true }),
-  );
-  const cells = [...leadingBlankCells, ...dayCells];
-  const trailingBlankCount = Math.max(42 - cells.length, 0);
-  const trailingBlankCells = Array.from(
-    { length: trailingBlankCount },
-    (_, blankIndex) => ({ day: `trailing-${blankIndex}`, isBlank: true }),
-  );
-
-  return [...cells, ...trailingBlankCells];
-}
-
 export function FloatingControls({
   layoutMode,
   user = null,
@@ -171,11 +101,9 @@ export function FloatingControls({
   childInsertionOnly = false,
   parentInsertionBlocked = false,
   disableCardInsertion = false,
-  focusedSystemCardType = null,
   rootDoubleTapEnabled = false,
 }) {
   const shouldShowDelete = canDeleteCurrentCard;
-  const systemCardExplanation = SYSTEM_CARD_EXPLANATIONS[focusedSystemCardType] ?? null;
   const [isAddPressed, setIsAddPressed] = useState(false);
   const [addCardRotation, setAddCardRotation] = useState(ADD_CARD_BASE_ROTATION);
   const [addCardOffsetX, setAddCardOffsetX] = useState(0);
@@ -184,7 +112,6 @@ export function FloatingControls({
   const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(false);
   const [settingsPanelOffsetX, setSettingsPanelOffsetX] = useState(0);
   const [settingsPanelOffsetY, setSettingsPanelOffsetY] = useState(0);
-  const [currentTime, setCurrentTime] = useState(() => new Date());
   const flipProgress = useRef(new Animated.Value(layoutMode === 'tree' ? 1 : 0)).current;
   const deleteSlideProgress = useRef(new Animated.Value(shouldShowDelete ? 1 : 0)).current;
   const settingsPanelProgress = useRef(new Animated.Value(0)).current;
@@ -247,16 +174,6 @@ export function FloatingControls({
       setIsSettingsPanelOpen(false);
     }
   }, [settingsPanelCloseRequest]);
-
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, []);
 
   function getAddGestureDelta(event, gestureState) {
     const { pageX, pageY } = event.nativeEvent;
@@ -360,33 +277,6 @@ export function FloatingControls({
   }
 
   const userLabel = user?.email || 'Unknown user';
-  const appDayDate = getAppDayDate(currentTime) || currentTime;
-  const controlDateLabel = formatControlDate(appDayDate);
-  const controlTimeLabel = formatControlTime(currentTime);
-  const calendarDays = getCalendarDays(appDayDate);
-  const currentDay = appDayDate.getDate();
-
-  function renderSystemCardMainContent() {
-    if (!systemCardExplanation) {
-      return null;
-    }
-
-    return (
-      <>
-        <View
-          pointerEvents="none"
-          style={styles.addCardSystemExplanation}
-        >
-          <Text style={styles.addCardSystemExplanationTitle}>
-            {systemCardExplanation.title}
-          </Text>
-          <Text style={styles.addCardSystemExplanationBody}>
-            {systemCardExplanation.body}
-          </Text>
-        </View>
-      </>
-    );
-  }
 
   const addPanResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => !isSettingsPanelOpen,
@@ -614,27 +504,7 @@ export function FloatingControls({
                   ],
                 },
               ]}
-            >
-              <View
-                pointerEvents="none"
-                style={styles.addCardCalendarSurface}
-              >
-                <View style={styles.addCardCalendarBinding} />
-                <View style={styles.addCardCalendarRingRow}>
-                  <View style={styles.addCardCalendarRing} />
-                  <View style={styles.addCardCalendarRing} />
-                </View>
-              </View>
-              {systemCardExplanation ? (
-                renderSystemCardMainContent()
-              ) : (
-                <View style={styles.addCardButtonChrono}>
-                  <Text style={styles.addCardButtonChronoText}>
-                    {controlTimeLabel}
-                  </Text>
-                </View>
-              )}
-            </Animated.View>
+            />
             <Animated.View
               pointerEvents={layoutMode === 'tree' ? 'box-none' : 'none'}
               style={[
@@ -652,44 +522,7 @@ export function FloatingControls({
                   ],
                 },
               ]}
-            >
-              <View
-                pointerEvents="none"
-                style={styles.addCardCalendarSurface}
-              >
-                <View style={styles.addCardCalendarBinding} />
-                <View style={styles.addCardCalendarRingRow}>
-                  <View style={styles.addCardCalendarRing} />
-                  <View style={styles.addCardCalendarRing} />
-                </View>
-              </View>
-              {systemCardExplanation ? (
-                renderSystemCardMainContent()
-              ) : (
-                <>
-                  <View style={styles.addCardButtonChrono}>
-                    <Text style={styles.addCardButtonChronoText}>
-                      {controlDateLabel}
-                    </Text>
-                  </View>
-                  <View
-                    pointerEvents="none"
-                    style={styles.addCardCalendarGrid}
-                  >
-                    {calendarDays.map((cell) => (
-                      <View
-                        key={`calendar-day-${cell.day}`}
-                        style={[
-                          styles.addCardCalendarDateSquare,
-                          cell.isBlank && styles.addCardCalendarDateSquareBlank,
-                          cell.day === currentDay && styles.addCardCalendarDateSquareToday,
-                        ]}
-                      />
-                    ))}
-                  </View>
-                </>
-              )}
-            </Animated.View>
+            />
             <View
               pointerEvents="box-none"
               style={styles.settingsPanelContent}
