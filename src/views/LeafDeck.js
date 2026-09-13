@@ -16,10 +16,9 @@ import { Image as CachedImage } from 'expo-image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MathNotationPalette } from '../components/MathNotationPalette';
 import { StackCard } from '../components/StackCard';
+import { STAMP_ASSETS } from '../config/stampAssets';
 import { getCardImageSource } from '../lib/cardImageCache';
 import { styles } from '../styles/appStyles';
-
-const doneStampImage = require('../../assets/card/done_stamp_gray.png');
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -1260,7 +1259,7 @@ export function LeafDeck({
           >
             <Image
               pointerEvents="none"
-              source={doneStampImage}
+              source={STAMP_ASSETS.done}
               style={[
                 styles.leafDoneStampIcon,
                 activeCardDone && styles.leafDoneStampIconToggleOff,

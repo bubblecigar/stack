@@ -14,10 +14,9 @@ import { Image as CachedImage } from 'expo-image';
 import { useEffect, useRef, useState } from 'react';
 import { DeleteHoldIndicator } from './DeleteHoldIndicator';
 import { DoneStampArtwork } from './DoneStampArtwork';
+import { STAMP_ASSETS } from '../config/stampAssets';
 import { getCardImageSource } from '../lib/cardImageCache';
 import { styles } from '../styles/appStyles';
-
-const voidStampBlueImage = require('../../assets/card/void_stamp_blue.png');
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 function CollectionCardContent({ imageUri, layout }) {
@@ -638,7 +637,7 @@ export function StackCard({
                   />
                 ) : null}
                 <DoneStampArtwork
-                  overrideSource={isDoneCleanupPreviewCard ? voidStampBlueImage : null}
+                  overrideSource={isDoneCleanupPreviewCard ? STAMP_ASSETS.void.doneCard : null}
                   uri={doneStampUri}
                   style={[
                     styles.leafDoneStampOverlay,
@@ -748,7 +747,7 @@ export function StackCard({
                   />
                 ) : null}
                 <DoneStampArtwork
-                  overrideSource={isDoneCleanupPreviewCard ? voidStampBlueImage : null}
+                  overrideSource={isDoneCleanupPreviewCard ? STAMP_ASSETS.void.doneCard : null}
                   uri={doneStampUri}
                   style={[
                     styles.treeDoneStampOverlay,

@@ -15,10 +15,8 @@ import {
   CARD_BACKGROUND_OPTIONS,
   DEFAULT_CARD_BACKGROUND_COLOR,
 } from '../lib/cardBackground';
+import { STAMP_ASSETS } from '../config/stampAssets';
 import { styles } from '../styles/appStyles';
-
-const voidStampBlueImage = require('../../assets/card/void_stamp_blue.png');
-const voidStampRedImage = require('../../assets/card/void_stamp_red.png');
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const DELETE_HOLD_MS = 500;
@@ -426,7 +424,9 @@ export function FloatingControls({
           >
             <Image
               pointerEvents="none"
-              source={deleteTargetDone ? voidStampBlueImage : voidStampRedImage}
+              source={deleteTargetDone
+                ? STAMP_ASSETS.void.doneCard
+                : STAMP_ASSETS.void.default}
               style={styles.deleteStampIcon}
             />
           </Pressable>

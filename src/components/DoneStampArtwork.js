@@ -1,11 +1,9 @@
 import { Animated, Image } from 'react-native';
 import { Image as CachedImage } from 'expo-image';
 import { useState } from 'react';
+import { STAMP_ASSETS } from '../config/stampAssets';
 import { getCardImageSource } from '../lib/cardImageCache';
 import { styles } from '../styles/appStyles';
-
-const doneStampImage = require('../../assets/card/done_stamp_gray.png');
-const doneStampRingsImage = require('../../assets/card/done_stamp_rings_gray.png');
 
 export function DoneStampArtwork({
   defaultArtworkStyle,
@@ -28,7 +26,7 @@ export function DoneStampArtwork({
     return (
       <Animated.View pointerEvents="none" style={style}>
         <Image
-          source={doneStampImage}
+          source={STAMP_ASSETS.done}
           style={[
             styles.doneStampFullArtwork,
             styles.doneStampDefaultArtwork,
@@ -41,7 +39,7 @@ export function DoneStampArtwork({
 
   return (
     <Animated.View pointerEvents="none" style={style}>
-      <Image source={doneStampRingsImage} style={styles.doneStampMonsterBackgroundArtwork} />
+      <Image source={STAMP_ASSETS.doneRings} style={styles.doneStampMonsterBackgroundArtwork} />
       <CachedImage
         cachePolicy="memory-disk"
         contentFit="contain"
