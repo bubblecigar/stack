@@ -48,6 +48,7 @@ const ADD_PREVIEW_END_Y = 24;
 const ADD_PREVIEW_DOWN_END_Y = 76;
 const ADD_PREVIEW_PULSE_DURATION = 900;
 const DONE_STAMP_DRAG_THRESHOLD = 6;
+const SHOW_LEAF_CAMERA_KEY = false;
 
 function normalizeTopIndex(cards, topIndex) {
   if (cards.length === 0) {
@@ -1287,15 +1288,17 @@ export function LeafDeck({
           />
         </>
       ) : null}
-      <MathNotationPalette
-        cameraDisabled={Boolean(activeCard?.isImageUpdating)}
-        disabled={!canUseMathNotationPalette}
-        locked={Boolean(activeCard?.isImageUpdating || activeCardDone)}
-        onCameraPress={() => onCameraPress?.(activeCard)}
-        onTouchStart={() => {
-          inputTouchRef.current = true;
-        }}
-      />
+      {SHOW_LEAF_CAMERA_KEY ? (
+        <MathNotationPalette
+          cameraDisabled={Boolean(activeCard?.isImageUpdating)}
+          disabled={!canUseMathNotationPalette}
+          locked={Boolean(activeCard?.isImageUpdating || activeCardDone)}
+          onCameraPress={() => onCameraPress?.(activeCard)}
+          onTouchStart={() => {
+            inputTouchRef.current = true;
+          }}
+        />
+      ) : null}
       </View>
       <Modal
         animationType="fade"
