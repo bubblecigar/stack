@@ -717,7 +717,7 @@ export const styles = StyleSheet.create({
     transform: [{ translateX: 1 }, { translateY: 1 }],
   },
   treePreviewCard: {
-    opacity: 0.82,
+    opacity: 0.6,
   },
   treeCardControls: {
     right: 8,
