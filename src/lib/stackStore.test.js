@@ -12,7 +12,6 @@ import {
   push,
   removeAt,
   restoreRootTree,
-  replaceDoneCascadeWithCollectionAt,
   setCardImageAt,
   setDoneAt,
   setScanStateAt,
@@ -125,71 +124,6 @@ describe('system cards', () => {
       done: false,
       doneVisualId,
     });
-  });
-
-  it('replaces a completed cascade root with a persistent locked collection card', () => {
-    const parentIndex = push('Parent');
-    const parentId = getSnapshot()[parentIndex].id;
-    const targetIndex = insertRelativeTo(parentIndex, 'child', 'Void target');
-    const targetId = getSnapshot()[targetIndex].id;
-    const childIndex = insertRelativeTo(targetIndex, 'child', 'Completed child');
-    const childId = getSnapshot()[childIndex].id;
-    const survivingIndex = insertRelativeTo(childIndex, 'child', 'Not done');
-    const survivingId = getSnapshot()[survivingIndex].id;
-    const collectionVisualId = getCollectionDoneVisualIds()
-      .find((visualId) => visualId.startsWith('food-'));
-
-    setDoneAt(targetIndex, true, collectionVisualId);
-    setDoneAt(childIndex, true);
-    const removedCards = replaceDoneCascadeWithCollectionAt(targetIndex, collectionVisualId);
-
-    expect(removedCards.map((card) => card.id)).toEqual([targetId, childId]);
-    expect(getSnapshot().find((card) => card.id === targetId)).toMatchObject({
-      childIds: [survivingId],
-      done: false,
-      collectionVisualId,
-      isCollectionCard: true,
-      locked: true,
-      parentIds: [parentId],
-      systemType: 'collection',
-      text: '',
-    });
-    expect(getSnapshot().find((card) => card.id === parentId).childIds).toEqual([targetId]);
-    expect(getSnapshot().find((card) => card.id === survivingId).parentIds).toEqual([targetId]);
-
-    const collectionIndex = getSnapshot().findIndex((card) => card.id === targetId);
-    updateAt(collectionIndex, 'Edited');
-    setDoneAt(collectionIndex, true);
-    expect(getSnapshot()[collectionIndex]).toMatchObject({
-      done: false,
-      text: '',
-    });
-    expect(hasChildOnlyInsertion(getSnapshot()[collectionIndex])).toBe(false);
-
-    const insertedParentIndex = insertRelativeTo(collectionIndex, 'parent', 'Collection keeper');
-    const insertedParent = getSnapshot()[insertedParentIndex];
-    expect(insertedParent.id).not.toBe(targetId);
-    expect(insertedParent.childIds).toEqual([targetId]);
-    expect(getSnapshot().find((card) => card.id === targetId).parentIds).toEqual([
-      insertedParent.id,
-    ]);
-
-    loadCards(getSnapshot());
-    expect(getSnapshot().find((card) => card.id === targetId)).toMatchObject({
-      collectionVisualId,
-      isCollectionCard: true,
-      systemType: 'collection',
-    });
-
-    const reloadedCollectionIndex = getSnapshot().findIndex((card) => card.id === targetId);
-    expect(removeAt(reloadedCollectionIndex)).toHaveLength(1);
-    expect(getSnapshot().some((card) => card.id === targetId)).toBe(false);
-    expect(getSnapshot().find((card) => card.id === insertedParent.id).childIds).toEqual([
-      survivingId,
-    ]);
-    expect(getSnapshot().find((card) => card.id === survivingId).parentIds).toEqual([
-      insertedParent.id,
-    ]);
   });
 
   it('normalizes legacy monster cards into collection cards', () => {

@@ -30,7 +30,6 @@ import {
   push,
   removeAt,
   removeDoneCascadeAt,
-  replaceDoneCascadeWithCollectionAt,
   restoreRootTree,
   setCardImageAt,
   setScanStateAt,
@@ -73,7 +72,6 @@ import { getDailyVisibleCards } from './src/lib/cardVisibility';
 import {
   chooseDoneVisualId,
   getDoneCollectionPath,
-  getFirstCollectionDoneVisualId,
 } from './src/lib/doneStampVisual';
 import {
   getAppDayKey,
@@ -1112,20 +1110,12 @@ export default function App() {
     const removedCards = removedCard.done
       ? cards.filter((card) => doneCleanupCardIds.has(card.id))
       : [removedCard];
-    const summonedCollectionVisualId = getFirstCollectionDoneVisualId(removedCards);
-    const willSummonCollection = Boolean(removedCard.done && summonedCollectionVisualId);
     const removedCardIds = new Set(removedCards.map((card) => card.id));
     const removedIndexes = removedCards
       .map((card) => card.index)
       .filter((itemIndex) => Number.isInteger(itemIndex))
       .sort((left, right) => left - right);
-    const actuallyRemovedIndexes = willSummonCollection
-      ? removedIndexes.filter((itemIndex) => itemIndex !== index)
-      : removedIndexes;
-    const summonedCollectionIndex = willSummonCollection
-      ? index - actuallyRemovedIndexes.filter((itemIndex) => itemIndex < index).length
-      : null;
-    const nextCardCount = Math.max(cards.length - actuallyRemovedIndexes.length, 0);
+    const nextCardCount = Math.max(cards.length - removedIndexes.length, 0);
 
     function adjustIndexAfterRemoval(currentIndex) {
       if (currentIndex === null || currentIndex === undefined) {
@@ -1134,12 +1124,10 @@ export default function App() {
 
       const currentCard = cards[currentIndex];
       if (currentCard && removedCardIds.has(currentCard.id)) {
-        return willSummonCollection && currentCard.id === removedCard.id
-          ? summonedCollectionIndex
-          : null;
+        return null;
       }
 
-      const removedBeforeCount = actuallyRemovedIndexes.filter((removedIndex) => (
+      const removedBeforeCount = removedIndexes.filter((removedIndex) => (
         removedIndex < currentIndex
       )).length;
       const adjustedIndex = currentIndex - removedBeforeCount;
@@ -1187,11 +1175,7 @@ export default function App() {
     }
 
     if (removedCard.done) {
-      if (willSummonCollection) {
-        replaceDoneCascadeWithCollectionAt(index, summonedCollectionVisualId);
-      } else {
-        removeDoneCascadeAt(index);
-      }
+      removeDoneCascadeAt(index);
       writeRemovedCardsToTreeCanvas(removedCards);
       return;
     }

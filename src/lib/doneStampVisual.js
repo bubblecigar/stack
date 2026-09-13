@@ -51,11 +51,3 @@ export function getDoneCollectionPath(visualId) {
 export function getCollectionDoneVisualIds() {
   return collectionAssets.map((asset) => asset.assetId);
 }
-
-export function getFirstCollectionDoneVisualId(cards = []) {
-  const firstCollectionCard = (Array.isArray(cards) ? cards : []).find((card) => (
-    Boolean(getDoneCollectionPath(card?.doneVisualId))
-  ));
-
-  return firstCollectionCard?.doneVisualId ?? null;
-}
