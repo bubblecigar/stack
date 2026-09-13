@@ -233,7 +233,6 @@ export function LeafDeck({
   editingValue,
   focusedCardIndex,
   focusedCardId: controlledFocusedCardId,
-  mathKeyboardKeys = [],
   collapsedNodeIds,
   doneCleanupPreviewCardIds = new Set(),
   onCreateEdit,
@@ -1278,7 +1277,6 @@ export function LeafDeck({
       <MathNotationPalette
         cameraDisabled={Boolean(activeCard?.isImageUpdating)}
         disabled={!canUseMathNotationPalette}
-        keys={mathKeyboardKeys}
         locked={Boolean(activeCard?.isImageUpdating || activeCardDone)}
         onCameraPress={() => onCameraPress?.(activeCard)}
         onTouchStart={() => {

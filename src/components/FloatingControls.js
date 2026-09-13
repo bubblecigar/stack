@@ -9,16 +9,12 @@ import {
   Text,
   View,
 } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   useEffect, useMemo, useRef, useState,
 } from 'react';
 import { constrainAddRelation } from '../lib/cardInsertion';
 import { getAppDayDate } from '../lib/appDay';
-import {
-  MATH_KEYBOARD_GRID_COLUMNS,
-  MATH_KEYBOARD_GRID_ROWS,
-} from '../lib/mathKeyboardConfig';
 import { styles } from '../styles/appStyles';
 
 const voidStampBlueImage = require('../../assets/card/void_stamp_blue.png');
@@ -40,7 +36,6 @@ const SETTINGS_PANEL_TRIGGER_DRAG_Y = -160;
 const SETTINGS_PANEL_CENTER_OFFSET_X = 0;
 const SETTINGS_PANEL_CENTER_OFFSET_Y = -(SCREEN_HEIGHT / 2 + 150);
 const SETTINGS_PANEL_TOGGLE_DURATION_MS = 260;
-const MATH_KEYBOARD_DRAG_THRESHOLD = 8;
 const SYSTEM_CARD_EXPLANATIONS = {
   mission: {
     body: 'Print these cards to your card list. Use them to give your day a clear direction and a simple place to begin.',
@@ -53,12 +48,6 @@ const SYSTEM_CARD_EXPLANATIONS = {
   treasure: {
     body: 'All ideas are treasures.\nWrite them down, think and drop.',
     title: 'Treasure',
-  },
-};
-const SYSTEM_MATH_KEY_ICONS = {
-  camera: {
-    Icon: Ionicons,
-    name: 'camera-outline',
   },
 };
 
@@ -168,7 +157,6 @@ export function FloatingControls({
   layoutMode,
   user = null,
   audioEnabled = true,
-  mathKeyboardKeys = [],
   onToggleMode,
   onCreateCard,
   onAudioEnabledChange,
@@ -177,7 +165,6 @@ export function FloatingControls({
   onDeleteHoldChange,
   onRootDoubleTap,
   onLogout,
-  onMoveMathKeyboardKey,
   settingsPanelCloseRequest = 0,
   canDeleteCurrentCard = false,
   deleteTargetDone = false,
@@ -197,10 +184,6 @@ export function FloatingControls({
   const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(false);
   const [settingsPanelOffsetX, setSettingsPanelOffsetX] = useState(0);
   const [settingsPanelOffsetY, setSettingsPanelOffsetY] = useState(0);
-  const [mathKeyboardDragState, setMathKeyboardDragState] = useState({
-    sourceIndex: null,
-    targetIndex: null,
-  });
   const [currentTime, setCurrentTime] = useState(() => new Date());
   const flipProgress = useRef(new Animated.Value(layoutMode === 'tree' ? 1 : 0)).current;
   const deleteSlideProgress = useRef(new Animated.Value(shouldShowDelete ? 1 : 0)).current;
@@ -208,18 +191,6 @@ export function FloatingControls({
   const addRelationRef = useRef(null);
   const lastModeTapRef = useRef(0);
   const addStartRef = useRef({
-    pageX: 0,
-    pageY: 0,
-  });
-  const mathKeyboardGridRef = useRef(null);
-  const mathKeyboardGridLayoutRef = useRef({
-    height: 0,
-    pageX: 0,
-    pageY: 0,
-    width: 0,
-  });
-  const mathKeyboardDragSourceIndexRef = useRef(null);
-  const mathKeyboardDragStartRef = useRef({
     pageX: 0,
     pageY: 0,
   });
@@ -523,193 +494,6 @@ export function FloatingControls({
     );
   }
 
-  function renderMathKeyboardConfig() {
-    const canEditMathKeyboardConfig = isSettingsPanelOpen;
-
-    function updateGridLayoutFromRef() {
-      mathKeyboardGridRef.current?.measureInWindow?.((pageX, pageY, width, height) => {
-        mathKeyboardGridLayoutRef.current = {
-          height,
-          pageX,
-          pageY,
-          width,
-        };
-      });
-    }
-
-    function getMathKeyboardSlotIndexFromPoint(pageX, pageY) {
-      const layout = mathKeyboardGridLayoutRef.current;
-      if (
-        !layout.width
-        || !layout.height
-        || pageX < layout.pageX
-        || pageX > layout.pageX + layout.width
-        || pageY < layout.pageY
-        || pageY > layout.pageY + layout.height
-      ) {
-        return null;
-      }
-
-      const column = clamp(
-        Math.floor(((pageX - layout.pageX) / layout.width) * MATH_KEYBOARD_GRID_COLUMNS),
-        0,
-        MATH_KEYBOARD_GRID_COLUMNS - 1,
-      );
-      const row = clamp(
-        Math.floor(((pageY - layout.pageY) / layout.height) * MATH_KEYBOARD_GRID_ROWS),
-        0,
-        MATH_KEYBOARD_GRID_ROWS - 1,
-      );
-
-      return (row * MATH_KEYBOARD_GRID_COLUMNS) + column;
-    }
-
-    function canDragMathKeyboardKey(key) {
-      return canEditMathKeyboardConfig && key?.isSystem;
-    }
-
-    function handleMathKeyboardKeyDragStart(event, keyIndex) {
-      if (!canEditMathKeyboardConfig) {
-        return;
-      }
-
-      mathKeyboardDragSourceIndexRef.current = keyIndex;
-      mathKeyboardDragStartRef.current = {
-        pageX: event.nativeEvent.pageX,
-        pageY: event.nativeEvent.pageY,
-      };
-      setMathKeyboardDragState({
-        sourceIndex: keyIndex,
-        targetIndex: keyIndex,
-      });
-      updateGridLayoutFromRef();
-    }
-
-    function handleMathKeyboardKeyDragMove(event) {
-      if (!canEditMathKeyboardConfig) {
-        return;
-      }
-
-      const sourceIndex = mathKeyboardDragSourceIndexRef.current;
-      if (sourceIndex === null) {
-        return;
-      }
-
-      const targetIndex = getMathKeyboardSlotIndexFromPoint(
-        event.nativeEvent.pageX,
-        event.nativeEvent.pageY,
-      );
-      const targetKey = targetIndex === null
-        ? null
-        : mathKeyboardKeys[targetIndex];
-      const nextTargetIndex = targetIndex !== null && !targetKey?.isReserved
-        ? targetIndex
-        : null;
-
-      setMathKeyboardDragState((currentState) => (
-        currentState.sourceIndex === sourceIndex
-        && currentState.targetIndex === nextTargetIndex
-          ? currentState
-          : {
-            sourceIndex,
-            targetIndex: nextTargetIndex,
-          }
-      ));
-    }
-
-    function handleMathKeyboardKeyDragRelease(event) {
-      const sourceIndex = mathKeyboardDragSourceIndexRef.current;
-      mathKeyboardDragSourceIndexRef.current = null;
-      setMathKeyboardDragState({
-        sourceIndex: null,
-        targetIndex: null,
-      });
-
-      if (sourceIndex === null) {
-        return;
-      }
-
-      if (!canEditMathKeyboardConfig) {
-        return;
-      }
-
-      const dragDistance = Math.hypot(
-        event.nativeEvent.pageX - mathKeyboardDragStartRef.current.pageX,
-        event.nativeEvent.pageY - mathKeyboardDragStartRef.current.pageY,
-      );
-      if (dragDistance < MATH_KEYBOARD_DRAG_THRESHOLD) {
-        return;
-      }
-
-      const targetIndex = getMathKeyboardSlotIndexFromPoint(
-        event.nativeEvent.pageX,
-        event.nativeEvent.pageY,
-      );
-
-      if (targetIndex === null) {
-        return;
-      }
-
-      onMoveMathKeyboardKey?.(sourceIndex, targetIndex);
-    }
-
-    return (
-      <View
-        onStartShouldSetResponder={() => canEditMathKeyboardConfig}
-        style={styles.addCardMathKeyboardConfig}
-      >
-        <View
-          onLayout={updateGridLayoutFromRef}
-          ref={mathKeyboardGridRef}
-          style={styles.addCardMathKeyboardGrid}
-        >
-          {mathKeyboardKeys.map((key, keyIndex) => (
-            <View
-              key={`math-keyboard-config-slot-${keyIndex}`}
-              style={[
-                styles.addCardMathKeyboardKey,
-                key.isEmpty && styles.addCardMathKeyboardEmptyKey,
-                key.isReserved && styles.addCardMathKeyboardReservedKey,
-                key.isSystem && styles.addCardMathKeyboardSystemKey,
-                mathKeyboardDragState.targetIndex === keyIndex
-                  && mathKeyboardDragState.sourceIndex !== keyIndex
-                  && styles.addCardMathKeyboardDropTargetKey,
-                mathKeyboardDragState.sourceIndex === keyIndex
-                  && styles.addCardMathKeyboardDraggingKey,
-              ]}
-              onResponderGrant={(event) => handleMathKeyboardKeyDragStart(event, keyIndex)}
-              onResponderMove={handleMathKeyboardKeyDragMove}
-              onResponderRelease={handleMathKeyboardKeyDragRelease}
-              onResponderTerminationRequest={() => false}
-              onResponderTerminate={() => {
-                mathKeyboardDragSourceIndexRef.current = null;
-                setMathKeyboardDragState({
-                  sourceIndex: null,
-                  targetIndex: null,
-                });
-              }}
-              onStartShouldSetResponder={() => canDragMathKeyboardKey(key)}
-            >
-              {key.isSystem ? (() => {
-                const SystemIcon = SYSTEM_MATH_KEY_ICONS[key.systemKeyId]?.Icon
-                  ?? MaterialCommunityIcons;
-                const systemIconName = SYSTEM_MATH_KEY_ICONS[key.systemKeyId]?.name;
-
-                return (
-                  <SystemIcon
-                    color="#94A3B8"
-                    name={systemIconName}
-                    size={16}
-                  />
-                );
-              })() : null}
-            </View>
-          ))}
-        </View>
-      </View>
-    );
-  }
-
   return (
     <>
       {shouldRenderDelete ? (
@@ -844,14 +628,11 @@ export function FloatingControls({
               {systemCardExplanation ? (
                 renderSystemCardMainContent()
               ) : (
-                <>
-                  <View style={styles.addCardButtonChrono}>
-                    <Text style={styles.addCardButtonChronoText}>
-                      {controlTimeLabel}
-                    </Text>
-                  </View>
-                  {renderMathKeyboardConfig()}
-                </>
+                <View style={styles.addCardButtonChrono}>
+                  <Text style={styles.addCardButtonChronoText}>
+                    {controlTimeLabel}
+                  </Text>
+                </View>
               )}
             </Animated.View>
             <Animated.View

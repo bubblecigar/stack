@@ -95,14 +95,6 @@ import {
 import { getStoredUiState, setStoredUiState } from './src/lib/uiStateStore';
 import { ensureDailyReminderScheduled } from './src/lib/dailyReminder';
 import {
-  moveMathKeyboardKey,
-  normalizeMathKeyboardKeys,
-} from './src/lib/mathKeyboardConfig';
-import {
-  getStoredMathKeyboardKeys,
-  setStoredMathKeyboardKeys,
-} from './src/lib/mathKeyboardStore';
-import {
   appendScanTreeResultToPlaceholder,
   formatScanResultTitle,
   SCAN_PLACEHOLDER_TEXT,
@@ -449,7 +441,6 @@ export default function App() {
   const [uploadingCardImageIds, setUploadingCardImageIds] = useState(() => new Set());
   const updatingCardImageIdsRef = useRef(new Set());
   const [settingsPanelCloseRequest, setSettingsPanelCloseRequest] = useState(0);
-  const [mathKeyboardKeys, setMathKeyboardKeys] = useState(() => normalizeMathKeyboardKeys([]));
   const [currentDayReference, setCurrentDayReference] = useState(() => Date.now());
   const [treeCompletionCanvas, setTreeCompletionCanvas] = useState(EMPTY_TREE_COMPLETION_CANVAS);
   const [collections, setCollections] = useState([]);
@@ -621,23 +612,6 @@ export default function App() {
     if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
       UIManager.setLayoutAnimationEnabledExperimental(true);
     }
-  }, []);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadMathKeyboardKeys() {
-      const storedKeys = await getStoredMathKeyboardKeys();
-      if (isMounted) {
-        setMathKeyboardKeys(storedKeys);
-      }
-    }
-
-    loadMathKeyboardKeys();
-
-    return () => {
-      isMounted = false;
-    };
   }, []);
 
   useEffect(() => {
@@ -1510,15 +1484,6 @@ export default function App() {
     playDoneStampSound();
   }
 
-  function persistMathKeyboardKeys(nextKeys) {
-    setMathKeyboardKeys(nextKeys);
-    setStoredMathKeyboardKeys(nextKeys).catch(() => {});
-  }
-
-  function handleMoveMathKeyboardKey(sourceIndex, targetIndex) {
-    persistMathKeyboardKeys(moveMathKeyboardKey(mathKeyboardKeys, sourceIndex, targetIndex));
-  }
-
   function beginCardImageUpdate(cardId) {
     if (updatingCardImageIdsRef.current.has(cardId)) {
       return false;
@@ -1926,7 +1891,6 @@ export default function App() {
             editingIndex={editingIndex}
             editingValue={editingValue}
             editingSelection={editingSelection}
-            mathKeyboardKeys={mathKeyboardKeys}
             doneCleanupPreviewCardIds={doneCleanupPreviewCardIds}
             focusedCardIndex={effectiveLeafFocusedIndex}
             focusedCardId={leafFocusedCardId}
@@ -1992,7 +1956,6 @@ export default function App() {
         childInsertionOnly={isChildOnlyInsertionTarget}
         parentInsertionBlocked={isParentInsertionBlocked}
         focusedSystemCardType={focusedSystemCardType}
-        mathKeyboardKeys={mathKeyboardKeys}
         user={authUser}
         layoutMode={layoutMode}
         onAudioEnabledChange={setIsAudioEnabled}
@@ -2000,7 +1963,6 @@ export default function App() {
         onAddHoldChange={setIsAddHoldActive}
         onAddPreviewChange={setAddPreviewRelation}
         onLogout={resetSession}
-        onMoveMathKeyboardKey={handleMoveMathKeyboardKey}
         onRootDoubleTap={handleToggleAllTreeCards}
         rootDoubleTapEnabled={!shouldRenderLeaf && focusedCardIndex === null}
         settingsPanelCloseRequest={settingsPanelCloseRequest}
