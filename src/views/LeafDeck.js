@@ -231,8 +231,6 @@ export function LeafDeck({
   visibleCount = DEFAULT_VISIBLE_COUNT,
   editingIndex,
   editingValue,
-  suppressEditingKeyboard = false,
-  editingKeyboardOpenRequest = 0,
   focusedCardIndex,
   focusedCardId: controlledFocusedCardId,
   mathKeyboardKeys = [],
@@ -244,10 +242,6 @@ export function LeafDeck({
   onEditingSelectionChange,
   onCompleteEdit,
   onCameraPress,
-  onDeleteImage,
-  onDeleteMathNotation,
-  onInsertMathNotation,
-  onOpenSystemKeyboard,
   editingSelection,
   onLeafSwipe,
   isDeleteHoldActive = false,
@@ -1088,8 +1082,6 @@ export function LeafDeck({
                 collapsedNodeIds={collapsedNodeIds}
                 editingIndex={shouldRenderActiveTopSlot ? editingIndex : null}
                 editingValue={shouldRenderActiveTopSlot ? editingValue : ''}
-                suppressEditingKeyboard={shouldRenderActiveTopSlot && suppressEditingKeyboard}
-                editingKeyboardOpenRequest={shouldRenderActiveTopSlot ? editingKeyboardOpenRequest : 0}
                 focusedCardIndex={focusedCardIndex}
                 focusedCardId={effectiveFocusedCardId}
                 hideControls
@@ -1286,15 +1278,9 @@ export function LeafDeck({
       <MathNotationPalette
         cameraDisabled={Boolean(activeCard?.isImageUpdating)}
         disabled={!canUseMathNotationPalette}
-        hasImage={Boolean(activeCard?.imagePath)}
         keys={mathKeyboardKeys}
         locked={Boolean(activeCard?.isImageUpdating || activeCardDone)}
         onCameraPress={() => onCameraPress?.(activeCard)}
-        onDeleteImage={() => onDeleteImage?.(activeCard)}
-        onDeleteNotation={onDeleteMathNotation}
-        onInsertNotation={onInsertMathNotation}
-        onOpenSystemKeyboard={onOpenSystemKeyboard}
-        textEntryDisabled={Boolean(activeCard?.imagePath)}
         onTouchStart={() => {
           inputTouchRef.current = true;
         }}

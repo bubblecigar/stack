@@ -20,7 +20,6 @@ import {
   adoptMissionRoot,
   archiveRootTree,
   canInsertRelativeTo,
-  clearCardImageAt,
   ensureSystemCards,
   getSnapshot,
   hasChildOnlyInsertion,
@@ -53,7 +52,6 @@ import { NodeStructureView } from './src/views/NodeStructureView';
 import { TreeCanvas } from './src/views/TreeCanvas';
 import {
   createScanJob,
-  deleteCardImage,
   failScanJobImageUpload,
   getMe,
   loadRemoteCollections,
@@ -87,10 +85,6 @@ import {
   getHiddenSystemCardIds,
   getVisibleCardsExcludingIds,
 } from './src/lib/systemVisibility';
-import {
-  deleteTextAtSelection,
-  insertTextAtSelection,
-} from './src/lib/textEditActions';
 import {
   playDoneStampSound,
   playLeafSwipeSound,
@@ -442,8 +436,6 @@ export default function App() {
   const [editingIndex, setEditingIndex] = useState(null);
   const [editingValue, setEditingValue] = useState('');
   const [editingSelection, setEditingSelection] = useState(null);
-  const [suppressEditingKeyboard, setSuppressEditingKeyboard] = useState(false);
-  const [editingKeyboardOpenRequest, setEditingKeyboardOpenRequest] = useState(0);
   const [focusedCardIndex, setFocusedCardIndex] = useState(null);
   const [layoutMode, setLayoutMode] = useState('tree');
   const [collapsedNodeIds, setCollapsedNodeIds] = useState(() => new Set());
@@ -993,7 +985,6 @@ export default function App() {
       : insertRelativeTo(currentIndex, relation, '');
 
     setEditingIndex(nextIndex);
-    setSuppressEditingKeyboard(false);
     setEditingValue('');
     setEditingSelection({ start: 0, end: 0 });
     setFocusedCardIndex(nextIndex);
@@ -1013,7 +1004,6 @@ export default function App() {
     }
 
     setEditingIndex(index);
-    setSuppressEditingKeyboard(false);
     setEditingValue(text);
     const textLength = String(text || '').length;
     setEditingSelection({ start: textLength, end: textLength });
@@ -1028,7 +1018,6 @@ export default function App() {
 
     updateAt(index, value);
     setEditingIndex(null);
-    setSuppressEditingKeyboard(false);
     setEditingValue('');
     setEditingSelection(null);
   }
@@ -1554,28 +1543,6 @@ export default function App() {
     });
   }
 
-  async function removeImageFromCard(cardId) {
-    if (!authToken || !beginCardImageUpdate(cardId)) {
-      return;
-    }
-
-    try {
-      await deleteCardImage(authToken, cardId);
-      const currentIndex = getSnapshot().findIndex((card) => card.id === cardId);
-      if (currentIndex >= 0 && clearCardImageAt(currentIndex)) {
-        await saveRemoteCards(authToken, getSnapshot());
-      }
-    } catch (error) {
-      if (error.status === 401) {
-        handleAuthExpired();
-        return;
-      }
-      Alert.alert('Could not remove image', error.message || 'Try again.');
-    } finally {
-      finishCardImageUpdate(cardId);
-    }
-  }
-
   async function takePhotoForCard(cardId) {
     if (!authToken || !beginCardImageUpdate(cardId)) {
       return;
@@ -1642,29 +1609,6 @@ export default function App() {
     }
 
     takePhotoForCard(card.id);
-  }
-
-  function handleCardImageDelete(card) {
-    if (
-      !card?.imagePath
-      || isSystemCard(card)
-      || updatingCardImageIdsRef.current.has(card.id)
-    ) {
-      return;
-    }
-
-    Alert.alert(
-      'Remove attached image?',
-      'The image will be removed and the card will become an empty text card.',
-      [
-        { style: 'cancel', text: 'Cancel' },
-        {
-          onPress: () => removeImageFromCard(card.id),
-          style: 'destructive',
-          text: 'Remove',
-        },
-      ],
-    );
   }
 
   function focusScanRoot(index) {
@@ -1819,100 +1763,6 @@ export default function App() {
 
   function handleScanCardsFromImage() {
     scanCardsFromImageSource('camera');
-  }
-
-  function getMathNotationTarget() {
-    const targetIndex = visibleTopCardIndex;
-    if (targetIndex === null || targetIndex < 0) {
-      return null;
-    }
-
-    const targetCard = cards[targetIndex];
-    if (!targetCard || isSystemCard(targetCard) || targetCard.imagePath) {
-      return null;
-    }
-
-    const isEditingTargetCard = editingIndex === targetIndex;
-    const currentValue = isEditingTargetCard
-      ? editingValue
-      : String(targetCard.text || '');
-    const selection = isEditingTargetCard && editingSelection
-      ? editingSelection
-      : { start: currentValue.length, end: currentValue.length };
-
-    return {
-      currentValue,
-      isEditingTargetCard,
-      selection,
-      targetCard,
-      targetIndex,
-    };
-  }
-
-  function applyMathNotationEdit(target, nextValue, nextSelection) {
-    setEditingIndex(target.targetIndex);
-    setSuppressEditingKeyboard(true);
-    setEditingValue(nextValue);
-    setEditingSelection(nextSelection);
-
-    setFocusedCardIndex(target.targetIndex);
-    setLeafTopIndex(target.targetIndex);
-    setLeafFocusedCardId(target.targetCard.id);
-  }
-
-  function handleInsertMathNotation(notation) {
-    if (!shouldRenderLeaf || notation === null || notation === undefined) {
-      return;
-    }
-
-    const target = getMathNotationTarget();
-    if (!target) {
-      return;
-    }
-
-    const { nextValue, nextSelection } = insertTextAtSelection(
-      target.currentValue,
-      notation,
-      target.selection,
-    );
-    applyMathNotationEdit(target, nextValue, nextSelection);
-  }
-
-  function handleDeleteMathNotation() {
-    if (!shouldRenderLeaf) {
-      return;
-    }
-
-    const target = getMathNotationTarget();
-    if (!target) {
-      return;
-    }
-
-    const { nextValue, nextSelection } = deleteTextAtSelection(
-      target.currentValue,
-      target.selection,
-    );
-    applyMathNotationEdit(target, nextValue, nextSelection);
-  }
-
-  function handleOpenSystemKeyboard() {
-    if (!shouldRenderLeaf) {
-      return;
-    }
-
-    const target = getMathNotationTarget();
-    if (!target) {
-      return;
-    }
-
-    setEditingIndex(target.targetIndex);
-    setSuppressEditingKeyboard(false);
-    setEditingValue(target.currentValue);
-    setEditingSelection(target.selection);
-    setFocusedCardIndex(target.targetIndex);
-    setLeafTopIndex(target.targetIndex);
-    setLeafFocusedCardId(target.targetCard.id);
-    setEditingKeyboardOpenRequest((currentRequest) => currentRequest + 1);
   }
 
   useEffect(() => {
@@ -2076,8 +1926,6 @@ export default function App() {
             editingIndex={editingIndex}
             editingValue={editingValue}
             editingSelection={editingSelection}
-            suppressEditingKeyboard={suppressEditingKeyboard}
-            editingKeyboardOpenRequest={editingKeyboardOpenRequest}
             mathKeyboardKeys={mathKeyboardKeys}
             doneCleanupPreviewCardIds={doneCleanupPreviewCardIds}
             focusedCardIndex={effectiveLeafFocusedIndex}
@@ -2089,10 +1937,6 @@ export default function App() {
             onEditingSelectionChange={setEditingSelection}
             onCompleteEdit={handleCompleteEdit}
             onCameraPress={handleCardCameraPress}
-            onDeleteImage={handleCardImageDelete}
-            onDeleteMathNotation={handleDeleteMathNotation}
-            onInsertMathNotation={handleInsertMathNotation}
-            onOpenSystemKeyboard={handleOpenSystemKeyboard}
             onLeafSwipe={handleLeafSwipe}
             isDeleteHoldActive={isDeleteHoldActive}
             isAddHoldActive={isAddHoldActive}

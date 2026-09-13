@@ -5,41 +5,18 @@ export const RESERVED_MATH_KEYBOARD_SLOT_INDICES = [
   MATH_KEYBOARD_GRID_SIZE - 1,
 ];
 const RESERVED_MATH_KEYBOARD_SLOT_SET = new Set(RESERVED_MATH_KEYBOARD_SLOT_INDICES);
+const RETIRED_MATH_KEY_IDS = new Set(['keyboard', 'space', 'newline', 'delete']);
+const CENTER_BOTTOM_MATH_KEYBOARD_SLOT_INDEX = (
+  ((MATH_KEYBOARD_GRID_ROWS - 1) * MATH_KEYBOARD_GRID_COLUMNS)
+  + Math.floor(MATH_KEYBOARD_GRID_COLUMNS / 2)
+);
 export const SYSTEM_MATH_KEY_DEFINITIONS = [
   {
-    action: 'openKeyboard',
-    defaultSlotIndex: MATH_KEYBOARD_GRID_SIZE - 6,
-    insert: '',
-    label: 'keyboard',
-    systemKeyId: 'keyboard',
-  },
-  {
     action: 'camera',
-    defaultSlotIndex: MATH_KEYBOARD_GRID_SIZE - 5,
+    defaultSlotIndex: CENTER_BOTTOM_MATH_KEYBOARD_SLOT_INDEX,
     insert: '',
     label: 'camera',
     systemKeyId: 'camera',
-  },
-  {
-    action: 'insert',
-    defaultSlotIndex: MATH_KEYBOARD_GRID_SIZE - 4,
-    insert: ' ',
-    label: 'space',
-    systemKeyId: 'space',
-  },
-  {
-    action: 'insert',
-    defaultSlotIndex: MATH_KEYBOARD_GRID_SIZE - 3,
-    insert: '\n',
-    label: 'enter',
-    systemKeyId: 'newline',
-  },
-  {
-    action: 'delete',
-    defaultSlotIndex: MATH_KEYBOARD_GRID_SIZE - 2,
-    insert: '',
-    label: 'delete',
-    systemKeyId: 'delete',
   },
 ];
 
@@ -112,12 +89,17 @@ export function normalizeMathKeyboardKeys(rawKeys) {
   );
   const placedSystemKeyIds = new Set();
   const pendingKeys = [];
+  const hasRetiredKeys = (Array.isArray(rawKeys) ? rawKeys : []).some(
+    (rawKey) => RETIRED_MATH_KEY_IDS.has(rawKey?.systemKeyId),
+  );
 
   (Array.isArray(rawKeys) ? rawKeys : []).forEach((rawKey, fallbackIndex) => {
     const systemDefinition = typeof rawKey === 'object' && rawKey !== null
       ? SYSTEM_MATH_KEY_BY_ID.get(rawKey.systemKeyId)
       : null;
-    const systemSlotIndex = normalizeSlotIndex(rawKey, fallbackIndex);
+    const systemSlotIndex = hasRetiredKeys && systemDefinition?.systemKeyId === 'camera'
+      ? systemDefinition.defaultSlotIndex
+      : normalizeSlotIndex(rawKey, fallbackIndex);
 
     if (
       systemDefinition

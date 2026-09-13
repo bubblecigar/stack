@@ -60,22 +60,6 @@ const SYSTEM_MATH_KEY_ICONS = {
     Icon: Ionicons,
     name: 'camera-outline',
   },
-  delete: {
-    Icon: MaterialCommunityIcons,
-    name: 'backspace-outline',
-  },
-  keyboard: {
-    Icon: Ionicons,
-    name: 'keypad-outline',
-  },
-  newline: {
-    Icon: MaterialCommunityIcons,
-    name: 'keyboard-return',
-  },
-  space: {
-    Icon: MaterialCommunityIcons,
-    name: 'keyboard-space',
-  },
 };
 
 function clamp(value, min, max) {

@@ -50,8 +50,6 @@ export function StackCard({
   layout,
   editingIndex,
   editingValue,
-  suppressEditingKeyboard = false,
-  editingKeyboardOpenRequest = 0,
   focusedCardIndex,
   focusedCardId = null,
   isLeafTopCard = false,
@@ -246,15 +244,13 @@ export function StackCard({
     : null;
 
   useEffect(() => {
-    if (!isEditing || suppressEditingKeyboard) {
+    if (!isEditing) {
       return;
     }
 
     editingInputRef.current?.focus?.();
   }, [
-    editingKeyboardOpenRequest,
     isEditing,
-    suppressEditingKeyboard,
   ]);
 
   function handleControlPressIn(event) {
@@ -283,7 +279,6 @@ export function StackCard({
       multiline
       returnKeyType="done"
       scrollEnabled={isLeafCard}
-      showSoftInputOnFocus={!suppressEditingKeyboard}
       onChangeText={onEditingValueChange}
       onSelectionChange={(event) => {
         onEditingSelectionChange?.(event.nativeEvent.selection);

@@ -8,53 +8,18 @@ import {
 } from './mathKeyboardConfig';
 
 describe('math keyboard store', () => {
-  it('starts with the five system keys when no config exists', () => {
+  it('starts with the camera key centered in the bottom row', () => {
     const keys = normalizeMathKeyboardKeys(null);
 
     expect(keys).toHaveLength(MATH_KEYBOARD_GRID_SIZE);
-    expect(keys.slice(0, MATH_KEYBOARD_GRID_SIZE - 6).every((key) => key.isEmpty)).toBe(true);
-    expect(keys.slice(-6)).toEqual([
-      expect.objectContaining({
-        action: 'openKeyboard',
-        isSystem: true,
-        label: 'keyboard',
-        slotIndex: MATH_KEYBOARD_GRID_SIZE - 6,
-        systemKeyId: 'keyboard',
-      }),
-      expect.objectContaining({
-        action: 'camera',
-        isSystem: true,
-        label: 'camera',
-        slotIndex: MATH_KEYBOARD_GRID_SIZE - 5,
-        systemKeyId: 'camera',
-      }),
-      expect.objectContaining({
-        insert: ' ',
-        isSystem: true,
-        label: 'space',
-        slotIndex: MATH_KEYBOARD_GRID_SIZE - 4,
-        systemKeyId: 'space',
-      }),
-      expect.objectContaining({
-        insert: '\n',
-        isSystem: true,
-        label: 'enter',
-        slotIndex: MATH_KEYBOARD_GRID_SIZE - 3,
-        systemKeyId: 'newline',
-      }),
-      expect.objectContaining({
-        action: 'delete',
-        isSystem: true,
-        label: 'delete',
-        slotIndex: MATH_KEYBOARD_GRID_SIZE - 2,
-        systemKeyId: 'delete',
-      }),
-      expect.objectContaining({
-        isReserved: true,
-        slotIndex: MATH_KEYBOARD_GRID_SIZE - 1,
-      }),
-    ]);
-    expect(getActiveMathKeyboardKeys(keys)).toHaveLength(5);
+    expect(keys[MATH_KEYBOARD_GRID_SIZE - 4]).toEqual(expect.objectContaining({
+      action: 'camera',
+      isSystem: true,
+      label: 'camera',
+      slotIndex: MATH_KEYBOARD_GRID_SIZE - 4,
+      systemKeyId: 'camera',
+    }));
+    expect(getActiveMathKeyboardKeys(keys)).toHaveLength(1);
   });
 
   it('drops legacy user-defined keys while preserving configured system keys', () => {
@@ -81,25 +46,21 @@ describe('math keyboard store', () => {
     expect(getActiveMathKeyboardKeys(keys).every((key) => key.isSystem)).toBe(true);
   });
 
-  it('serializes system keys only', () => {
+  it('drops retired keys and centers the camera when migrating a legacy layout', () => {
     const serializedKeys = serializeMathKeyboardKeys(normalizeMathKeyboardKeys([
-      { insert: '≡', label: '≡', slotIndex: 24 },
-      { slotIndex: 4, systemKeyId: 'keyboard' },
+      { slotIndex: 4, systemKeyId: 'camera' },
+      { slotIndex: 38, systemKeyId: 'space' },
+      { slotIndex: 39, systemKeyId: 'newline' },
+      { slotIndex: 40, systemKeyId: 'delete' },
     ]));
 
-    expect(serializedKeys).toHaveLength(5);
-    expect(serializedKeys).toEqual(expect.arrayContaining([
-      { slotIndex: 4, systemKeyId: 'keyboard' },
-    ]));
-    expect(serializedKeys.every((key) => (
-      typeof key.systemKeyId === 'string'
-      && !Object.hasOwn(key, 'label')
-      && !Object.hasOwn(key, 'insert')
-    ))).toBe(true);
+    expect(serializedKeys).toEqual([
+      { slotIndex: MATH_KEYBOARD_GRID_SIZE - 4, systemKeyId: 'camera' },
+    ]);
   });
 
   it('moves system keys into empty slots but not reserved slots', () => {
-    const sourceIndex = MATH_KEYBOARD_GRID_SIZE - 5;
+    const sourceIndex = MATH_KEYBOARD_GRID_SIZE - 4;
     const movedKeys = moveMathKeyboardKey([], sourceIndex, 4);
 
     expect(movedKeys[4]).toEqual(expect.objectContaining({

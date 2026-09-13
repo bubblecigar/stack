@@ -2,45 +2,16 @@ import {
   Pressable,
   View,
 } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { styles } from '../styles/appStyles';
-
-const SYSTEM_KEY_ICONS = {
-  camera: {
-    Icon: Ionicons,
-    name: 'camera-outline',
-  },
-  delete: {
-    Icon: MaterialCommunityIcons,
-    name: 'backspace-outline',
-  },
-  keyboard: {
-    Icon: Ionicons,
-    name: 'keypad-outline',
-  },
-  newline: {
-    Icon: MaterialCommunityIcons,
-    name: 'keyboard-return',
-  },
-  space: {
-    Icon: MaterialCommunityIcons,
-    name: 'keyboard-space',
-  },
-};
 
 export function MathNotationPalette({
   cameraDisabled = false,
   disabled = false,
-  hasImage = false,
   keys = [],
   locked = false,
   onCameraPress,
-  onDeleteImage,
   onTouchStart,
-  onDeleteNotation,
-  onInsertNotation,
-  onOpenSystemKeyboard,
-  textEntryDisabled = false,
 }) {
   const paletteKeys = Array.isArray(keys) ? keys : [];
 
@@ -71,44 +42,16 @@ export function MathNotationPalette({
             );
           }
 
-          const isCameraKey = key.isSystem && key.systemKeyId === 'camera';
-          const isImageDeleteKey = hasImage && key.action === 'delete';
-          const isKeyDisabled = disabled || locked || (isCameraKey
-            ? cameraDisabled
-            : (isImageDeleteKey ? cameraDisabled : textEntryDisabled));
+          const isKeyDisabled = disabled || locked || cameraDisabled;
 
           return (
             <Pressable
-              accessibilityLabel={isCameraKey ? 'Take card photo' : (
-                isImageDeleteKey ? 'Remove card image' : `Insert ${key.label}`
-              )}
+              accessibilityLabel="Take card photo"
               accessibilityRole="button"
               disabled={isKeyDisabled}
               key={`math-notation-slot-${key.slotIndex ?? keyIndex}`}
               onTouchStart={onTouchStart}
-              onPress={() => {
-                if (key.action === 'camera') {
-                  onCameraPress?.();
-                  return;
-                }
-
-                if (key.action === 'delete') {
-                  if (hasImage) {
-                    onDeleteImage?.();
-                    return;
-                  }
-
-                  onDeleteNotation?.();
-                  return;
-                }
-
-                if (key.action === 'openKeyboard') {
-                  onOpenSystemKeyboard?.();
-                  return;
-                }
-
-                onInsertNotation?.(key.insert);
-              }}
+              onPress={onCameraPress}
               style={({ pressed }) => [
                 styles.mathNotationGridKey,
                 styles.mathNotationGridSystemKey,
@@ -116,19 +59,7 @@ export function MathNotationPalette({
                 pressed && styles.mathNotationKeyPressed,
               ]}
             >
-              {(() => {
-                const SystemIcon = SYSTEM_KEY_ICONS[key.systemKeyId]?.Icon
-                  ?? MaterialCommunityIcons;
-                const systemIconName = SYSTEM_KEY_ICONS[key.systemKeyId]?.name;
-
-                return (
-                  <SystemIcon
-                    color="#94A3B8"
-                    name={systemIconName}
-                    size={16}
-                  />
-                );
-              })()}
+              <Ionicons color="#94A3B8" name="camera-outline" size={16} />
             </Pressable>
           );
         })}
