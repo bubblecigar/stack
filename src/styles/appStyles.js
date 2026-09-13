@@ -717,11 +717,7 @@ export const styles = StyleSheet.create({
     transform: [{ translateX: 1 }, { translateY: 1 }],
   },
   treePreviewCard: {
-    borderColor: '#F97316',
-    borderStyle: 'dashed',
-    borderWidth: 2,
-    backgroundColor: 'rgba(255, 247, 237, 0.84)',
-    opacity: 0.92,
+    opacity: 0.82,
   },
   treeCardControls: {
     right: 8,
@@ -745,9 +741,6 @@ export const styles = StyleSheet.create({
   cardImageLoading: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  treePreviewCardText: {
-    color: '#F97316',
   },
   treeCardInput: {
     minHeight: 66,

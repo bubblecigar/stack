@@ -21,7 +21,7 @@ function insertNearSibling(childIds, targetId, previewId, placement) {
   ];
 }
 
-export function buildPreviewCards(cards, focusedCardIndex, relation) {
+export function buildPreviewCards(cards, focusedCardIndex, relation, backgroundColor = null) {
   if (!relation || focusedCardIndex === null) {
     return cards;
   }
@@ -33,6 +33,7 @@ export function buildPreviewCards(cards, focusedCardIndex, relation) {
 
   const targetId = targetCard.id;
   const previewCard = {
+    backgroundColor,
     childIds: [],
     id: PREVIEW_CARD_ID,
     index: -1,

@@ -732,7 +732,6 @@ export function StackCard({
               <Text style={[
                 styles.cardText,
                 isTreeCard && styles.treeCardText,
-                isTreeCard && isPreviewCard && styles.treePreviewCardText,
                 done && styles.doneCardText,
                 !text && styles.emptyCardText,
               ]}

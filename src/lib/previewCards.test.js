@@ -37,12 +37,13 @@ describe('buildPreviewCards', () => {
   it('inserts a child preview under the focused card', () => {
     const cards = [card('root')];
 
-    const previewCards = buildPreviewCards(cards, 0, 'child');
+    const previewCards = buildPreviewCards(cards, 0, 'child', '#DBEAFE');
     const root = previewCards.find((entry) => entry.id === 'root');
     const preview = previewCards.find((entry) => entry.id === PREVIEW_CARD_ID);
 
     expect(root.childIds).toEqual([PREVIEW_CARD_ID]);
     expect(preview.parentIds).toEqual(['root']);
+    expect(preview.backgroundColor).toBe('#DBEAFE');
   });
 
   it('inserts sibling preview into parent child order', () => {

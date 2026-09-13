@@ -1929,6 +1929,7 @@ export default function App() {
         ) : (
           <TreeCanvas
             addPreviewRelation={addPreviewRelation}
+            newCardBackgroundColor={newCardBackgroundColor}
             cards={systemTreeCards}
             collapsedNodeIds={collapsedNodeIds}
             focusedCardIndex={focusedCardIndex}
