@@ -354,9 +354,14 @@ export function FloatingControls({
     onDeleteHoldChange?.(false);
   }
 
-  function renderColorPicker() {
+  function renderColorPicker(isInteractive = false) {
     return (
-      <View style={styles.settingsColorPicker}>
+      <View
+        accessibilityElementsHidden={!isInteractive}
+        importantForAccessibility={isInteractive ? 'auto' : 'no-hide-descendants'}
+        pointerEvents={isInteractive ? 'auto' : 'none'}
+        style={styles.settingsColorPicker}
+      >
         <Text style={styles.settingsColorPickerTitle}>New card color</Text>
         <View style={styles.settingsColorSwatches}>
           {CARD_BACKGROUND_OPTIONS.map(({ color, label }) => {
@@ -507,7 +512,7 @@ export function FloatingControls({
                 },
               ]}
             >
-              {isSettingsPanelOpen ? renderColorPicker() : null}
+              {renderColorPicker(isSettingsPanelOpen && layoutMode === 'leaf')}
             </Animated.View>
             <Animated.View
               pointerEvents={layoutMode === 'tree' ? 'box-none' : 'none'}
@@ -528,7 +533,7 @@ export function FloatingControls({
                 },
               ]}
             >
-              {isSettingsPanelOpen ? renderColorPicker() : null}
+              {renderColorPicker(isSettingsPanelOpen && layoutMode === 'tree')}
             </Animated.View>
           </Animated.View>
         </View>
