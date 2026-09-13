@@ -17,6 +17,7 @@ const execFileAsync = promisify(execFile);
 const SUPPORTED_EXTENSIONS = new Set(['.jpeg', '.jpg', '.png', '.webp']);
 const PIPELINE_VERSION = 1;
 const DEFAULTS = {
+  color: '#000000',
   contentSize: 680,
   input: 'assets/collections',
   noiseFloor: 6,
@@ -28,7 +29,7 @@ const DEFAULTS = {
 
 function printHelp() {
   console.log([
-    'Prepare monochrome collection artwork for efficient mobile delivery.',
+    'Prepare transparent collection artwork for efficient mobile delivery.',
     '',
     'The source images are preserved. The program extracts pencil/ink darkness',
     'into a transparent alpha channel, removes light checkerboard pixels, trims',
@@ -37,10 +38,13 @@ function printHelp() {
     'Usage:',
     '  npm run prepare:collections',
     '  npm run prepare:collections -- --input assets/collections --output assets/collections/mobile',
+    "  npm run prepare:collections -- --color blue --prefix monster-blue",
+    "  npm run prepare:collections -- --color '#C2413B' --prefix monster-red",
     '',
     'Options:',
     `  --input <dir>          Source directory (default: ${DEFAULTS.input})`,
     `  --output <dir>         Destination directory (default: ${DEFAULTS.output})`,
+    `  --color <name|hex>     Stamp/ink color (default: ${DEFAULTS.color})`,
     `  --size <pixels>        Square output canvas (default: ${DEFAULTS.size})`,
     `  --content-size <px>    Maximum subject bounds (default: ${DEFAULTS.contentSize})`,
     `  --quality <1-100>      WebP visual quality (default: ${DEFAULTS.quality})`,
@@ -69,6 +73,25 @@ function parseInteger(value, option, minimum, maximum) {
   return number;
 }
 
+function parseColor(value, option) {
+  const trimmedValue = value.trim();
+  const hexMatch = trimmedValue.match(/^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
+
+  if (hexMatch) {
+    const hex = hexMatch[1].toLowerCase();
+    const expandedHex = hex.length === 3
+      ? [...hex].map((character) => character.repeat(2)).join('')
+      : hex;
+    return `#${expandedHex}`;
+  }
+
+  if (/^[a-zA-Z][a-zA-Z0-9-]*$/.test(trimmedValue)) {
+    return trimmedValue.toLowerCase();
+  }
+
+  throw new Error(`${option} must be a named color or a 3/6-digit hex color.`);
+}
+
 function parseArgs(args) {
   const options = { ...DEFAULTS, force: false };
 
@@ -83,6 +106,9 @@ function parseArgs(args) {
       index += 1;
     } else if (option === '--output') {
       options.output = readValue(args, index, option);
+      index += 1;
+    } else if (option === '--color') {
+      options.color = parseColor(readValue(args, index, option), option);
       index += 1;
     } else if (option === '--prefix') {
       options.prefix = readValue(args, index, option).replace(/[^a-zA-Z0-9_-]/g, '-');
@@ -141,8 +167,9 @@ async function prepareImage(sourcePath, outputPath, options, workDirectory) {
   const maskPath = join(workDirectory, 'mask.png');
   const inkPath = join(workDirectory, 'ink.png');
 
-  // A black pixel becomes fully opaque; white becomes transparent. Removing the
-  // lightest alpha values suppresses the baked white/light-gray checkerboard.
+  // A dark source pixel becomes fully opaque in the configured color; white
+  // becomes transparent. Removing the lightest alpha values suppresses the
+  // baked white/light-gray checkerboard.
   await execFileAsync('magick', [
     sourcePath,
     '-colorspace', 'Gray',
@@ -153,7 +180,7 @@ async function prepareImage(sourcePath, outputPath, options, workDirectory) {
 
   await execFileAsync('magick', [
     '-size', `${width}x${height}`,
-    'xc:black',
+    `xc:${options.color}`,
     maskPath,
     '-alpha', 'off',
     '-compose', 'CopyOpacity',
@@ -186,6 +213,7 @@ function getAssetId(sourceHash, options) {
     pipelineVersion: PIPELINE_VERSION,
     quality: options.quality,
     size: options.size,
+    ...(options.color === DEFAULTS.color ? {} : { color: options.color }),
   });
   const assetHash = createHash('sha256')
     .update(sourceHash)
@@ -291,6 +319,7 @@ async function main() {
     pipelineVersion: PIPELINE_VERSION,
     ...(summonChance === undefined ? {} : { summonChance }),
     settings: {
+      color: options.color,
       contentSize: options.contentSize,
       noiseFloorPercent: options.noiseFloor,
       quality: options.quality,

@@ -3,193 +3,23 @@
   "pipelineVersion": 1,
   "summonChance": 0.1,
   "settings": {
+    "color": "#dc2626",
     "contentSize": 680,
     "noiseFloorPercent": 6,
     "quality": 82,
     "size": 768
   },
-  "uniqueAssetCount": 19,
-  "sourceCount": 20,
+  "uniqueAssetCount": 1,
+  "sourceCount": 1,
   "files": [
     {
-      "assetId": "monster-626c03f45fafd12a",
-      "bytes": 136986,
-      "file": "monster-626c03f45fafd12a.webp",
+      "assetId": "monster-red-f6195dfca3f39bbd",
+      "bytes": 65104,
+      "file": "monster-red-f6195dfca3f39bbd.webp",
       "height": 768,
       "width": 768,
-      "source": "OpenAI Playground 2026-08-15 at 16.54.50 (0).png",
-      "sourceSha256": "e5cf05b0672d2ed898a43e05782a6f72b9bd921822cded0aa0a9130163ef648f"
-    },
-    {
-      "assetId": "monster-fde06405dcf4d7e7",
-      "bytes": 170194,
-      "file": "monster-fde06405dcf4d7e7.webp",
-      "height": 768,
-      "width": 768,
-      "source": "OpenAI Playground 2026-08-15 at 16.54.50 (3).png",
-      "sourceSha256": "fb2c2d11430ac434b55ee5c5da17ba0c37a4f196fbd1a801c1866fea30a94194"
-    },
-    {
-      "assetId": "monster-550384dbc77bece1",
-      "bytes": 144104,
-      "file": "monster-550384dbc77bece1.webp",
-      "height": 768,
-      "width": 768,
-      "source": "OpenAI Playground 2026-08-15 at 16.54.50 (4).png",
-      "sourceSha256": "6896fa145152052a54f2330df4bd826bf34c1df1422f043354cdaabe8ff2e457"
-    },
-    {
-      "assetId": "monster-5c0fbbed9e04c709",
-      "bytes": 120638,
-      "file": "monster-5c0fbbed9e04c709.webp",
-      "height": 768,
-      "width": 768,
-      "source": "OpenAI Playground 2026-08-15 at 16.55.55 (0) (1).png",
-      "sourceSha256": "0bf51a3a5f8de2a96b1f76a46dc4871ad727f9e3b2ccceaca1b4bf54b97e4134"
-    },
-    {
-      "assetId": "monster-5c0fbbed9e04c709",
-      "bytes": 120638,
-      "file": "monster-5c0fbbed9e04c709.webp",
-      "height": 768,
-      "width": 768,
-      "source": "OpenAI Playground 2026-08-15 at 16.55.55 (0).png",
-      "sourceSha256": "0bf51a3a5f8de2a96b1f76a46dc4871ad727f9e3b2ccceaca1b4bf54b97e4134"
-    },
-    {
-      "assetId": "monster-22a67ee2da32c8ca",
-      "bytes": 123974,
-      "file": "monster-22a67ee2da32c8ca.webp",
-      "height": 768,
-      "width": 768,
-      "source": "OpenAI Playground 2026-08-15 at 16.55.55 (1).png",
-      "sourceSha256": "4dd7b1ee434412983e4bd832c4fe677678a022100cacc3c54367010f0223be9f"
-    },
-    {
-      "assetId": "monster-07773720a6e12ca1",
-      "bytes": 147614,
-      "file": "monster-07773720a6e12ca1.webp",
-      "height": 768,
-      "width": 768,
-      "source": "OpenAI Playground 2026-08-15 at 16.55.55 (2).png",
-      "sourceSha256": "b7ea93046160cd6921631186e147244ffdc5d4a0ca602a41a042328632c7f1e8"
-    },
-    {
-      "assetId": "monster-3d2247572dfe2812",
-      "bytes": 120754,
-      "file": "monster-3d2247572dfe2812.webp",
-      "height": 768,
-      "width": 768,
-      "source": "OpenAI Playground 2026-08-15 at 16.55.55 (3).png",
-      "sourceSha256": "ad62d06566e2497c6eb3f510162f58431646b426662f0ea59d8d7101a6761d1a"
-    },
-    {
-      "assetId": "monster-27f8ac3460c0608d",
-      "bytes": 117842,
-      "file": "monster-27f8ac3460c0608d.webp",
-      "height": 768,
-      "width": 768,
-      "source": "OpenAI Playground 2026-08-15 at 16.55.55 (4).png",
-      "sourceSha256": "9fc633488c3c99d5c3e72168d5a0a48b4e1cbb27d4e3676a69c88bd73182ff0f"
-    },
-    {
-      "assetId": "monster-594b12ff8e3e0be6",
-      "bytes": 96896,
-      "file": "monster-594b12ff8e3e0be6.webp",
-      "height": 768,
-      "width": 768,
-      "source": "OpenAI Playground 2026-08-15 at 16.58.43 (0).png",
-      "sourceSha256": "b540da8c10da71661c383262d496e502b2f71eaba78a568962b6322968b3dac0"
-    },
-    {
-      "assetId": "monster-685960d707a0967c",
-      "bytes": 130076,
-      "file": "monster-685960d707a0967c.webp",
-      "height": 768,
-      "width": 768,
-      "source": "OpenAI Playground 2026-08-15 at 16.58.43 (1).png",
-      "sourceSha256": "8b93805e11dabfa790184549b34e59904c4f11af89332ba799f89577c89508c8"
-    },
-    {
-      "assetId": "monster-d9920b96eab414ed",
-      "bytes": 161498,
-      "file": "monster-d9920b96eab414ed.webp",
-      "height": 768,
-      "width": 768,
-      "source": "OpenAI Playground 2026-08-15 at 16.58.43 (2).png",
-      "sourceSha256": "ab46b4ad579d3e919c0e8892733fae3d8871ea3b0bd63786e10c9410c5d40719"
-    },
-    {
-      "assetId": "monster-99d447fc4446b560",
-      "bytes": 140922,
-      "file": "monster-99d447fc4446b560.webp",
-      "height": 768,
-      "width": 768,
-      "source": "OpenAI Playground 2026-08-15 at 16.58.43 (3).png",
-      "sourceSha256": "8834cc5fe2257b284d8b7edfd0219567daa829b0f62fc6d75d2b53f5bbfc441f"
-    },
-    {
-      "assetId": "monster-8e9a69ccd7aef275",
-      "bytes": 127758,
-      "file": "monster-8e9a69ccd7aef275.webp",
-      "height": 768,
-      "width": 768,
-      "source": "OpenAI Playground 2026-08-15 at 16.58.43 (4).png",
-      "sourceSha256": "dda0be0133a27bc497807ab7aa25854711a371759a9a65a5052ea116b41169b7"
-    },
-    {
-      "assetId": "food-04f5ad5288f12b51",
-      "bytes": 68502,
-      "file": "food-04f5ad5288f12b51.webp",
-      "height": 768,
-      "width": 768,
-      "source": "OpenAI Playground 2026-08-17 at 16.21.03 (0).png",
-      "sourceSha256": "a111821c1a984e0b8f5b5d7e79bfb0e87beb5605587bb272c485b5e107f360d0"
-    },
-    {
-      "assetId": "food-059b7f69c637a36e",
-      "bytes": 63018,
-      "file": "food-059b7f69c637a36e.webp",
-      "height": 768,
-      "width": 768,
-      "source": "OpenAI Playground 2026-08-17 at 16.21.56.png",
-      "sourceSha256": "f1dba658d1e2b46352ecf0b1b98f7514e7d48426f231cbfc4e0437ba08fa4893"
-    },
-    {
-      "assetId": "food-6d0636129f44c267",
-      "bytes": 125406,
-      "file": "food-6d0636129f44c267.webp",
-      "height": 768,
-      "width": 768,
-      "source": "OpenAI Playground 2026-08-17 at 16.22.55.png",
-      "sourceSha256": "fae9a9f946e85e7abeea992b6d07ab7ebd4853d44c5b1c6528f416b07edbad7c"
-    },
-    {
-      "assetId": "food-55d0a9915f1cc66f",
-      "bytes": 79926,
-      "file": "food-55d0a9915f1cc66f.webp",
-      "height": 768,
-      "width": 768,
-      "source": "OpenAI Playground 2026-08-17 at 16.23.32.png",
-      "sourceSha256": "480960abe9993de74e5b377b5f472ea440e82955fcbb0797cc50e51660b84c32"
-    },
-    {
-      "assetId": "food-ad8410fb0ea7e6f8",
-      "bytes": 174474,
-      "file": "food-ad8410fb0ea7e6f8.webp",
-      "height": 768,
-      "width": 768,
-      "source": "OpenAI Playground 2026-08-17 at 16.24.16.png",
-      "sourceSha256": "86b1681265df8fbb352a32f9a878f3fa976cdaaf9836b9937b000b000250e938"
-    },
-    {
-      "assetId": "food-d5e5cbe061e631cb",
-      "bytes": 61132,
-      "file": "food-d5e5cbe061e631cb.webp",
-      "height": 768,
-      "width": 768,
-      "source": "OpenAI Playground 2026-08-17 at 16.26.36.png",
-      "sourceSha256": "48a09230398ffdb6c47d6ca8123cbb8e73721a445fc74fa58990fac2d2ca1f03"
+      "source": "OpenAI Playground 2026-09-13 at 20.32.14 (1).png",
+      "sourceSha256": "21cb90391a033ed4fb22e6ce5716e3e96053fc6398b69f50c3a30a19e3e8f1ae"
     }
   ]
 }
