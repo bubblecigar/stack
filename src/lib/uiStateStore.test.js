@@ -35,7 +35,7 @@ test('normalizes mixed card IDs and collapsed nodes', () => {
 test('normalizes legacy UI state and retired palette colors', () => {
   expect(normalizeUiState({
     layoutMode: 'leaf',
-    newCardBackgroundColor: '#EDE9FE',
+    newCardBackgroundColor: '#FCE7F3',
   })).toEqual({
     archivedRootIds: [],
     collapsedNodeIds: [],
@@ -63,7 +63,7 @@ test('reads and writes per-user UI state through SecureStore', async () => {
   await setStoredUiState(42, {
     collapsedNodeIds: [1, 'treasure-card'],
     layoutMode: 'tree',
-    newCardBackgroundColor: '#fce7f3',
+    newCardBackgroundColor: '#fef3c7',
   });
 
   expect(mockSecureStore.getItemAsync).toHaveBeenCalledWith('stack.uiState.42');
@@ -75,7 +75,7 @@ test('reads and writes per-user UI state through SecureStore', async () => {
       focusedCardId: null,
       layoutMode: 'tree',
       leafFocusedCardId: null,
-      newCardBackgroundColor: '#FCE7F3',
+      newCardBackgroundColor: '#FEF3C7',
     }),
   );
 });
