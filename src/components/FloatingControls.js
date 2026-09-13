@@ -5,12 +5,17 @@ import {
   Image,
   PanResponder,
   Pressable,
+  Text,
   View,
 } from 'react-native';
 import {
   useEffect, useMemo, useRef, useState,
 } from 'react';
 import { constrainAddRelation } from '../lib/cardInsertion';
+import {
+  CARD_BACKGROUND_OPTIONS,
+  DEFAULT_CARD_BACKGROUND_COLOR,
+} from '../lib/cardBackground';
 import { styles } from '../styles/appStyles';
 
 const voidStampBlueImage = require('../../assets/card/void_stamp_blue.png');
@@ -104,6 +109,9 @@ export function FloatingControls({
   const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(false);
   const [settingsPanelOffsetX, setSettingsPanelOffsetX] = useState(0);
   const [settingsPanelOffsetY, setSettingsPanelOffsetY] = useState(0);
+  const [selectedCardBackgroundColor, setSelectedCardBackgroundColor] = useState(
+    DEFAULT_CARD_BACKGROUND_COLOR,
+  );
   const flipProgress = useRef(new Animated.Value(layoutMode === 'tree' ? 1 : 0)).current;
   const deleteSlideProgress = useRef(new Animated.Value(shouldShowDelete ? 1 : 0)).current;
   const settingsPanelProgress = useRef(new Animated.Value(0)).current;
@@ -316,7 +324,7 @@ export function FloatingControls({
       resetAddPointing();
 
       if (!disableCardInsertion && relation) {
-        onCreateCard?.(relation);
+        onCreateCard?.(relation, selectedCardBackgroundColor);
         return;
       }
 
@@ -336,6 +344,7 @@ export function FloatingControls({
     onRootDoubleTap,
     onToggleMode,
     rootDoubleTapEnabled,
+    selectedCardBackgroundColor,
   ]);
 
   function handleDeletePressIn() {
@@ -344,6 +353,37 @@ export function FloatingControls({
 
   function handleDeletePressOut() {
     onDeleteHoldChange?.(false);
+  }
+
+  function renderColorPicker() {
+    return (
+      <View style={styles.settingsColorPicker}>
+        <Text style={styles.settingsColorPickerTitle}>New card color</Text>
+        <View style={styles.settingsColorSwatches}>
+          {CARD_BACKGROUND_OPTIONS.map(({ color, label }) => {
+            const isSelected = color === selectedCardBackgroundColor;
+
+            return (
+              <Pressable
+                key={color}
+                accessibilityLabel={`${label} card background`}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isSelected }}
+                onPress={() => setSelectedCardBackgroundColor(color)}
+                style={({ pressed }) => [
+                  styles.settingsColorSwatch,
+                  { backgroundColor: color },
+                  isSelected && styles.settingsColorSwatchSelected,
+                  pressed && styles.settingsColorSwatchPressed,
+                ]}
+              >
+                {isSelected ? <View style={styles.settingsColorSwatchIndicator} /> : null}
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+    );
   }
 
   return (
@@ -454,6 +494,7 @@ export function FloatingControls({
               style={[
                 styles.addCardButton,
                 styles.addCardFace,
+                { backgroundColor: selectedCardBackgroundColor },
                 {
                   transform: [
                     { perspective: 900 },
@@ -466,12 +507,15 @@ export function FloatingControls({
                   ],
                 },
               ]}
-            />
+            >
+              {isSettingsPanelOpen ? renderColorPicker() : null}
+            </Animated.View>
             <Animated.View
               pointerEvents={layoutMode === 'tree' ? 'box-none' : 'none'}
               style={[
                 styles.addCardButton,
                 styles.addCardFace,
+                { backgroundColor: selectedCardBackgroundColor },
                 {
                   transform: [
                     { perspective: 900 },
@@ -484,7 +528,9 @@ export function FloatingControls({
                   ],
                 },
               ]}
-            />
+            >
+              {isSettingsPanelOpen ? renderColorPicker() : null}
+            </Animated.View>
           </Animated.View>
         </View>
       </Animated.View>

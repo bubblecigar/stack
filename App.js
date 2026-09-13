@@ -943,7 +943,7 @@ export default function App() {
     return () => clearTimeout(timeoutId);
   }, [authToken, stack]);
 
-  function handleCreateCard(relation = 'child') {
+  function handleCreateCard(relation = 'child', backgroundColor = null) {
     setAddPreviewRelation(null);
 
     const currentIndex = shouldRenderLeaf
@@ -957,8 +957,8 @@ export default function App() {
     }
 
     const nextIndex = currentIndex === null || currentIndex < 0
-      ? push('')
-      : insertRelativeTo(currentIndex, relation, '');
+      ? push('', backgroundColor)
+      : insertRelativeTo(currentIndex, relation, '', backgroundColor);
 
     setEditingIndex(nextIndex);
     setEditingValue('');

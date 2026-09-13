@@ -2,6 +2,10 @@ import {
   DEFAULT_DONE_VISUAL_ID,
   normalizeDoneVisualId,
 } from './src/lib/doneStampVisual';
+import {
+  DEFAULT_CARD_BACKGROUND_COLOR,
+  normalizeCardBackgroundColor,
+} from './src/lib/cardBackground';
 
 let nextCardId = 1;
 let stack = [];
@@ -111,13 +115,21 @@ export function getSnapshot() {
   return stack;
 }
 
-export function push(value) {
+function getCardBackgroundFields(backgroundColor) {
+  const normalizedColor = normalizeCardBackgroundColor(backgroundColor);
+  return normalizedColor && normalizedColor !== DEFAULT_CARD_BACKGROUND_COLOR
+    ? { backgroundColor: normalizedColor }
+    : {};
+}
+
+export function push(value, backgroundColor = null) {
   const nextValue = value.trim();
   const nextIndex = stack.length;
 
   stack = [
     ...stack,
     {
+      ...getCardBackgroundFields(backgroundColor),
       childIds: [],
       done: false,
       id: nextCardId,
@@ -131,8 +143,9 @@ export function push(value) {
   return nextIndex;
 }
 
-function createCard(value) {
+function createCard(value, backgroundColor = null) {
   const card = {
+    ...getCardBackgroundFields(backgroundColor),
     childIds: [],
     done: false,
     id: nextCardId,
@@ -164,9 +177,14 @@ function insertNearSibling(childIds, targetId, newId, placement) {
   ];
 }
 
-export function insertRelativeTo(targetIndex, relation, value = '') {
+export function insertRelativeTo(
+  targetIndex,
+  relation,
+  value = '',
+  backgroundColor = null,
+) {
   if (targetIndex < 0 || targetIndex >= stack.length) {
-    return push(value);
+    return push(value, backgroundColor);
   }
 
   const targetCard = stack[targetIndex];
@@ -175,7 +193,7 @@ export function insertRelativeTo(targetIndex, relation, value = '') {
   }
 
   const targetId = targetCard.id;
-  const newCard = createCard(value);
+  const newCard = createCard(value, backgroundColor);
   const newId = newCard.id;
   const nextIndex = stack.length;
 
@@ -295,6 +313,7 @@ function normalizeIncomingCard(rawCard, nextGeneratedId) {
   const imageMimeType = ['image/jpeg', 'image/png', 'image/webp'].includes(rawCard?.imageMimeType)
     ? rawCard.imageMimeType
     : null;
+  const backgroundColor = normalizeCardBackgroundColor(rawCard?.backgroundColor);
   const doneVisualId = normalizeDoneVisualId(rawCard?.doneVisualId);
   const normalizedCollectionVisualId = normalizeDoneVisualId(
     rawCard?.collectionVisualId ?? rawCard?.monsterVisualId,
@@ -342,6 +361,7 @@ function normalizeIncomingCard(rawCard, nextGeneratedId) {
   const isAnchoredSystem = systemType === 'mission' || systemType === 'treasure';
 
   return {
+    ...(!isSystem ? getCardBackgroundFields(backgroundColor) : {}),
     childIds,
     done: isSystem ? false : Boolean(rawCard?.done),
     ...(!isSystem && doneVisualId ? { doneVisualId } : {}),

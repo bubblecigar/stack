@@ -44,6 +44,44 @@ describe('system cards', () => {
     expect(getSnapshot()[newRootIndex + 1].id).toBe(TREASURE_CARD_ID);
   });
 
+  it('applies a selected background color only to newly created normal cards', () => {
+    const rootIndex = push('Colored root', '#fef3c7');
+    const childIndex = insertRelativeTo(rootIndex, 'child', 'Colored child', '#dbeafe');
+    const defaultIndex = insertRelativeTo(childIndex, 'child', 'Default child', '#ffffff');
+
+    expect(getSnapshot()[rootIndex].backgroundColor).toBe('#FEF3C7');
+    expect(getSnapshot()[childIndex].backgroundColor).toBe('#DBEAFE');
+    expect(getSnapshot()[defaultIndex]).not.toHaveProperty('backgroundColor');
+
+    loadCards(getSnapshot());
+    expect(getSnapshot().find((card) => card.text === 'Colored root').backgroundColor)
+      .toBe('#FEF3C7');
+  });
+
+  it('drops invalid background colors and backgrounds on system cards while loading', () => {
+    loadCards([
+      {
+        backgroundColor: 'not-a-color',
+        childIds: [],
+        id: 1,
+        parentIds: [],
+        text: 'Invalid color',
+      },
+      {
+        backgroundColor: '#DCFCE7',
+        childIds: [],
+        id: MISSION_CARD_ID,
+        parentIds: [],
+        systemType: 'mission',
+        text: 'Mission',
+      },
+    ]);
+
+    expect(getSnapshot().find((card) => card.id === 1)).not.toHaveProperty('backgroundColor');
+    expect(getSnapshot().find((card) => card.id === MISSION_CARD_ID))
+      .not.toHaveProperty('backgroundColor');
+  });
+
   it('adds one mission card and one treasure card to existing data', () => {
     loadCards([
       {

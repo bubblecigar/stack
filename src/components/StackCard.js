@@ -84,6 +84,7 @@ export function StackCard({
   collapsedNodeIds = new Set(),
 }) {
   const {
+    backgroundColor,
     id,
     index,
     done = false,
@@ -313,6 +314,7 @@ export function StackCard({
         isLeafCard && styles.leafCard,
         isLeafCard && imageUri && styles.leafImageCard,
         isTreeCard && styles.treeCard,
+        !isSystem && backgroundColor ? { backgroundColor } : null,
         isTreeCard && isSystem && styles.treasureCard,
         isLeafCard && isSystem && styles.leafTreasureCard,
         isLeafCard
