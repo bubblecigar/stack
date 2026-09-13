@@ -45,6 +45,7 @@ function CollectionCardContent({ imageUri, layout }) {
 }
 
 export function StackCard({
+  audioEnabled = true,
   card,
   visibleIndex,
   layout,
@@ -65,6 +66,7 @@ export function StackCard({
   onPressIn,
   onCreateEdit,
   onAdoptMissionRoot,
+  onAudioEnabledChange,
   onArchiveRootTree,
   onRestoreRootTree,
   onDeleteCard,
@@ -73,6 +75,7 @@ export function StackCard({
   onEditingSelectionChange,
   onCompleteEdit,
   onFocusCard,
+  onLogout,
   editingSelection,
   isDeleteHoldActive = false,
   doneCleanupPreviewCardIds = new Set(),
@@ -619,6 +622,41 @@ export function StackCard({
                   ]}
                 />
               </>
+            ) : null}
+            {isTreasure && isLeafTopCard ? (
+              <View style={styles.leafTreasureSettingsRow}>
+                <Pressable
+                  accessibilityLabel={audioEnabled ? 'Turn audio off' : 'Turn audio on'}
+                  accessibilityRole="button"
+                  onPressIn={handleControlPressIn}
+                  onPress={(event) => handleControlPress(
+                    event,
+                    () => onAudioEnabledChange?.(!audioEnabled),
+                  )}
+                  style={({ pressed }) => [
+                    styles.leafTreasureSettingsButton,
+                    pressed && styles.leafTreasureSettingsButtonPressed,
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    color="#6B7280"
+                    name={audioEnabled ? 'volume-high' : 'volume-off'}
+                    size={24}
+                  />
+                </Pressable>
+                <Pressable
+                  accessibilityLabel="Log out"
+                  accessibilityRole="button"
+                  onPressIn={handleControlPressIn}
+                  onPress={(event) => handleControlPress(event, onLogout)}
+                  style={({ pressed }) => [
+                    styles.leafTreasureSettingsButton,
+                    pressed && styles.leafTreasureSettingsButtonPressed,
+                  ]}
+                >
+                  <MaterialCommunityIcons color="#6B7280" name="logout" size={24} />
+                </Pressable>
+              </View>
             ) : null}
           </View>
         ) : (

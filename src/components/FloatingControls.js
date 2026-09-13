@@ -1,15 +1,12 @@
 import {
-  Alert,
   Animated,
   Dimensions,
   Easing,
   Image,
   PanResponder,
   Pressable,
-  Text,
   View,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   useEffect, useMemo, useRef, useState,
 } from 'react';
@@ -85,17 +82,12 @@ function getAddRelationFromPoint(dx, dy, fallbackRelation = null) {
 
 export function FloatingControls({
   layoutMode,
-  user = null,
-  audioEnabled = true,
   onToggleMode,
   onCreateCard,
-  onAudioEnabledChange,
   onAddPreviewChange,
   onAddHoldChange,
   onDeleteHoldChange,
   onRootDoubleTap,
-  onLogout,
-  settingsPanelCloseRequest = 0,
   canDeleteCurrentCard = false,
   deleteTargetDone = false,
   childInsertionOnly = false,
@@ -168,12 +160,6 @@ export function FloatingControls({
     isSettingsPanelOpen,
     settingsPanelProgress,
   ]);
-
-  useEffect(() => {
-    if (settingsPanelCloseRequest > 0) {
-      setIsSettingsPanelOpen(false);
-    }
-  }, [settingsPanelCloseRequest]);
 
   function getAddGestureDelta(event, gestureState) {
     const { pageX, pageY } = event.nativeEvent;
@@ -272,12 +258,6 @@ export function FloatingControls({
     );
   }
 
-  function closeSettingsPanel() {
-    setIsSettingsPanelOpen(false);
-  }
-
-  const userLabel = user?.email || 'Unknown user';
-
   const addPanResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => !isSettingsPanelOpen,
     onMoveShouldSetPanResponder: () => !isSettingsPanelOpen,
@@ -366,24 +346,6 @@ export function FloatingControls({
     onDeleteHoldChange?.(false);
   }
 
-  function handleLogoutPress() {
-    Alert.alert(
-      'Log out?',
-      'You will need to sign in again to access your cards.',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Log out',
-          style: 'destructive',
-          onPress: () => onLogout?.(),
-        },
-      ],
-    );
-  }
-
   return (
     <>
       {shouldRenderDelete ? (
@@ -429,7 +391,7 @@ export function FloatingControls({
         <Pressable
           accessibilityLabel="Close settings panel"
           accessibilityRole="button"
-          onPress={closeSettingsPanel}
+          onPress={() => setIsSettingsPanelOpen(false)}
           style={styles.settingsPanelBackdrop}
         />
       ) : null}
@@ -523,51 +485,6 @@ export function FloatingControls({
                 },
               ]}
             />
-            <View
-              pointerEvents="box-none"
-              style={styles.settingsPanelContent}
-            >
-              <Text
-                numberOfLines={1}
-                pointerEvents="none"
-                style={styles.settingsPanelUserName}
-              >
-                {userLabel}
-              </Text>
-
-              <View style={styles.settingsPanelAudioRow}>
-                <Pressable
-                  accessibilityLabel={audioEnabled ? 'Turn audio off' : 'Turn audio on'}
-                  accessibilityRole="button"
-                  onPress={() => onAudioEnabledChange?.(!audioEnabled)}
-                  style={({ pressed }) => [
-                    styles.settingsIconButton,
-                    pressed && styles.settingsIconButtonPressed,
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    color="#CBD5E1"
-                    name={audioEnabled ? 'volume-high' : 'volume-off'}
-                    size={24}
-                  />
-                </Pressable>
-                <Pressable
-                  accessibilityLabel="Log out"
-                  accessibilityRole="button"
-                  onPress={handleLogoutPress}
-                  style={({ pressed }) => [
-                    styles.settingsIconButton,
-                    pressed && styles.settingsIconButtonPressed,
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    color="#CBD5E1"
-                    name="logout"
-                    size={24}
-                  />
-                </Pressable>
-              </View>
-            </View>
           </Animated.View>
         </View>
       </Animated.View>

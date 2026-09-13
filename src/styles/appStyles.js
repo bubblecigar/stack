@@ -1163,27 +1163,7 @@ export const styles = StyleSheet.create({
     left: 0,
     backfaceVisibility: 'hidden',
   },
-  settingsPanelContent: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    zIndex: 2,
-  },
-  settingsPanelUserName: {
-    position: 'absolute',
-    top: 49,
-    right: 22,
-    color: '#CBD5E1',
-    fontFamily: 'Kalam_400Regular',
-    fontSize: 13,
-    fontWeight: '400',
-    lineHeight: 17,
-    maxWidth: 170,
-    textAlign: 'right',
-  },
-  settingsPanelAudioRow: {
+  leafTreasureSettingsRow: {
     position: 'absolute',
     right: 18,
     bottom: 18,
@@ -1191,8 +1171,9 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-end',
     gap: 4,
+    zIndex: 4,
   },
-  settingsIconButton: {
+  leafTreasureSettingsButton: {
     width: 38,
     height: 38,
     borderRadius: 19,
@@ -1200,7 +1181,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'transparent',
   },
-  settingsIconButtonPressed: {
+  leafTreasureSettingsButtonPressed: {
     opacity: 0.72,
   },
   deleteCardButton: {

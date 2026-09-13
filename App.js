@@ -440,7 +440,6 @@ export default function App() {
   const [updatingCardImageIds, setUpdatingCardImageIds] = useState(() => new Set());
   const [uploadingCardImageIds, setUploadingCardImageIds] = useState(() => new Set());
   const updatingCardImageIdsRef = useRef(new Set());
-  const [settingsPanelCloseRequest, setSettingsPanelCloseRequest] = useState(0);
   const [currentDayReference, setCurrentDayReference] = useState(() => Date.now());
   const [treeCompletionCanvas, setTreeCompletionCanvas] = useState(EMPTY_TREE_COMPLETION_CANVAS);
   const [collections, setCollections] = useState([]);
@@ -717,6 +716,17 @@ export default function App() {
     isApplyingRemoteCards.current = true;
     loadCards([]);
     isApplyingRemoteCards.current = false;
+  }
+
+  function handleLogoutRequest() {
+    Alert.alert(
+      'Log out?',
+      'You will need to sign in again to access your cards.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Log out', style: 'destructive', onPress: resetSession },
+      ],
+    );
   }
 
   function handleAuthExpired() {
@@ -1652,7 +1662,6 @@ export default function App() {
         return;
       }
 
-      setSettingsPanelCloseRequest((currentRequest) => currentRequest + 1);
       placeholderAsset = asset;
       const placeholderIndex = push(SCAN_PLACEHOLDER_TEXT);
       placeholderId = getSnapshot()[placeholderIndex]?.id ?? null;
@@ -1877,6 +1886,7 @@ export default function App() {
         />
         {shouldRenderLeaf ? (
           <LeafDeck
+            audioEnabled={isAudioEnabled}
             cards={leafCards}
             topIndex={leafTopPosition}
             visibleCount={LEAF_VISIBLE_COUNT}
@@ -1893,6 +1903,8 @@ export default function App() {
             onEditingSelectionChange={setEditingSelection}
             onCompleteEdit={handleCompleteEdit}
             onCameraPress={handleCardCameraPress}
+            onAudioEnabledChange={setIsAudioEnabled}
+            onLogout={handleLogoutRequest}
             onLeafSwipe={handleLeafSwipe}
             isDeleteHoldActive={isDeleteHoldActive}
             isAddHoldActive={isAddHoldActive}
@@ -1944,19 +1956,14 @@ export default function App() {
           !shouldRenderLeaf
           && (insertionTargetCard?.done || insertionTargetCard?.isCollectionCard)
         )}
-        audioEnabled={isAudioEnabled}
         childInsertionOnly={isChildOnlyInsertionTarget}
         parentInsertionBlocked={isParentInsertionBlocked}
-        user={authUser}
         layoutMode={layoutMode}
-        onAudioEnabledChange={setIsAudioEnabled}
         onDeleteHoldChange={setIsDeleteHoldActive}
         onAddHoldChange={setIsAddHoldActive}
         onAddPreviewChange={setAddPreviewRelation}
-        onLogout={resetSession}
         onRootDoubleTap={handleToggleAllTreeCards}
         rootDoubleTapEnabled={!shouldRenderLeaf && focusedCardIndex === null}
-        settingsPanelCloseRequest={settingsPanelCloseRequest}
         onToggleMode={handleToggleLayout}
         onCreateCard={handleCreateCard}
         disableCardInsertion={insertionTargetCard === null}
