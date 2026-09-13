@@ -14,7 +14,6 @@ import { Image as CachedImage } from 'expo-image';
 import { useEffect, useRef, useState } from 'react';
 import { DeleteHoldIndicator } from './DeleteHoldIndicator';
 import { DoneStampArtwork } from './DoneStampArtwork';
-import { TreasureInventoryContent } from './TreasureInventoryContent';
 import { getCardImageSource } from '../lib/cardImageCache';
 import { styles } from '../styles/appStyles';
 
@@ -76,6 +75,7 @@ export function StackCard({
   onCompleteEdit,
   onFocusCard,
   onLogout,
+  userName = '',
   editingSelection,
   isDeleteHoldActive = false,
   doneCleanupPreviewCardIds = new Set(),
@@ -89,11 +89,9 @@ export function StackCard({
     index,
     done = false,
     doneStampUri = null,
-    hasCollectionHistory = false,
     isImageUploading = false,
     imageUri,
     collectionImageUri = null,
-    inventoryCollections = [],
     text,
   } = card;
 
@@ -317,10 +315,6 @@ export function StackCard({
         !isSystem && backgroundColor ? { backgroundColor } : null,
         isTreeCard && isSystem && styles.treasureCard,
         isLeafCard && isSystem && styles.leafTreasureCard,
-        isLeafCard
-          && isTreasure
-          && hasCollectionHistory
-          && styles.leafTreasureInventoryCard,
         isTreeCard && isPreviewCard && styles.treePreviewCard,
         isTreeCard && isCollapsedStacked && styles.treeCollapsedCard,
         isEditing && isLeafCard && styles.leafEditingCard,
@@ -501,8 +495,37 @@ export function StackCard({
                 imageUri={collectionImageUri}
                 layout="leaf"
               />
-            ) : isTreasure && hasCollectionHistory ? (
-              <TreasureInventoryContent collections={inventoryCollections} />
+            ) : isTreasure ? (
+              <View style={styles.leafTreasureProfile}>
+                <View style={[
+                  styles.treasureCardIconWrap,
+                  styles.leafTreasureIconWrap,
+                ]}
+                >
+                  <SystemCardIcon
+                    color="#F8FAFC"
+                    name={systemCardIconName}
+                    size={treasureIconSize}
+                    style={styles.treasureCardIconHighlight}
+                  />
+                  <SystemCardIcon
+                    color="#6B7280"
+                    name={systemCardIconName}
+                    size={treasureIconSize}
+                    style={styles.treasureCardIconShadow}
+                  />
+                  <SystemCardIcon
+                    color="#9CA3AF"
+                    name={systemCardIconName}
+                    size={treasureIconSize}
+                  />
+                </View>
+                {userName ? (
+                  <Text numberOfLines={1} style={styles.leafTreasureUserName}>
+                    {userName}
+                  </Text>
+                ) : null}
+              </View>
             ) : isSystem ? (
               <View style={[
                 styles.leafContentLayer,

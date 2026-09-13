@@ -244,6 +244,7 @@ export function LeafDeck({
   onCameraPress,
   onAudioEnabledChange,
   onLogout,
+  userName,
   editingSelection,
   onLeafSwipe,
   isDeleteHoldActive = false,
@@ -1110,6 +1111,7 @@ export function LeafDeck({
                 onCompleteEdit={onCompleteEdit}
                 onAudioEnabledChange={onAudioEnabledChange}
                 onLogout={onLogout}
+                userName={userName}
                 onDeleteHoldComplete={animateDeleteSwipeAway}
                 editingSelection={shouldRenderActiveTopSlot ? editingSelection : undefined}
                 onPressIn={() => {

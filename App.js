@@ -1916,6 +1916,7 @@ export default function App() {
             onCameraPress={handleCardCameraPress}
             onAudioEnabledChange={setIsAudioEnabled}
             onLogout={handleLogoutRequest}
+            userName={authUser.name || authUser.displayName || authUser.email}
             onLeafSwipe={handleLeafSwipe}
             isDeleteHoldActive={isDeleteHoldActive}
             isAddHoldActive={isAddHoldActive}
