@@ -1241,7 +1241,12 @@ export function LeafDeck({
               style={[
                 styles.leafDoneStampIcon,
                 activeCardDone && styles.leafDoneStampIconToggleOff,
-                { transform: [{ scale: STAMP_RENDER_SCALE }] },
+                {
+                  transform: [
+                    { rotate: '-8deg' },
+                    { scale: STAMP_RENDER_SCALE },
+                  ],
+                },
               ]}
             />
           </View>
