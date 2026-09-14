@@ -47,7 +47,6 @@ const ADD_PREVIEW_END_Y = 24;
 const ADD_PREVIEW_DOWN_END_Y = 76;
 const ADD_PREVIEW_PULSE_DURATION = 900;
 const DONE_STAMP_DRAG_THRESHOLD = 6;
-const SHOW_LEAF_CAMERA_KEY = false;
 
 function normalizeTopIndex(cards, topIndex) {
   if (cards.length === 0) {
@@ -241,6 +240,7 @@ export function LeafDeck({
   onEditingValueChange,
   onEditingSelectionChange,
   onCompleteEdit,
+  onCardBackgroundColorChange,
   onCameraPress,
   onAudioEnabledChange,
   onLogout,
@@ -686,6 +686,13 @@ export function LeafDeck({
         onCompleteEdit?.(editingIndex, editingValue);
       }
 
+      return;
+    }
+
+    if (inputTouchRef.current) {
+      inputTouchRef.current = false;
+      touchStartRef.current = null;
+      lastTapRef.current = { timestamp: 0 };
       return;
     }
 
@@ -1271,11 +1278,13 @@ export function LeafDeck({
           />
         </>
       ) : null}
-      {SHOW_LEAF_CAMERA_KEY ? (
+      {canUseMathNotationPalette ? (
         <MathNotationPalette
           cameraDisabled={Boolean(activeCard?.isImageUpdating)}
-          disabled={!canUseMathNotationPalette}
           locked={Boolean(activeCard?.isImageUpdating || activeCardDone)}
+          onBackgroundColorChange={(backgroundColor) => {
+            onCardBackgroundColorChange?.(activeCard.index, backgroundColor);
+          }}
           onCameraPress={() => onCameraPress?.(activeCard)}
           onTouchStart={() => {
             inputTouchRef.current = true;

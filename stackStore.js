@@ -600,6 +600,33 @@ export function setDoneAt(index, done = true, doneVisualId = null) {
   emitChange();
 }
 
+export function setCardBackgroundColorAt(index, backgroundColor) {
+  const normalizedColor = normalizeCardBackgroundColor(backgroundColor);
+
+  if (
+    index < 0
+    || index >= stack.length
+    || isSystemCard(stack[index])
+    || !normalizedColor
+  ) {
+    return false;
+  }
+
+  stack = stack.map((card, itemIndex) => {
+    if (itemIndex !== index) {
+      return card;
+    }
+
+    const { backgroundColor: _currentBackgroundColor, ...cardWithoutBackgroundColor } = card;
+    return {
+      ...cardWithoutBackgroundColor,
+      ...getCardBackgroundFields(normalizedColor),
+    };
+  });
+  emitChange();
+  return true;
+}
+
 function removeCardAtIndex(index) {
   const removedCard = stack[index];
   const removedCardId = removedCard.id;

@@ -12,6 +12,7 @@ import {
   push,
   removeAt,
   restoreRootTree,
+  setCardBackgroundColorAt,
   setCardImageAt,
   setDoneAt,
   setScanStateAt,
@@ -55,6 +56,16 @@ describe('system cards', () => {
     loadCards(getSnapshot());
     expect(getSnapshot().find((card) => card.text === 'Colored root').backgroundColor)
       .toBe('#FEF3C7');
+  });
+
+  it('changes an existing normal card background color', () => {
+    const cardIndex = push('Recolor me');
+
+    expect(setCardBackgroundColorAt(cardIndex, '#dbeafe')).toBe(true);
+    expect(getSnapshot()[cardIndex].backgroundColor).toBe('#DBEAFE');
+
+    expect(setCardBackgroundColorAt(cardIndex, '#ffffff')).toBe(true);
+    expect(getSnapshot()[cardIndex]).not.toHaveProperty('backgroundColor');
   });
 
   it('drops invalid background colors and backgrounds on system cards while loading', () => {

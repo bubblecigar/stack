@@ -31,6 +31,7 @@ import {
   removeAt,
   removeDoneCascadeAt,
   restoreRootTree,
+  setCardBackgroundColorAt,
   setCardImageAt,
   setScanStateAt,
   setDoneAt,
@@ -1482,6 +1483,19 @@ export default function App() {
     playDoneStampSound();
   }
 
+  function handleLeafCardBackgroundColorChange(index, backgroundColor) {
+    if (!shouldRenderLeaf || index < 0) {
+      return;
+    }
+
+    const currentCard = cards[index];
+    if (!currentCard || isSystemCard(currentCard) || currentCard.done) {
+      return;
+    }
+
+    setCardBackgroundColorAt(index, backgroundColor);
+  }
+
   function handleDoneTreeCard(index) {
     if (shouldRenderLeaf || index < 0) {
       return;
@@ -1918,6 +1932,7 @@ export default function App() {
             onEditingValueChange={setEditingValue}
             onEditingSelectionChange={setEditingSelection}
             onCompleteEdit={handleCompleteEdit}
+            onCardBackgroundColorChange={handleLeafCardBackgroundColorChange}
             onCameraPress={handleCardCameraPress}
             onAudioEnabledChange={setIsAudioEnabled}
             onLogout={handleLogoutRequest}
