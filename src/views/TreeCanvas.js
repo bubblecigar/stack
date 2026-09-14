@@ -2,12 +2,20 @@ import {
   forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState,
 } from 'react';
 import {
-  PanResponder, ScrollView, View,
+  Animated, PanResponder, ScrollView, View,
 } from 'react-native';
 import { styles } from '../styles/appStyles';
 import { buildTreeLayout, TREE_CANVAS_PADDING } from '../lib/treeLayout';
 import { buildPreviewCards, PREVIEW_CARD_ID } from '../lib/previewCards';
+import { getRubberBandDistance } from '../lib/rubberBand';
 import { StackCard } from '../components/StackCard';
+
+const OVERSCROLL_SPRING = {
+  damping: 22,
+  mass: 0.72,
+  stiffness: 240,
+  useNativeDriver: true,
+};
 
 export const TreeCanvas = forwardRef(function TreeCanvas({
   cards,
@@ -37,6 +45,8 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
   const treeHorizontalScrollRef = useRef(null);
   const treeVerticalScrollRef = useRef(null);
   const treeCanvasRef = useRef(null);
+  const treeOverscrollX = useRef(new Animated.Value(0)).current;
+  const treeOverscrollY = useRef(new Animated.Value(0)).current;
   const positionedCardsRef = useRef([]);
   const treeNodeSizeRef = useRef({ height: 0, width: 0 });
   const onDoneCardRef = useRef(onDoneCard);
@@ -110,6 +120,19 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
     treeVerticalScrollRef.current?.scrollTo({ y: targetY, animated });
   }
 
+  function settleTreeOverscroll() {
+    Animated.parallel([
+      Animated.spring(treeOverscrollX, {
+        ...OVERSCROLL_SPRING,
+        toValue: 0,
+      }),
+      Animated.spring(treeOverscrollY, {
+        ...OVERSCROLL_SPRING,
+        toValue: 0,
+      }),
+    ]).start();
+  }
+
   const treePanResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => false,
     onMoveShouldSetPanResponder: (_, gestureState) => (
@@ -118,17 +141,29 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
     onPanResponderGrant: () => {
       didCanvasPanRef.current = false;
       treePanStartOffsetRef.current = treeScrollOffsetRef.current;
+      treeOverscrollX.stopAnimation();
+      treeOverscrollY.stopAnimation();
+      treeOverscrollX.setValue(0);
+      treeOverscrollY.setValue(0);
     },
     onPanResponderMove: (_, gestureState) => {
       didCanvasPanRef.current = true;
-      scrollTreeTo(
-        treePanStartOffsetRef.current.x - gestureState.dx,
-        treePanStartOffsetRef.current.y - gestureState.dy,
-      );
+      const requestedX = treePanStartOffsetRef.current.x - gestureState.dx;
+      const requestedY = treePanStartOffsetRef.current.y - gestureState.dy;
+      const clampedX = Math.min(Math.max(requestedX, 0), maxScrollX);
+      const clampedY = Math.min(Math.max(requestedY, 0), maxScrollY);
+
+      scrollTreeTo(clampedX, clampedY);
+      treeOverscrollX.setValue(-getRubberBandDistance(requestedX - clampedX));
+      treeOverscrollY.setValue(-getRubberBandDistance(requestedY - clampedY));
     },
+    onPanResponderRelease: settleTreeOverscroll,
+    onPanResponderTerminate: settleTreeOverscroll,
   }), [
     maxScrollX,
     maxScrollY,
+    treeOverscrollX,
+    treeOverscrollY,
   ]);
 
   useEffect(() => {
@@ -248,12 +283,16 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
           scrollEnabled={false}
           showsVerticalScrollIndicator={false}
         >
-          <View
+          <Animated.View
             ref={treeCanvasRef}
             style={[
               styles.treeCanvas,
               {
                 height: maxHeight + (TREE_CANVAS_PADDING * 2),
+                transform: [
+                  { translateX: treeOverscrollX },
+                  { translateY: treeOverscrollY },
+                ],
                 width: maxWidth + (TREE_CANVAS_PADDING * 2),
               },
             ]}
@@ -312,7 +351,7 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
                 />
               );
             })}
-          </View>
+          </Animated.View>
         </ScrollView>
       </ScrollView>
     </View>
