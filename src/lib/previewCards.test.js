@@ -11,6 +11,21 @@ function card(id, childIds = [], parentIds = []) {
 }
 
 describe('buildPreviewCards', () => {
+  it('previews unfocused insertions at the first or last root position', () => {
+    const cards = [
+      { childIds: [], id: 'mission-card', isMissionCard: true, parentIds: [], text: 'Mission' },
+      { childIds: [], id: 1, parentIds: [], text: 'Root' },
+      { childIds: [], id: 'treasure-card', isTreasureCard: true, parentIds: [], text: 'Treasure' },
+    ];
+
+    expect(buildPreviewCards(cards, null, 'parent').map((card) => card.id)).toEqual([
+      'mission-card', PREVIEW_CARD_ID, 1, 'treasure-card',
+    ]);
+    expect(buildPreviewCards(cards, null, 'nextSibling').map((card) => card.id)).toEqual([
+      'mission-card', 1, PREVIEW_CARD_ID, 'treasure-card',
+    ]);
+  });
+
   it('returns the original cards when there is no preview relation', () => {
     const cards = [card('root')];
 

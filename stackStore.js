@@ -156,6 +156,27 @@ function createCard(value, backgroundColor = null) {
   return card;
 }
 
+export function insertRootAtBoundary(
+  boundary,
+  value = '',
+  backgroundColor = null,
+) {
+  const newCard = createCard(value, backgroundColor);
+  const missionIndex = stack.findIndex(isMissionCard);
+  const treasureIndex = stack.findIndex(isTreasureCard);
+  const insertIndex = boundary === 'first'
+    ? (missionIndex >= 0 ? missionIndex + 1 : 0)
+    : (treasureIndex >= 0 ? treasureIndex : stack.length);
+
+  stack = [
+    ...stack.slice(0, insertIndex),
+    newCard,
+    ...stack.slice(insertIndex),
+  ];
+  emitChange();
+  return insertIndex;
+}
+
 function insertNearSibling(childIds, targetId, newId, placement) {
   const existingIds = childIds.filter((id) => id !== newId);
   const targetPosition = existingIds.indexOf(targetId);

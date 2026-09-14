@@ -7,6 +7,7 @@ import {
   getSnapshot,
   hasChildOnlyInsertion,
   insertRelativeTo,
+  insertRootAtBoundary,
   loadCards,
   MISSION_CARD_ID,
   push,
@@ -66,6 +67,23 @@ describe('system cards', () => {
 
     expect(setCardBackgroundColorAt(cardIndex, '#ffffff')).toBe(true);
     expect(getSnapshot()[cardIndex]).not.toHaveProperty('backgroundColor');
+  });
+
+  it('inserts unfocused root cards at the first or last normal root position', () => {
+    const existingIndex = push('Existing root');
+    const existingId = getSnapshot()[existingIndex].id;
+    ensureSystemCards();
+
+    const firstIndex = insertRootAtBoundary('first', 'First root');
+    const lastIndex = insertRootAtBoundary('last', 'Last root');
+    const rootLabels = getSnapshot()
+      .filter((card) => card.parentIds.length === 0)
+      .map((card) => card.text);
+
+    expect(getSnapshot()[firstIndex].text).toBe('First root');
+    expect(getSnapshot()[lastIndex].text).toBe('Last root');
+    expect(getSnapshot().find((card) => card.id === existingId).text).toBe('Existing root');
+    expect(rootLabels).toEqual(['Mission', 'First root', 'Existing root', 'Last root', 'Treasure']);
   });
 
   it('drops invalid background colors and backgrounds on system cards while loading', () => {

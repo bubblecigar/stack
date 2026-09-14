@@ -23,6 +23,7 @@ import {
   ensureSystemCards,
   getSnapshot,
   hasChildOnlyInsertion,
+  insertRootAtBoundary,
   insertRelativeTo,
   isSystemCard,
   loadCards,
@@ -958,6 +959,7 @@ export default function App() {
     const currentIndex = shouldRenderLeaf
       ? visibleTopCardIndex
       : focusedCardIndex;
+    const isUnfocusedTreeInsertion = !shouldRenderLeaf && currentIndex === null;
     const currentCard = currentIndex === null || currentIndex < 0
       ? null
       : cards[currentIndex];
@@ -965,9 +967,12 @@ export default function App() {
       return;
     }
 
-    const nextIndex = currentIndex === null || currentIndex < 0
-      ? push('', backgroundColor)
-      : insertRelativeTo(currentIndex, relation, '', backgroundColor);
+    const insertsAtStart = relation === 'parent' || relation === 'previousSibling';
+    const nextIndex = isUnfocusedTreeInsertion
+      ? insertRootAtBoundary(insertsAtStart ? 'first' : 'last', '', backgroundColor)
+      : currentIndex === null || currentIndex < 0
+        ? push('', backgroundColor)
+        : insertRelativeTo(currentIndex, relation, '', backgroundColor);
 
     setEditingIndex(nextIndex);
     setEditingValue('');
@@ -1998,6 +2003,7 @@ export default function App() {
         )}
         childInsertionOnly={isChildOnlyInsertionTarget}
         parentInsertionBlocked={isParentInsertionBlocked}
+        rootInsertionEnabled={!shouldRenderLeaf && focusedCardIndex === null}
         layoutMode={layoutMode}
         onDeleteHoldChange={setIsDeleteHoldActive}
         onAddHoldChange={setIsAddHoldActive}
@@ -2008,7 +2014,7 @@ export default function App() {
         onCreateCard={handleCreateCard}
         newCardBackgroundColor={newCardBackgroundColor}
         onNewCardBackgroundColorChange={setNewCardBackgroundColor}
-        disableCardInsertion={insertionTargetCard === null}
+        disableCardInsertion={shouldRenderLeaf && insertionTargetCard === null}
       />
 
       <StatusBar style="light" />

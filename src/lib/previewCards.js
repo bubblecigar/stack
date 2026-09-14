@@ -22,16 +22,10 @@ function insertNearSibling(childIds, targetId, previewId, placement) {
 }
 
 export function buildPreviewCards(cards, focusedCardIndex, relation, backgroundColor = null) {
-  if (!relation || focusedCardIndex === null) {
+  if (!relation) {
     return cards;
   }
 
-  const targetCard = cards[focusedCardIndex];
-  if (!targetCard) {
-    return cards;
-  }
-
-  const targetId = targetCard.id;
   const previewCard = {
     backgroundColor,
     childIds: [],
@@ -41,6 +35,31 @@ export function buildPreviewCards(cards, focusedCardIndex, relation, backgroundC
     text: '',
   };
 
+  if (focusedCardIndex === null) {
+    const insertsAtStart = relation === 'parent' || relation === 'previousSibling';
+    const missionIndex = cards.findIndex((card) => (
+      card?.systemType === 'mission' || card?.isMissionCard
+    ));
+    const treasureIndex = cards.findIndex((card) => (
+      card?.systemType === 'treasure' || card?.isTreasureCard
+    ));
+    const insertIndex = insertsAtStart
+      ? (missionIndex >= 0 ? missionIndex + 1 : 0)
+      : (treasureIndex >= 0 ? treasureIndex : cards.length);
+
+    return [
+      ...cards.slice(0, insertIndex),
+      previewCard,
+      ...cards.slice(insertIndex),
+    ];
+  }
+
+  const targetCard = cards[focusedCardIndex];
+  if (!targetCard) {
+    return cards;
+  }
+
+  const targetId = targetCard.id;
   if (relation === 'parent') {
     const previousParentIds = targetCard.parentIds || [];
     const rewrittenCards = cards.map((card) => {

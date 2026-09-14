@@ -98,6 +98,7 @@ export function FloatingControls({
   deleteTargetDone = false,
   childInsertionOnly = false,
   parentInsertionBlocked = false,
+  rootInsertionEnabled = false,
   disableCardInsertion = false,
   rootDoubleTapEnabled = false,
 }) {
@@ -244,6 +245,10 @@ export function FloatingControls({
   }
 
   function shouldOpenSettingsPanel(event, gestureState) {
+    if (rootInsertionEnabled) {
+      return false;
+    }
+
     const dropY = typeof gestureState.moveY === 'number'
       ? gestureState.moveY
       : event.nativeEvent.pageY;
@@ -331,6 +336,7 @@ export function FloatingControls({
     onAddPreviewChange,
     onCreateCard,
     parentInsertionBlocked,
+    rootInsertionEnabled,
     onRootDoubleTap,
     onToggleMode,
     rootDoubleTapEnabled,
