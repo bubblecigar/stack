@@ -1481,6 +1481,26 @@ export default function App() {
     playDoneStampSound();
   }
 
+  function handleDoneTreeCard(index) {
+    if (shouldRenderLeaf || index < 0) {
+      return;
+    }
+
+    const currentCard = cards[index];
+    if (!currentCard || isSystemCard(currentCard)) {
+      return;
+    }
+
+    if (currentCard.done) {
+      setDoneAt(index, false);
+      return;
+    }
+
+    const doneVisualId = currentCard.doneVisualId || chooseDoneVisualId();
+    setDoneAt(index, true, doneVisualId);
+    playDoneStampSound();
+  }
+
   function beginCardImageUpdate(cardId) {
     if (updatingCardImageIdsRef.current.has(cardId)) {
       return false;
@@ -1932,6 +1952,7 @@ export default function App() {
             onRestoreRootTree={handleRestoreRootTree}
             onEditingValueChange={setEditingValue}
             onCompleteEdit={handleCompleteEdit}
+            onDoneCard={handleDoneTreeCard}
             isDeleteHoldActive={isDeleteHoldActive}
             onCanvasBlur={() => setFocusedCardIndex(null)}
           />
