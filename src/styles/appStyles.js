@@ -717,6 +717,9 @@ export const styles = StyleSheet.create({
     transform: [{ translateX: 1 }, { translateY: 1 }],
   },
   treePreviewCard: {
+    borderColor: '#F97316',
+    borderStyle: 'dashed',
+    borderWidth: 2,
     opacity: 0.6,
   },
   treeCardControls: {
