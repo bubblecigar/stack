@@ -1,18 +1,15 @@
 import {
-  useEffect, useMemo, useRef, useState,
+  forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState,
 } from 'react';
 import {
-  Image, PanResponder, ScrollView, View,
+  PanResponder, ScrollView, View,
 } from 'react-native';
 import { styles } from '../styles/appStyles';
 import { buildTreeLayout, TREE_CANVAS_PADDING } from '../lib/treeLayout';
 import { buildPreviewCards, PREVIEW_CARD_ID } from '../lib/previewCards';
 import { StackCard } from '../components/StackCard';
-import { STAMP_ASSETS, STAMP_RENDER_SCALE } from '../config/stampAssets';
 
-const DONE_STAMP_DRAG_THRESHOLD = 6;
-
-export function TreeCanvas({
+export const TreeCanvas = forwardRef(function TreeCanvas({
   cards,
   collapsedNodeIds,
   focusedCardIndex,
@@ -36,7 +33,7 @@ export function TreeCanvas({
   isDeleteHoldActive = false,
   addPreviewRelation = null,
   newCardBackgroundColor,
-}) {
+}, forwardedRef) {
   const treeHorizontalScrollRef = useRef(null);
   const treeVerticalScrollRef = useRef(null);
   const treeCanvasRef = useRef(null);
@@ -57,8 +54,6 @@ export function TreeCanvas({
     width: 0,
     height: 0,
   });
-  const [doneStampOffset, setDoneStampOffset] = useState({ x: 0, y: 0 });
-  const [isDoneStampDragging, setIsDoneStampDragging] = useState(false);
 
   function handleCardPressIn() {
     cardTouchRef.current = true;
@@ -217,37 +212,8 @@ export function TreeCanvas({
     });
   }
 
-  const doneStampPanResponder = useMemo(() => PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: () => true,
-    onPanResponderTerminationRequest: () => false,
-    onPanResponderGrant: () => {
-      setDoneStampOffset({ x: 0, y: 0 });
-      setIsDoneStampDragging(true);
-    },
-    onPanResponderMove: (_, gestureState) => {
-      setDoneStampOffset({ x: gestureState.dx, y: gestureState.dy });
-    },
-    onPanResponderRelease: (event, gestureState) => {
-      const dropX = typeof gestureState.moveX === 'number'
-        ? gestureState.moveX
-        : event.nativeEvent.pageX;
-      const dropY = typeof gestureState.moveY === 'number'
-        ? gestureState.moveY
-        : event.nativeEvent.pageY;
-      const didDrag = Math.hypot(gestureState.dx, gestureState.dy) >= DONE_STAMP_DRAG_THRESHOLD;
-
-      setDoneStampOffset({ x: 0, y: 0 });
-      setIsDoneStampDragging(false);
-
-      if (didDrag && typeof dropX === 'number' && typeof dropY === 'number') {
-        stampCardAtPagePoint(dropX, dropY);
-      }
-    },
-    onPanResponderTerminate: () => {
-      setDoneStampOffset({ x: 0, y: 0 });
-      setIsDoneStampDragging(false);
-    },
+  useImperativeHandle(forwardedRef, () => ({
+    stampCardAtPagePoint,
   }), []);
 
   return (
@@ -349,47 +315,6 @@ export function TreeCanvas({
           </View>
         </ScrollView>
       </ScrollView>
-      {focusedCardIndex === null ? (
-        <>
-          <View
-            pointerEvents="none"
-            style={[
-              styles.treeDoneStampButton,
-              isDoneStampDragging && styles.treeDoneStampButtonDragging,
-              {
-                transform: [
-                  { translateX: doneStampOffset.x },
-                  { translateY: doneStampOffset.y },
-                ],
-              },
-            ]}
-          >
-            <Image
-              pointerEvents="none"
-              source={STAMP_ASSETS.done}
-              style={[
-                styles.treeDoneStampControlIcon,
-                { transform: [{ scale: STAMP_RENDER_SCALE }] },
-              ]}
-            />
-          </View>
-          <View
-            {...doneStampPanResponder.panHandlers}
-            accessibilityHint="Drag onto a card to toggle done"
-            accessibilityLabel="Done stamp"
-            accessibilityRole="button"
-            style={[
-              styles.treeDoneStampHitTarget,
-              {
-                transform: [
-                  { translateX: doneStampOffset.x },
-                  { translateY: doneStampOffset.y },
-                ],
-              },
-            ]}
-          />
-        </>
-      ) : null}
     </View>
   );
-}
+});

@@ -28,7 +28,7 @@ const ADD_CARD_MAX_TILT = 18;
 const ADD_CARD_MAX_HORIZONTAL_OFFSET = 96;
 const ADD_CARD_MAX_VERTICAL_OFFSET = 82;
 const MODE_DOUBLE_TAP_DELAY_MS = 280;
-const DELETE_CARD_TOGGLE_DURATION_MS = 220;
+const DONE_STAMP_DRAG_THRESHOLD = 6;
 const SETTINGS_PANEL_TRIGGER_Y = SCREEN_HEIGHT * 0.34;
 const SETTINGS_PANEL_TRIGGER_DRAG_Y = -160;
 const SETTINGS_PANEL_CENTER_OFFSET_X = 0;
@@ -93,6 +93,8 @@ export function FloatingControls({
   onNewCardBackgroundColorChange,
   onRootDoubleTap,
   canDeleteCurrentCard = false,
+  idleDoneStampEnabled = false,
+  onIdleDoneStampDrop,
   deleteTargetDone = false,
   childInsertionOnly = false,
   parentInsertionBlocked = false,
@@ -104,13 +106,14 @@ export function FloatingControls({
   const [addCardRotation, setAddCardRotation] = useState(ADD_CARD_BASE_ROTATION);
   const [addCardOffsetX, setAddCardOffsetX] = useState(0);
   const [addCardOffsetY, setAddCardOffsetY] = useState(0);
-  const [shouldRenderDelete, setShouldRenderDelete] = useState(shouldShowDelete);
+  const [idleStampOffset, setIdleStampOffset] = useState({ x: 0, y: 0 });
+  const [isIdleStampDragging, setIsIdleStampDragging] = useState(false);
   const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(false);
   const [settingsPanelOffsetX, setSettingsPanelOffsetX] = useState(0);
   const [settingsPanelOffsetY, setSettingsPanelOffsetY] = useState(0);
   const flipProgress = useRef(new Animated.Value(layoutMode === 'tree' ? 1 : 0)).current;
-  const deleteSlideProgress = useRef(new Animated.Value(shouldShowDelete ? 1 : 0)).current;
   const settingsPanelProgress = useRef(new Animated.Value(0)).current;
+  const onIdleDoneStampDropRef = useRef(onIdleDoneStampDrop);
   const addRelationRef = useRef(null);
   const lastModeTapRef = useRef(0);
   const addStartRef = useRef({
@@ -136,28 +139,13 @@ export function FloatingControls({
     layoutMode,
   ]);
 
+  onIdleDoneStampDropRef.current = onIdleDoneStampDrop;
+
   useEffect(() => {
-    if (shouldShowDelete) {
-      setShouldRenderDelete(true);
-    } else {
+    if (!shouldShowDelete) {
       onDeleteHoldChange?.(false);
     }
-
-    Animated.timing(deleteSlideProgress, {
-      toValue: shouldShowDelete ? 1 : 0,
-      duration: DELETE_CARD_TOGGLE_DURATION_MS,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start(({ finished }) => {
-      if (finished && !shouldShowDelete) {
-        setShouldRenderDelete(false);
-      }
-    });
-  }, [
-    deleteSlideProgress,
-    onDeleteHoldChange,
-    shouldShowDelete,
-  ]);
+  }, [onDeleteHoldChange, shouldShowDelete]);
 
   useEffect(() => {
     Animated.timing(settingsPanelProgress, {
@@ -357,6 +345,39 @@ export function FloatingControls({
     onDeleteHoldChange?.(false);
   }
 
+  const idleDoneStampPanResponder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderTerminationRequest: () => false,
+    onPanResponderGrant: () => {
+      setIdleStampOffset({ x: 0, y: 0 });
+      setIsIdleStampDragging(true);
+    },
+    onPanResponderMove: (_, gestureState) => {
+      setIdleStampOffset({ x: gestureState.dx, y: gestureState.dy });
+    },
+    onPanResponderRelease: (event, gestureState) => {
+      const dropX = typeof gestureState.moveX === 'number'
+        ? gestureState.moveX
+        : event.nativeEvent.pageX;
+      const dropY = typeof gestureState.moveY === 'number'
+        ? gestureState.moveY
+        : event.nativeEvent.pageY;
+      const didDrag = Math.hypot(gestureState.dx, gestureState.dy) >= DONE_STAMP_DRAG_THRESHOLD;
+
+      setIdleStampOffset({ x: 0, y: 0 });
+      setIsIdleStampDragging(false);
+
+      if (didDrag && typeof dropX === 'number' && typeof dropY === 'number') {
+        onIdleDoneStampDropRef.current?.(dropX, dropY);
+      }
+    },
+    onPanResponderTerminate: () => {
+      setIdleStampOffset({ x: 0, y: 0 });
+      setIsIdleStampDragging(false);
+    },
+  }), []);
+
   function renderColorPicker(isInteractive = false) {
     return (
       <View
@@ -392,53 +413,74 @@ export function FloatingControls({
 
   return (
     <>
-      {shouldRenderDelete ? (
-        <Animated.View
-          pointerEvents={shouldShowDelete ? 'auto' : 'none'}
+      {shouldShowDelete || idleDoneStampEnabled ? (
+        <View
           style={[
             styles.deleteCardFloatingControl,
-            {
-              opacity: deleteSlideProgress,
+            idleDoneStampEnabled && {
               transform: [
-                {
-                  translateX: deleteSlideProgress.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [84, 0],
-                  }),
-                },
+                { translateX: idleStampOffset.x },
+                { translateY: idleStampOffset.y },
               ],
             },
           ]}
         >
-          <Pressable
-            accessibilityHint="Hold until the circle completes to delete the current card"
-            accessibilityLabel="Delete current card"
-            accessibilityRole="button"
-            delayLongPress={DELETE_HOLD_MS}
-            onPressIn={handleDeletePressIn}
-            onPressOut={handleDeletePressOut}
-            style={({ pressed }) => [
-              styles.deleteCardButton,
-              pressed && styles.deleteCardButtonPressed,
-            ]}
-          >
-            <Image
-              pointerEvents="none"
-              source={deleteTargetDone
-                ? STAMP_ASSETS.void.doneCard
-                : STAMP_ASSETS.void.default}
+          {idleDoneStampEnabled ? (
+            <View
+              {...idleDoneStampPanResponder.panHandlers}
+              accessibilityHint="Drag onto a card to toggle done"
+              accessibilityLabel="Done stamp"
+              accessibilityRole="button"
               style={[
-                styles.deleteStampIcon,
-                {
-                  transform: [
-                    { rotate: '-8deg' },
-                    { scale: STAMP_RENDER_SCALE },
-                  ],
-                },
+                styles.deleteCardButton,
+                isIdleStampDragging && styles.deleteCardButtonPressed,
               ]}
-            />
-          </Pressable>
-        </Animated.View>
+            >
+              <Image
+                pointerEvents="none"
+                source={STAMP_ASSETS.done}
+                style={[
+                  styles.deleteStampIcon,
+                  {
+                    transform: [
+                      { rotate: '-8deg' },
+                      { scale: STAMP_RENDER_SCALE },
+                    ],
+                  },
+                ]}
+              />
+            </View>
+          ) : (
+            <Pressable
+              accessibilityHint="Hold until the circle completes to delete the current card"
+              accessibilityLabel="Delete current card"
+              accessibilityRole="button"
+              delayLongPress={DELETE_HOLD_MS}
+              onPressIn={handleDeletePressIn}
+              onPressOut={handleDeletePressOut}
+              style={({ pressed }) => [
+                styles.deleteCardButton,
+                pressed && styles.deleteCardButtonPressed,
+              ]}
+            >
+              <Image
+                pointerEvents="none"
+                source={deleteTargetDone
+                  ? STAMP_ASSETS.void.doneCard
+                  : STAMP_ASSETS.void.default}
+                style={[
+                  styles.deleteStampIcon,
+                  {
+                    transform: [
+                      { rotate: '-8deg' },
+                      { scale: STAMP_RENDER_SCALE },
+                    ],
+                  },
+                ]}
+              />
+            </Pressable>
+          )}
+        </View>
       ) : null}
 
       {isSettingsPanelOpen ? (

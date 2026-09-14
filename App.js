@@ -601,6 +601,7 @@ export default function App() {
     index: null,
     timestamp: 0,
   });
+  const treeCanvasRef = useRef(null);
   useEffect(() => {
     if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
       UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -1932,6 +1933,7 @@ export default function App() {
           />
         ) : (
           <TreeCanvas
+            ref={treeCanvasRef}
             addPreviewRelation={addPreviewRelation}
             newCardBackgroundColor={newCardBackgroundColor}
             cards={systemTreeCards}
@@ -1971,6 +1973,10 @@ export default function App() {
 
       <FloatingControls
         canDeleteCurrentCard={!shouldRenderLeaf && canDeleteCurrentCard}
+        idleDoneStampEnabled={!shouldRenderLeaf && focusedCardIndex === null}
+        onIdleDoneStampDrop={(pageX, pageY) => {
+          treeCanvasRef.current?.stampCardAtPagePoint(pageX, pageY);
+        }}
         deleteTargetDone={Boolean(
           !shouldRenderLeaf
           && (insertionTargetCard?.done || insertionTargetCard?.isCollectionCard)
