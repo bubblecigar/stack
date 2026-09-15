@@ -1990,7 +1990,10 @@ export default function App() {
       <FloatingControls
         audioEnabled={isAudioEnabled}
         canDeleteCurrentCard={!shouldRenderLeaf && canDeleteCurrentCard}
-        idleDoneStampEnabled={!shouldRenderLeaf && focusedCardIndex === null}
+        idleDoneStampEnabled={Boolean(
+          !shouldRenderLeaf
+          && (focusedCardIndex === null || insertionTargetCard?.isTreasureCard)
+        )}
         onIdleDoneStampDrop={(pageX, pageY) => {
           treeCanvasRef.current?.stampCardAtPagePoint(pageX, pageY);
         }}
