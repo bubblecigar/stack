@@ -1921,7 +1921,6 @@ export default function App() {
         />
         {shouldRenderLeaf ? (
           <LeafDeck
-            audioEnabled={isAudioEnabled}
             cards={leafCards}
             topIndex={leafTopPosition}
             visibleCount={LEAF_VISIBLE_COUNT}
@@ -1939,9 +1938,6 @@ export default function App() {
             onCompleteEdit={handleCompleteEdit}
             onCardBackgroundColorChange={handleLeafCardBackgroundColorChange}
             onCameraPress={handleCardCameraPress}
-            onAudioEnabledChange={setIsAudioEnabled}
-            onLogout={handleLogoutRequest}
-            userName={authUser.name || authUser.displayName || authUser.email}
             onLeafSwipe={handleLeafSwipe}
             isDeleteHoldActive={isDeleteHoldActive}
             isAddHoldActive={isAddHoldActive}
@@ -1992,23 +1988,25 @@ export default function App() {
       />
 
       <FloatingControls
+        audioEnabled={isAudioEnabled}
         canDeleteCurrentCard={!shouldRenderLeaf && canDeleteCurrentCard}
         idleDoneStampEnabled={!shouldRenderLeaf && focusedCardIndex === null}
         onIdleDoneStampDrop={(pageX, pageY) => {
           treeCanvasRef.current?.stampCardAtPagePoint(pageX, pageY);
         }}
+        onAudioEnabledChange={setIsAudioEnabled}
         deleteTargetDone={Boolean(
           !shouldRenderLeaf
           && (insertionTargetCard?.done || insertionTargetCard?.isCollectionCard)
         )}
         childInsertionOnly={isChildOnlyInsertionTarget}
         parentInsertionBlocked={isParentInsertionBlocked}
-        rootInsertionEnabled={!shouldRenderLeaf && focusedCardIndex === null}
         layoutMode={layoutMode}
         onDeleteHoldChange={setIsDeleteHoldActive}
         onAddHoldChange={setIsAddHoldActive}
         onAddPreviewChange={setAddPreviewRelation}
         onRootDoubleTap={handleToggleAllTreeCards}
+        onLogout={handleLogoutRequest}
         rootDoubleTapEnabled={!shouldRenderLeaf && focusedCardIndex === null}
         onToggleMode={handleToggleLayout}
         onCreateCard={handleCreateCard}

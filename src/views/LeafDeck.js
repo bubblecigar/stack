@@ -225,7 +225,6 @@ function getAddPreviewEndRotation(relation) {
 }
 
 export function LeafDeck({
-  audioEnabled = true,
   cards,
   topIndex,
   visibleCount = DEFAULT_VISIBLE_COUNT,
@@ -242,9 +241,6 @@ export function LeafDeck({
   onCompleteEdit,
   onCardBackgroundColorChange,
   onCameraPress,
-  onAudioEnabledChange,
-  onLogout,
-  userName,
   editingSelection,
   onLeafSwipe,
   isDeleteHoldActive = false,
@@ -1071,7 +1067,6 @@ export function LeafDeck({
               onLayout={shouldRenderActiveTopSlot ? reportTopCardFrame : undefined}
             >
               <StackCard
-                audioEnabled={audioEnabled}
                 card={shouldRenderActiveTopSlot ? activeCard : visualCard}
                 collapsedNodeIds={collapsedNodeIds}
                 editingIndex={shouldRenderActiveTopSlot ? editingIndex : null}
@@ -1094,9 +1089,6 @@ export function LeafDeck({
                 onEditingValueChange={onEditingValueChange}
                 onEditingSelectionChange={onEditingSelectionChange}
                 onCompleteEdit={onCompleteEdit}
-                onAudioEnabledChange={onAudioEnabledChange}
-                onLogout={onLogout}
-                userName={userName}
                 onDeleteHoldComplete={animateDeleteSwipeAway}
                 editingSelection={shouldRenderActiveTopSlot ? editingSelection : undefined}
                 onPressIn={() => {

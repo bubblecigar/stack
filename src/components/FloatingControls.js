@@ -6,6 +6,7 @@ import {
   Pressable,
   View,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   useEffect, useMemo, useRef, useState,
 } from 'react';
@@ -84,21 +85,23 @@ function getAddRelationFromPoint(dx, dy, fallbackRelation = null) {
 
 export function FloatingControls({
   layoutMode,
+  audioEnabled = true,
   onToggleMode,
   onCreateCard,
+  onAudioEnabledChange,
   onAddPreviewChange,
   onAddHoldChange,
   onDeleteHoldChange,
   newCardBackgroundColor = DEFAULT_CARD_BACKGROUND_COLOR,
   onNewCardBackgroundColorChange,
   onRootDoubleTap,
+  onLogout,
   canDeleteCurrentCard = false,
   idleDoneStampEnabled = false,
   onIdleDoneStampDrop,
   deleteTargetDone = false,
   childInsertionOnly = false,
   parentInsertionBlocked = false,
-  rootInsertionEnabled = false,
   disableCardInsertion = false,
   rootDoubleTapEnabled = false,
 }) {
@@ -286,10 +289,6 @@ export function FloatingControls({
   }
 
   function shouldOpenSettingsPanel(event, gestureState) {
-    if (rootInsertionEnabled) {
-      return false;
-    }
-
     const dropY = typeof gestureState.moveY === 'number'
       ? gestureState.moveY
       : event.nativeEvent.pageY;
@@ -377,7 +376,6 @@ export function FloatingControls({
     onAddPreviewChange,
     onCreateCard,
     parentInsertionBlocked,
-    rootInsertionEnabled,
     onRootDoubleTap,
     onToggleMode,
     rootDoubleTapEnabled,
@@ -670,6 +668,36 @@ export function FloatingControls({
                 {renderColorPicker(isSettingsPanelOpen && layoutMode === 'tree')}
               </View>
             </Animated.View>
+            <View pointerEvents="box-none" style={styles.settingsPanelContent}>
+              <View style={styles.settingsPanelAudioRow}>
+                <Pressable
+                  accessibilityLabel={audioEnabled ? 'Turn audio off' : 'Turn audio on'}
+                  accessibilityRole="button"
+                  onPress={() => onAudioEnabledChange?.(!audioEnabled)}
+                  style={({ pressed }) => [
+                    styles.settingsIconButton,
+                    pressed && styles.settingsIconButtonPressed,
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    color="#6B7280"
+                    name={audioEnabled ? 'volume-high' : 'volume-off'}
+                    size={24}
+                  />
+                </Pressable>
+                <Pressable
+                  accessibilityLabel="Log out"
+                  accessibilityRole="button"
+                  onPress={onLogout}
+                  style={({ pressed }) => [
+                    styles.settingsIconButton,
+                    pressed && styles.settingsIconButtonPressed,
+                  ]}
+                >
+                  <MaterialCommunityIcons color="#6B7280" name="logout" size={24} />
+                </Pressable>
+              </View>
+            </View>
           </Animated.View>
         </View>
       </Animated.View>
