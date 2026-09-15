@@ -135,9 +135,8 @@ export const styles = StyleSheet.create({
   },
   deckFloatingControl: {
     position: 'absolute',
-    right: 16,
-    top: '50%',
-    marginTop: -30,
+    right: 0,
+    bottom: 218,
     zIndex: 6300,
     elevation: 36,
   },

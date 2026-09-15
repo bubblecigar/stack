@@ -7,6 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image as CachedImage } from 'expo-image';
 import {
@@ -582,11 +583,11 @@ export const FloatingControls = forwardRef(function FloatingControls({
             pressed && styles.deckButtonPressed,
           ]}
         >
-            <MaterialCommunityIcons
-              color="#64748B"
-              name={layoutMode === 'leaf' ? 'file-tree-outline' : 'cards-outline'}
-              size={26}
-            />
+          <FontAwesome
+            color="black"
+            name={layoutMode === 'leaf' ? 'tree' : 'leaf'}
+            size={24}
+          />
         </Pressable>
       </View>
 
