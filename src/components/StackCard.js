@@ -154,9 +154,16 @@ export function StackCard({
       - (treePosition.placementOrder ?? 0)
     )
     : -1;
+  const previewTreeStackLayer = treePosition
+    ? (
+      13000
+      - ((treePosition.depth ?? 0) * 80)
+      - (treePosition.placementOrder ?? 0)
+    )
+    : 13000;
 
   const zLayer = isTreeCard
-    ? (isPreviewCard ? 13000 : (isFocusedCard ? 12000 : treeStackLayer))
+    ? (isPreviewCard ? previewTreeStackLayer : (isFocusedCard ? 12000 : treeStackLayer))
     : null;
 
   const dependencyText = '';
