@@ -536,11 +536,6 @@ export const FloatingControls = forwardRef(function FloatingControls({
             style={styles.addHeldDoneStamp}
           />
         ) : null}
-        {deckTreeSize > 1 ? (
-          <View style={styles.addHeldTreeCountBadge}>
-            <Text style={styles.addHeldTreeCountText}>{deckTreeSize}</Text>
-          </View>
-        ) : null}
       </View>
     );
   }
