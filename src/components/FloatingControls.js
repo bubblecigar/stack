@@ -8,15 +8,18 @@ import {
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Image as CachedImage } from 'expo-image';
 import {
   useEffect, useMemo, useRef, useState,
 } from 'react';
+import { DoneStampArtwork } from './DoneStampArtwork';
 import { constrainAddRelation } from '../lib/cardInsertion';
 import {
   CARD_BACKGROUND_OPTIONS,
   DEFAULT_CARD_BACKGROUND_COLOR,
 } from '../lib/cardBackground';
 import { STAMP_ASSETS, STAMP_RENDER_SCALE } from '../config/stampAssets';
+import { getCardImageSource } from '../lib/cardImageCache';
 import { styles } from '../styles/appStyles';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -461,6 +464,47 @@ export function FloatingControls({
     );
   }
 
+  function renderHeldInsertionCard() {
+    if (!deckCard) {
+      return null;
+    }
+
+    return (
+      <View pointerEvents="none" style={styles.addHeldCardContent}>
+        {deckCard.imageUri ? (
+          <CachedImage
+            cachePolicy="memory-disk"
+            contentFit="cover"
+            recyclingKey={deckCard.imageUri}
+            source={getCardImageSource(deckCard.imageUri)}
+            style={styles.addHeldCardImage}
+          />
+        ) : (
+          <Text
+            numberOfLines={8}
+            style={[
+              styles.addHeldCardText,
+              deckCard.done && styles.addHeldCardTextDone,
+            ]}
+          >
+            {deckCard.text}
+          </Text>
+        )}
+        {deckCard.done ? (
+          <DoneStampArtwork
+            uri={deckCard.doneStampUri}
+            style={styles.addHeldDoneStamp}
+          />
+        ) : null}
+        {deckTreeSize > 1 ? (
+          <View style={styles.addHeldTreeCountBadge}>
+            <Text style={styles.addHeldTreeCountText}>{deckTreeSize}</Text>
+          </View>
+        ) : null}
+      </View>
+    );
+  }
+
   return (
     <>
       {deckEnabled || deckCard ? (
@@ -624,12 +668,14 @@ export function FloatingControls({
       >
         <View
           {...addPanResponder.panHandlers}
-          accessibilityHint={rootDoubleTapEnabled
-            ? 'Double tap to collapse all cards or expand non-treasure cards.'
-            : 'Drag to insert a card. Double tap to toggle leaf or tree view.'}
-          accessibilityLabel={rootDoubleTapEnabled
-            ? 'Expand or collapse cards'
-            : 'Insert card or toggle view'}
+          accessibilityHint={deckCard
+            ? 'Drag to insert the held tree. Double tap to toggle leaf or tree view.'
+            : (rootDoubleTapEnabled
+              ? 'Double tap to collapse all cards or expand non-treasure cards.'
+              : 'Drag to insert a card. Double tap to toggle leaf or tree view.')}
+          accessibilityLabel={deckCard
+            ? 'Insert held tree or toggle view'
+            : (rootDoubleTapEnabled ? 'Expand or collapse cards' : 'Insert card or toggle view')}
           accessibilityRole="button"
           style={[
             styles.addCardControl,
@@ -680,10 +726,12 @@ export function FloatingControls({
               <View
                 style={[
                   styles.addCardButton,
-                  { backgroundColor: newCardBackgroundColor },
+                  { backgroundColor: deckCard?.backgroundColor || newCardBackgroundColor },
                 ]}
               >
-                {renderColorPicker(isSettingsPanelOpen && layoutMode === 'leaf')}
+                {deckCard
+                  ? renderHeldInsertionCard()
+                  : renderColorPicker(isSettingsPanelOpen && layoutMode === 'leaf')}
               </View>
             </Animated.View>
             <Animated.View
@@ -713,10 +761,12 @@ export function FloatingControls({
               <View
                 style={[
                   styles.addCardButton,
-                  { backgroundColor: newCardBackgroundColor },
+                  { backgroundColor: deckCard?.backgroundColor || newCardBackgroundColor },
                 ]}
               >
-                {renderColorPicker(isSettingsPanelOpen && layoutMode === 'tree')}
+                {deckCard
+                  ? renderHeldInsertionCard()
+                  : renderColorPicker(isSettingsPanelOpen && layoutMode === 'tree')}
               </View>
             </Animated.View>
             <View pointerEvents="box-none" style={styles.settingsPanelContent}>
