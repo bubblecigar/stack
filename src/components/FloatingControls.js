@@ -671,6 +671,17 @@ export function FloatingControls({
             <View pointerEvents="box-none" style={styles.settingsPanelContent}>
               <View style={styles.settingsPanelAudioRow}>
                 <Pressable
+                  accessibilityLabel="Log out"
+                  accessibilityRole="button"
+                  onPress={onLogout}
+                  style={({ pressed }) => [
+                    styles.settingsIconButton,
+                    pressed && styles.settingsIconButtonPressed,
+                  ]}
+                >
+                  <MaterialCommunityIcons color="#6B7280" name="logout" size={20} />
+                </Pressable>
+                <Pressable
                   accessibilityLabel={audioEnabled ? 'Turn audio off' : 'Turn audio on'}
                   accessibilityRole="button"
                   onPress={() => onAudioEnabledChange?.(!audioEnabled)}
@@ -682,19 +693,8 @@ export function FloatingControls({
                   <MaterialCommunityIcons
                     color="#6B7280"
                     name={audioEnabled ? 'volume-high' : 'volume-off'}
-                    size={24}
+                    size={20}
                   />
-                </Pressable>
-                <Pressable
-                  accessibilityLabel="Log out"
-                  accessibilityRole="button"
-                  onPress={onLogout}
-                  style={({ pressed }) => [
-                    styles.settingsIconButton,
-                    pressed && styles.settingsIconButtonPressed,
-                  ]}
-                >
-                  <MaterialCommunityIcons color="#6B7280" name="logout" size={24} />
                 </Pressable>
               </View>
             </View>
