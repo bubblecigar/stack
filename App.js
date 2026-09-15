@@ -1382,22 +1382,18 @@ export default function App() {
   }
 
   async function handleDeckPress() {
-    if (isHeldTransitionActiveRef.current) {
-      return;
-    }
-
-    if (heldTreeRootId !== null) {
-      const restoredIndex = cards.findIndex((card) => card.id === heldTreeRootId);
-      LayoutAnimation.configureNext(HELD_TREE_LAYOUT_ANIMATION);
-      setHeldTreeRootId(null);
-      setFocusedCardIndex(restoredIndex >= 0 ? restoredIndex : null);
-      setAddPreviewRelation(null);
-      setIsAddHoldActive(false);
+    if (isHeldTransitionActiveRef.current || heldTreeRootId !== null) {
       return;
     }
 
     const focusedCard = focusedCardIndex === null ? null : cards[focusedCardIndex];
-    if (!focusedCard || isSystemCard(focusedCard) || editingIndex !== null) {
+    const canHoldFocusedCard = Boolean(
+      focusedCard
+      && !isSystemCard(focusedCard)
+      && editingIndex === null,
+    );
+
+    if (!canHoldFocusedCard) {
       return;
     }
 
@@ -2109,7 +2105,11 @@ export default function App() {
         onAddPreviewChange={setAddPreviewRelation}
         onRootDoubleTap={handleToggleAllTreeCards}
         onLogout={handleLogoutRequest}
-        rootDoubleTapEnabled={!shouldRenderLeaf && focusedCardIndex === null}
+        rootDoubleTapEnabled={Boolean(
+          heldTreeRootId === null
+          && !shouldRenderLeaf
+          && focusedCardIndex === null
+        )}
         onToggleMode={handleToggleLayout}
         onCreateCard={handleCreateCard}
         newCardBackgroundColor={newCardBackgroundColor}
@@ -2118,7 +2118,7 @@ export default function App() {
         deckCard={heldTreeCards[0] ?? null}
         deckCards={heldTreeCards}
         deckEnabled={Boolean(
-          !shouldRenderLeaf
+          heldTreeRootId === null
           && editingIndex === null
           && focusedCardIndex !== null
           && focusedCardIndex >= 0

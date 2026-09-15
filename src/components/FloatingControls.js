@@ -314,7 +314,7 @@ export const FloatingControls = forwardRef(function FloatingControls({
     resetAddPointing();
   }
 
-  function handleModeTap(dx, dy) {
+  function handleControlDoubleTap(dx, dy) {
     if (Math.hypot(dx, dy) > ADD_POINT_DEAD_ZONE) {
       lastModeTapRef.current = 0;
       return;
@@ -328,8 +328,8 @@ export const FloatingControls = forwardRef(function FloatingControls({
       lastModeTapRef.current = 0;
       if (rootDoubleTapEnabled) {
         onRootDoubleTap?.();
-      } else {
-        onToggleMode?.();
+      } else if (deckEnabled) {
+        onDeckPress?.();
       }
     }
   }
@@ -409,7 +409,7 @@ export const FloatingControls = forwardRef(function FloatingControls({
         return;
       }
 
-      handleModeTap(dx, dy);
+      handleControlDoubleTap(dx, dy);
     },
     onPanResponderTerminate: () => {
       resetAddPointing();
@@ -421,10 +421,12 @@ export const FloatingControls = forwardRef(function FloatingControls({
     onAddHoldChange,
     onAddPreviewChange,
     onCreateCard,
+    onDeckPress,
     parentInsertionBlocked,
     onRootDoubleTap,
-    onToggleMode,
     rootDoubleTapEnabled,
+    deckCard,
+    deckEnabled,
     newCardBackgroundColor,
   ]);
 
@@ -574,51 +576,24 @@ export const FloatingControls = forwardRef(function FloatingControls({
 
   return (
     <>
-      {deckEnabled || deckCard ? (
-        <View style={styles.deckFloatingControl}>
-          <Pressable
-            accessibilityHint={deckCard
-              ? 'Returns the held tree to its original position'
-              : 'Picks up the focused card tree'}
-            accessibilityLabel={deckCard
-              ? `Cancel moving held tree with ${deckTreeSize} cards`
-              : 'Pick up focused card tree'}
-            accessibilityRole="button"
-            onPress={onDeckPress}
-            style={({ pressed }) => [
-              styles.deckButton,
-              deckCard && styles.deckButtonLoaded,
-              pressed && styles.deckButtonPressed,
-            ]}
-          >
-            {deckCard ? (
-              <>
-                <View style={[styles.deckCardLayer, styles.deckCardLayerBack]} />
-                <View style={[styles.deckCardLayer, styles.deckCardLayerMiddle]} />
-                <View
-                  style={[
-                    styles.deckCardLayer,
-                    styles.deckCardLayerFront,
-                    deckCard.backgroundColor
-                      ? { backgroundColor: deckCard.backgroundColor }
-                      : null,
-                  ]}
-                />
-              </>
-            ) : null}
+      <View style={styles.deckFloatingControl}>
+        <Pressable
+          accessibilityHint={`Switches to ${layoutMode === 'leaf' ? 'tree' : 'leaf'} view`}
+          accessibilityLabel={`Show ${layoutMode === 'leaf' ? 'tree' : 'leaf'} view`}
+          accessibilityRole="button"
+          onPress={onToggleMode}
+          style={({ pressed }) => [
+            styles.deckButton,
+            pressed && styles.deckButtonPressed,
+          ]}
+        >
             <MaterialCommunityIcons
-              color={deckCard ? '#0EA5E9' : '#64748B'}
-              name={deckCard ? 'cards' : 'cards-outline'}
+              color="#64748B"
+              name={layoutMode === 'leaf' ? 'file-tree-outline' : 'cards-outline'}
               size={26}
             />
-            {deckCard && deckTreeSize > 1 ? (
-              <View style={styles.deckCountBadge}>
-                <Text style={styles.deckCountText}>{deckTreeSize}</Text>
-              </View>
-            ) : null}
-          </Pressable>
-        </View>
-      ) : null}
+        </Pressable>
+      </View>
 
       {shouldShowDelete || idleDoneStampEnabled ? (
         <View
@@ -736,13 +711,17 @@ export const FloatingControls = forwardRef(function FloatingControls({
         <View
           {...addPanResponder.panHandlers}
           accessibilityHint={deckCard
-            ? 'Drag to insert the held tree. Double tap to toggle leaf or tree view.'
+            ? 'Drag to explicitly insert the held tree.'
             : (rootDoubleTapEnabled
               ? 'Double tap to collapse all cards or expand non-treasure cards.'
-              : 'Drag to insert a card. Double tap to toggle leaf or tree view.')}
+              : (deckEnabled
+                ? 'Drag to insert a card. Double tap to pick up the focused tree.'
+                : 'Drag to insert a card.'))}
           accessibilityLabel={deckCard
-            ? 'Insert held tree or toggle view'
-            : (rootDoubleTapEnabled ? 'Expand or collapse cards' : 'Insert card or toggle view')}
+            ? 'Insert held tree'
+            : (rootDoubleTapEnabled
+              ? 'Expand or collapse cards'
+              : (deckEnabled ? 'Insert card or pick up focused tree' : 'Insert card'))}
           accessibilityRole="button"
           style={[
             styles.addCardControl,

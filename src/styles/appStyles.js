@@ -155,48 +155,9 @@ export const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 14,
   },
-  deckButtonLoaded: {
-    borderColor: '#0EA5E9',
-    borderWidth: 2,
-  },
   deckButtonPressed: {
     opacity: 0.72,
     transform: [{ scale: 0.96 }],
-  },
-  deckCardLayer: {
-    position: 'absolute',
-    width: 31,
-    height: 23,
-    borderRadius: 4,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#94A3B8',
-  },
-  deckCardLayerBack: {
-    transform: [{ translateX: -5 }, { translateY: -5 }, { rotate: '-8deg' }],
-  },
-  deckCardLayerMiddle: {
-    transform: [{ translateX: 5 }, { translateY: -3 }, { rotate: '8deg' }],
-  },
-  deckCardLayerFront: {
-    borderColor: '#0EA5E9',
-  },
-  deckCountBadge: {
-    position: 'absolute',
-    right: 4,
-    bottom: 4,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    paddingHorizontal: 4,
-    backgroundColor: '#0EA5E9',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deckCountText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '800',
   },
   heldCardFlight: {
     position: 'absolute',
