@@ -6,7 +6,11 @@ import {
 } from 'react-native';
 import { styles } from '../styles/appStyles';
 import { buildTreeLayout, TREE_CANVAS_PADDING } from '../lib/treeLayout';
-import { buildPreviewCards, PREVIEW_CARD_ID } from '../lib/previewCards';
+import {
+  buildHeldTreePreviewCards,
+  buildPreviewCards,
+  PREVIEW_CARD_ID,
+} from '../lib/previewCards';
 import { getRubberBandDistance } from '../lib/rubberBand';
 import { StackCard } from '../components/StackCard';
 
@@ -40,6 +44,7 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
   onCanvasBlur,
   isDeleteHoldActive = false,
   addPreviewRelation = null,
+  heldTreeCards = [],
   newCardBackgroundColor,
 }, forwardedRef) {
   const treeHorizontalScrollRef = useRef(null);
@@ -85,14 +90,22 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
   const previewCards = useMemo(
     () => {
       const localFocusedPosition = cards.findIndex((card) => card.index === focusedCardIndex);
-      return buildPreviewCards(
-        cards,
-        localFocusedPosition >= 0 ? localFocusedPosition : null,
-        addPreviewRelation,
-        newCardBackgroundColor,
-      );
+      const targetPosition = localFocusedPosition >= 0 ? localFocusedPosition : null;
+      return heldTreeCards.length > 0
+        ? buildHeldTreePreviewCards(
+          cards,
+          heldTreeCards,
+          targetPosition,
+          addPreviewRelation,
+        )
+        : buildPreviewCards(
+          cards,
+          targetPosition,
+          addPreviewRelation,
+          newCardBackgroundColor,
+        );
     },
-    [addPreviewRelation, cards, focusedCardIndex, newCardBackgroundColor],
+    [addPreviewRelation, cards, focusedCardIndex, heldTreeCards, newCardBackgroundColor],
   );
 
   const {
@@ -299,7 +312,9 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
           >
             {paddedPositionedCards.map((entry) => {
               const { card, left, top, depth, placementOrder, isCollapsedStacked } = entry;
-              const isPreviewCard = card.id === PREVIEW_CARD_ID;
+              const isPreviewCard = card.id === PREVIEW_CARD_ID || Boolean(
+                addPreviewRelation && card.id === heldTreeCards[0]?.id,
+              );
               const isRootCard = !Array.isArray(card.parentIds) || card.parentIds.length === 0;
               const isSystemCard = Boolean(
                 card.isMissionCard || card.isTreasureCard || card.isCollectionCard,

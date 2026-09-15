@@ -312,6 +312,138 @@ export function insertRelativeTo(
   return nextIndex;
 }
 
+export function moveTreeAtInsertion(sourceId, targetId, relation) {
+  const sourceCard = stack.find((card) => card.id === sourceId);
+  const supportedRelations = new Set([
+    'parent',
+    'previousSibling',
+    'nextSibling',
+    'child',
+  ]);
+
+  if (!sourceCard || isSystemCard(sourceCard) || !supportedRelations.has(relation)) {
+    return -1;
+  }
+
+  const cardById = new Map(stack.map((card) => [card.id, card]));
+  const sourceTreeIds = new Set();
+  const pendingIds = [sourceId];
+
+  while (pendingIds.length > 0) {
+    const cardId = pendingIds.pop();
+    if (sourceTreeIds.has(cardId)) {
+      continue;
+    }
+
+    sourceTreeIds.add(cardId);
+    (cardById.get(cardId)?.childIds || []).forEach((childId) => pendingIds.push(childId));
+  }
+
+  const targetCard = targetId == null ? null : cardById.get(targetId);
+  if (
+    targetId != null
+    && (
+      !targetCard
+      || sourceTreeIds.has(targetId)
+      || !canInsertRelativeTo(targetCard, relation)
+    )
+  ) {
+    return -1;
+  }
+
+  if (!targetCard) {
+    const detachedStack = stack.map((card) => (
+      card.id === sourceId
+        ? { ...card, parentIds: [] }
+        : {
+          ...card,
+          childIds: (card.childIds || []).filter((childId) => childId !== sourceId),
+        }
+    ));
+    const movingCard = detachedStack.find((card) => card.id === sourceId);
+    const remainingCards = detachedStack.filter((card) => card.id !== sourceId);
+    const insertsAtStart = relation === 'parent' || relation === 'previousSibling';
+    const missionIndex = remainingCards.findIndex(isMissionCard);
+    const treasureIndex = remainingCards.findIndex(isTreasureCard);
+    const insertionIndex = insertsAtStart
+      ? (missionIndex >= 0 ? missionIndex + 1 : 0)
+      : (treasureIndex >= 0 ? treasureIndex : remainingCards.length);
+
+    stack = [
+      ...remainingCards.slice(0, insertionIndex),
+      movingCard,
+      ...remainingCards.slice(insertionIndex),
+    ];
+    emitChange();
+    return insertionIndex;
+  }
+
+  const targetParentIds = Array.isArray(targetCard.parentIds) ? targetCard.parentIds : [];
+  const nextSourceParentIds = relation === 'child'
+    ? [targetId]
+    : targetParentIds;
+  let nextStack = stack.map((card) => {
+    let childIds = (card.childIds || []).filter((childId) => childId !== sourceId);
+    let parentIds = card.parentIds || [];
+
+    if (relation === 'parent' && targetParentIds.includes(card.id)) {
+      childIds = childIds.map((childId) => (childId === targetId ? sourceId : childId));
+    } else if (
+      (relation === 'previousSibling' || relation === 'nextSibling')
+      && targetParentIds.includes(card.id)
+    ) {
+      childIds = insertNearSibling(
+        childIds,
+        targetId,
+        sourceId,
+        relation === 'previousSibling' ? 'previous' : 'next',
+      );
+    } else if (relation === 'child' && card.id === targetId) {
+      childIds = uniqueLinkedIds([...childIds, sourceId], card.id);
+    }
+
+    if (card.id === sourceId) {
+      parentIds = nextSourceParentIds;
+      if (relation === 'parent') {
+        childIds = uniqueLinkedIds([...childIds, targetId], sourceId);
+      }
+    } else if (relation === 'parent' && card.id === targetId) {
+      parentIds = [sourceId];
+    }
+
+    if (childIds !== card.childIds || parentIds !== card.parentIds) {
+      return {
+        ...card,
+        childIds,
+        parentIds,
+      };
+    }
+
+    return card;
+  });
+
+  const isRootPlacement = (
+    targetParentIds.length === 0
+    && ['parent', 'previousSibling', 'nextSibling'].includes(relation)
+  );
+  if (isRootPlacement) {
+    const movingCard = nextStack.find((card) => card.id === sourceId);
+    const remainingCards = nextStack.filter((card) => card.id !== sourceId);
+    const targetIndex = remainingCards.findIndex((card) => card.id === targetId);
+    const insertionIndex = relation === 'nextSibling' ? targetIndex + 1 : targetIndex;
+
+    nextStack = [
+      ...remainingCards.slice(0, insertionIndex),
+      movingCard,
+      ...remainingCards.slice(insertionIndex),
+    ];
+  }
+
+  stack = nextStack;
+  emitChange();
+  return stack.findIndex((card) => card.id === sourceId);
+}
+
 function normalizeIncomingCard(rawCard, nextGeneratedId) {
   const text = typeof rawCard === 'string'
     ? rawCard

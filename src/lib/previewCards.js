@@ -143,3 +143,102 @@ export function buildPreviewCards(cards, focusedCardIndex, relation, backgroundC
     },
   ];
 }
+
+export function buildHeldTreePreviewCards(cards, heldTreeCards, focusedCardIndex, relation) {
+  const heldRoot = heldTreeCards?.[0];
+  if (!relation || !heldRoot) {
+    return cards;
+  }
+
+  const detachedCards = cards.map((card) => ({
+    ...card,
+    childIds: card.childIds.filter((childId) => childId !== heldRoot.id),
+  }));
+  const targetCard = focusedCardIndex === null ? null : detachedCards[focusedCardIndex];
+  const targetId = targetCard?.id ?? null;
+  const targetParentIds = targetCard?.parentIds || [];
+  const heldRootCard = {
+    ...heldRoot,
+    parentIds: targetCard
+      ? (relation === 'child' ? [targetId] : targetParentIds)
+      : [],
+    childIds: relation === 'parent' && targetCard
+      ? [...heldRoot.childIds.filter((id) => id !== targetId), targetId]
+      : heldRoot.childIds,
+  };
+  const previewTreeCards = [
+    heldRootCard,
+    ...heldTreeCards.slice(1),
+  ];
+
+  if (!targetCard) {
+    const insertsAtStart = relation === 'parent' || relation === 'previousSibling';
+    const missionIndex = detachedCards.findIndex((card) => card.isMissionCard);
+    const treasureIndex = detachedCards.findIndex((card) => card.isTreasureCard);
+    const insertIndex = insertsAtStart
+      ? (missionIndex >= 0 ? missionIndex + 1 : 0)
+      : (treasureIndex >= 0 ? treasureIndex : detachedCards.length);
+
+    return [
+      ...detachedCards.slice(0, insertIndex),
+      ...previewTreeCards,
+      ...detachedCards.slice(insertIndex),
+    ];
+  }
+
+  let rewrittenCards = detachedCards.map((card) => {
+    if (relation === 'parent') {
+      if (card.id === targetId) {
+        return { ...card, parentIds: [heldRoot.id] };
+      }
+      if (targetParentIds.includes(card.id)) {
+        return {
+          ...card,
+          childIds: card.childIds.map((childId) => (
+            childId === targetId ? heldRoot.id : childId
+          )),
+        };
+      }
+    }
+
+    if (
+      (relation === 'previousSibling' || relation === 'nextSibling')
+      && targetParentIds.includes(card.id)
+    ) {
+      return {
+        ...card,
+        childIds: insertNearSibling(
+          card.childIds,
+          targetId,
+          heldRoot.id,
+          relation === 'previousSibling' ? 'previous' : 'next',
+        ),
+      };
+    }
+
+    if (relation === 'child' && card.id === targetId) {
+      return {
+        ...card,
+        childIds: [...card.childIds.filter((id) => id !== heldRoot.id), heldRoot.id],
+      };
+    }
+
+    return card;
+  });
+
+  if (
+    targetParentIds.length === 0
+    && ['parent', 'previousSibling', 'nextSibling'].includes(relation)
+  ) {
+    const targetIndex = rewrittenCards.findIndex((card) => card.id === targetId);
+    const insertIndex = relation === 'nextSibling' ? targetIndex + 1 : targetIndex;
+    return [
+      ...rewrittenCards.slice(0, insertIndex),
+      ...previewTreeCards,
+      ...rewrittenCards.slice(insertIndex),
+    ];
+  }
+
+  rewrittenCards = [...rewrittenCards, ...previewTreeCards];
+  return rewrittenCards;
+}

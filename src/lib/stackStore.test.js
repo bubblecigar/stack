@@ -8,8 +8,10 @@ import {
   hasChildOnlyInsertion,
   insertRelativeTo,
   insertRootAtBoundary,
+  isSystemCard,
   loadCards,
   MISSION_CARD_ID,
+  moveTreeAtInsertion,
   push,
   removeAt,
   restoreRootTree,
@@ -277,6 +279,112 @@ describe('system cards', () => {
       thirdRootId,
       firstRootId,
     ]);
+  });
+
+  it('moves a held subtree as a child while preserving its descendants', () => {
+    const sourceParentIndex = push('Source parent');
+    const sourceParentId = getSnapshot()[sourceParentIndex].id;
+    const heldIndex = insertRelativeTo(sourceParentIndex, 'child', 'Held');
+    const heldId = getSnapshot()[heldIndex].id;
+    const heldChildIndex = insertRelativeTo(heldIndex, 'child', 'Held child');
+    const heldChildId = getSnapshot()[heldChildIndex].id;
+    const targetIndex = push('Target');
+    const targetId = getSnapshot()[targetIndex].id;
+
+    expect(moveTreeAtInsertion(heldId, targetId, 'child')).toBeGreaterThanOrEqual(0);
+    expect(getSnapshot().find((card) => card.id === sourceParentId).childIds).toEqual([]);
+    expect(getSnapshot().find((card) => card.id === targetId).childIds).toEqual([heldId]);
+    expect(getSnapshot().find((card) => card.id === heldId)).toMatchObject({
+      childIds: [heldChildId],
+      parentIds: [targetId],
+    });
+  });
+
+  it('moves a held tree as a parent and appends the target as its last child', () => {
+    const rootIndex = push('Root');
+    const rootId = getSnapshot()[rootIndex].id;
+    const targetIndex = insertRelativeTo(rootIndex, 'child', 'Target');
+    const targetId = getSnapshot()[targetIndex].id;
+    const heldIndex = push('Held');
+    const heldId = getSnapshot()[heldIndex].id;
+    const heldChildIndex = insertRelativeTo(heldIndex, 'child', 'Existing held child');
+    const heldChildId = getSnapshot()[heldChildIndex].id;
+
+    expect(moveTreeAtInsertion(heldId, targetId, 'parent')).toBeGreaterThanOrEqual(0);
+    expect(getSnapshot().find((card) => card.id === rootId).childIds).toEqual([heldId]);
+    expect(getSnapshot().find((card) => card.id === heldId)).toMatchObject({
+      childIds: [heldChildId, targetId],
+      parentIds: [rootId],
+    });
+    expect(getSnapshot().find((card) => card.id === targetId).parentIds).toEqual([heldId]);
+  });
+
+  it('replaces a root target when the held tree becomes its parent', () => {
+    const sourceParentIndex = insertRootAtBoundary('last', 'Source parent');
+    const sourceParentId = getSnapshot()[sourceParentIndex].id;
+    const heldIndex = insertRelativeTo(sourceParentIndex, 'child', 'Held');
+    const heldId = getSnapshot()[heldIndex].id;
+    const targetIndex = insertRootAtBoundary('last', 'Target root');
+    const targetId = getSnapshot()[targetIndex].id;
+
+    expect(moveTreeAtInsertion(heldId, targetId, 'parent')).toBeGreaterThanOrEqual(0);
+    expect(getSnapshot().find((card) => card.id === sourceParentId).childIds).toEqual([]);
+    expect(getSnapshot().find((card) => card.id === heldId).parentIds).toEqual([]);
+    expect(getSnapshot().find((card) => card.id === targetId).parentIds).toEqual([heldId]);
+
+    const normalRootIds = getSnapshot()
+      .filter((card) => !isSystemCard(card) && card.parentIds.length === 0)
+      .map((card) => card.id);
+    expect(normalRootIds).toEqual([sourceParentId, heldId]);
+  });
+
+  it('moves a held tree before or after a sibling', () => {
+    const rootIndex = push('Root');
+    const rootId = getSnapshot()[rootIndex].id;
+    const firstIndex = insertRelativeTo(rootIndex, 'child', 'First');
+    const firstId = getSnapshot()[firstIndex].id;
+    const targetIndex = insertRelativeTo(rootIndex, 'child', 'Target');
+    const targetId = getSnapshot()[targetIndex].id;
+
+    expect(moveTreeAtInsertion(firstId, targetId, 'nextSibling')).toBeGreaterThanOrEqual(0);
+    expect(getSnapshot().find((card) => card.id === rootId).childIds).toEqual([
+      targetId,
+      firstId,
+    ]);
+
+    expect(moveTreeAtInsertion(firstId, targetId, 'previousSibling')).toBeGreaterThanOrEqual(0);
+    expect(getSnapshot().find((card) => card.id === rootId).childIds).toEqual([
+      firstId,
+      targetId,
+    ]);
+  });
+
+  it('moves a held tree to either root boundary', () => {
+    const firstIndex = insertRootAtBoundary('last', 'First');
+    const firstId = getSnapshot()[firstIndex].id;
+    const heldIndex = insertRelativeTo(firstIndex, 'child', 'Held');
+    const heldId = getSnapshot()[heldIndex].id;
+    const lastIndex = insertRootAtBoundary('last', 'Last');
+    const lastId = getSnapshot()[lastIndex].id;
+
+    expect(moveTreeAtInsertion(heldId, null, 'previousSibling')).toBeGreaterThanOrEqual(0);
+    let rootIds = getSnapshot().filter((card) => card.parentIds.length === 0).map((card) => card.id);
+    expect(rootIds).toEqual([MISSION_CARD_ID, heldId, firstId, lastId, TREASURE_CARD_ID]);
+
+    expect(moveTreeAtInsertion(heldId, null, 'child')).toBeGreaterThanOrEqual(0);
+    rootIds = getSnapshot().filter((card) => card.parentIds.length === 0).map((card) => card.id);
+    expect(rootIds).toEqual([MISSION_CARD_ID, firstId, lastId, heldId, TREASURE_CARD_ID]);
+  });
+
+  it('rejects a held-tree insertion into its own subtree', () => {
+    const heldIndex = push('Held');
+    const heldId = getSnapshot()[heldIndex].id;
+    const childIndex = insertRelativeTo(heldIndex, 'child', 'Child');
+    const childId = getSnapshot()[childIndex].id;
+
+    expect(moveTreeAtInsertion(heldId, childId, 'child')).toBe(-1);
+    expect(getSnapshot().find((card) => card.id === heldId).parentIds).toEqual([]);
+    expect(getSnapshot().find((card) => card.id === childId).parentIds).toEqual([heldId]);
   });
 
   it('keeps promoted children in a deleted root parent\'s position', () => {

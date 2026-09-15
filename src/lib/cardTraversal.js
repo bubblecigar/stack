@@ -10,6 +10,25 @@ function getOrderedChildCards(card, cardById) {
     .filter(Boolean);
 }
 
+export function getCardTreeIds(cards = [], rootId) {
+  const cardById = new Map(cards.map((card) => [card.id, card]));
+  const treeIds = new Set();
+  const pendingIds = cardById.has(rootId) ? [rootId] : [];
+
+  while (pendingIds.length > 0) {
+    const cardId = pendingIds.pop();
+    if (treeIds.has(cardId)) {
+      continue;
+    }
+
+    treeIds.add(cardId);
+    getOrderedChildCards(cardById.get(cardId), cardById)
+      .forEach((card) => pendingIds.push(card.id));
+  }
+
+  return treeIds;
+}
+
 export function getCollapsibleDescendantIds(cards = [], rootId) {
   const cardById = new Map(cards.map((card) => [card.id, card]));
   const rootCard = cardById.get(rootId);

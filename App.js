@@ -28,6 +28,7 @@ import {
   isSystemCard,
   loadCards,
   MISSION_CARD_ID,
+  moveTreeAtInsertion,
   push,
   removeAt,
   removeDoneCascadeAt,
@@ -67,6 +68,7 @@ import {
 } from './src/lib/apiClient';
 import { clearStoredAuthToken, getStoredAuthToken, setStoredAuthToken } from './src/lib/authTokenStore';
 import {
+  getCardTreeIds,
   getCollapsibleDescendantIds,
   moveInTraversal,
 } from './src/lib/cardTraversal';
@@ -440,6 +442,7 @@ export default function App() {
   const [isDeleteHoldActive, setIsDeleteHoldActive] = useState(false);
   const [addPreviewRelation, setAddPreviewRelation] = useState(null);
   const [isAddHoldActive, setIsAddHoldActive] = useState(false);
+  const [heldTreeRootId, setHeldTreeRootId] = useState(null);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [updatingCardImageIds, setUpdatingCardImageIds] = useState(() => new Set());
   const [uploadingCardImageIds, setUploadingCardImageIds] = useState(() => new Set());
@@ -515,6 +518,43 @@ export default function App() {
     ),
     [collections.length, dailyVisibleCards, treasureInventory],
   );
+  const heldTreeCardIds = useMemo(
+    () => getCardTreeIds(cards, heldTreeRootId),
+    [cards, heldTreeRootId],
+  );
+  const heldTreeCards = useMemo(() => {
+    if (heldTreeRootId === null) {
+      return [];
+    }
+
+    const heldRoot = systemTreeCards.find((card) => card.id === heldTreeRootId);
+    if (!heldRoot) {
+      return [];
+    }
+
+    return [
+      heldRoot,
+      ...systemTreeCards.filter((card) => (
+        card.id !== heldTreeRootId && heldTreeCardIds.has(card.id)
+      )),
+    ];
+  }, [heldTreeCardIds, heldTreeRootId, systemTreeCards]);
+  const visibleSystemTreeCards = useMemo(
+    () => systemTreeCards.filter((card) => !heldTreeCardIds.has(card.id)),
+    [heldTreeCardIds, systemTreeCards],
+  );
+  useEffect(() => {
+    if (
+      heldTreeRootId === null
+      || (!shouldRenderLeaf && heldTreeCards.length > 0)
+    ) {
+      return;
+    }
+
+    setHeldTreeRootId(null);
+    setAddPreviewRelation(null);
+    setIsAddHoldActive(false);
+  }, [heldTreeCards.length, heldTreeRootId, shouldRenderLeaf]);
   const leafScopeFocusedCardId = shouldRenderLeaf
     ? leafFocusedCardId
     : focusedCardId;
@@ -712,6 +752,7 @@ export default function App() {
     setLeafTopIndex(null);
     setLeafFocusedCardId(null);
     setIsDeleteHoldActive(false);
+    setHeldTreeRootId(null);
     setCollapsedNodeIds(new Set());
     setNewCardBackgroundColor(DEFAULT_CARD_BACKGROUND_COLOR);
     setTreeCompletionCanvas(EMPTY_TREE_COMPLETION_CANVAS);
@@ -964,6 +1005,25 @@ export default function App() {
       ? null
       : cards[currentIndex];
     if (!canInsertRelativeTo(currentCard, relation)) {
+      return;
+    }
+
+    if (heldTreeRootId !== null) {
+      const movedIndex = moveTreeAtInsertion(
+        heldTreeRootId,
+        currentCard?.id ?? null,
+        relation,
+      );
+      if (movedIndex < 0) {
+        return;
+      }
+
+      setHeldTreeRootId(null);
+      setEditingIndex(null);
+      setEditingValue('');
+      setEditingSelection(null);
+      setFocusedCardIndex(movedIndex);
+      setLeafTopIndex(movedIndex);
       return;
     }
 
@@ -1299,6 +1359,28 @@ export default function App() {
     }
   }
 
+  function handleDeckPress() {
+    if (heldTreeRootId !== null) {
+      const restoredIndex = cards.findIndex((card) => card.id === heldTreeRootId);
+      setHeldTreeRootId(null);
+      setFocusedCardIndex(restoredIndex >= 0 ? restoredIndex : null);
+      setAddPreviewRelation(null);
+      setIsAddHoldActive(false);
+      return;
+    }
+
+    const focusedCard = focusedCardIndex === null ? null : cards[focusedCardIndex];
+    if (!focusedCard || isSystemCard(focusedCard) || editingIndex !== null) {
+      return;
+    }
+
+    setHeldTreeRootId(focusedCard.id);
+    setFocusedCardIndex(null);
+    setAddPreviewRelation(null);
+    setIsAddHoldActive(false);
+    setIsDeleteHoldActive(false);
+  }
+
   function handleArchiveRootTree(rootId) {
     const rootCard = cards.find((card) => card.id === rootId);
     const parentIds = Array.isArray(rootCard?.parentIds) ? rootCard.parentIds : [];
@@ -1398,7 +1480,7 @@ export default function App() {
   const focusedSystemRootId = shouldRenderLeaf
     ? getFocusedSystemRootId(systemTreeCards, nodeMapFocusedCardId)
     : null;
-  const canDeleteCurrentCard = shouldRenderLeaf
+  const canDeleteCurrentCard = heldTreeRootId === null && (shouldRenderLeaf
     ? (
       visibleTopCardIndex !== null
       && visibleTopCardIndex >= 0
@@ -1408,12 +1490,15 @@ export default function App() {
       focusedCardIndex !== null
       && focusedCardIndex >= 0
       && !hasChildOnlyInsertion(cards[focusedCardIndex])
-    );
-  const nodeMapCards = shouldRenderLeaf
+    ));
+  const unfilteredNodeMapCards = shouldRenderLeaf
     ? (focusedSystemRootId
       ? getSystemSubtreeCards(systemTreeCards, focusedSystemRootId)
       : getLeafRootScopedCards(dailyVisibleCards, nodeMapFocusedCardId))
     : systemTreeCards;
+  const nodeMapCards = unfilteredNodeMapCards.filter(
+    (card) => !heldTreeCardIds.has(card.id),
+  );
   const nodeMapFocusedCardIndex = nodeMapFocusedCardId === null
     ? null
     : nodeMapCards.findIndex((card) => card.id === nodeMapFocusedCardId);
@@ -1952,7 +2037,7 @@ export default function App() {
             ref={treeCanvasRef}
             addPreviewRelation={addPreviewRelation}
             newCardBackgroundColor={newCardBackgroundColor}
-            cards={systemTreeCards}
+            cards={visibleSystemTreeCards}
             collapsedNodeIds={collapsedNodeIds}
             focusedCardIndex={focusedCardIndex}
             focusedCardId={focusedCardId}
@@ -1972,6 +2057,7 @@ export default function App() {
             onCompleteEdit={handleCompleteEdit}
             onDoneCard={handleDoneTreeCard}
             isDeleteHoldActive={isDeleteHoldActive}
+            heldTreeCards={heldTreeCards}
             onCanvasBlur={() => setFocusedCardIndex(null)}
           />
         )}
@@ -1985,13 +2071,15 @@ export default function App() {
         expandedSystemCardId={focusedSystemRootId}
         focusedCardId={nodeMapFocusedCardId}
         focusedCardIndex={nodeMapFocusedCardIndex >= 0 ? nodeMapFocusedCardIndex : null}
+        heldTreeCards={heldTreeCards}
       />
 
       <FloatingControls
         audioEnabled={isAudioEnabled}
         canDeleteCurrentCard={!shouldRenderLeaf && canDeleteCurrentCard}
         idleDoneStampEnabled={Boolean(
-          !shouldRenderLeaf
+          heldTreeRootId === null
+          && !shouldRenderLeaf
           && (focusedCardIndex === null || insertionTargetCard?.isTreasureCard)
         )}
         onIdleDoneStampDrop={(pageX, pageY) => {
@@ -2016,6 +2104,16 @@ export default function App() {
         newCardBackgroundColor={newCardBackgroundColor}
         onNewCardBackgroundColorChange={setNewCardBackgroundColor}
         disableCardInsertion={shouldRenderLeaf && insertionTargetCard === null}
+        deckCard={heldTreeCards[0] ?? null}
+        deckEnabled={Boolean(
+          !shouldRenderLeaf
+          && editingIndex === null
+          && focusedCardIndex !== null
+          && focusedCardIndex >= 0
+          && !isSystemCard(cards[focusedCardIndex])
+        )}
+        deckTreeSize={heldTreeCardIds.size}
+        onDeckPress={handleDeckPress}
       />
 
       <StatusBar style="light" />

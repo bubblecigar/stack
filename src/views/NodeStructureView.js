@@ -8,7 +8,11 @@ import AntDesign from '@expo/vector-icons/AntDesign';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { buildTreeLayout } from '../lib/treeLayout';
-import { buildPreviewCards, PREVIEW_CARD_ID } from '../lib/previewCards';
+import {
+  buildHeldTreePreviewCards,
+  buildPreviewCards,
+  PREVIEW_CARD_ID,
+} from '../lib/previewCards';
 import { styles } from '../styles/appStyles';
 
 const MAP_PADDING = 10;
@@ -164,6 +168,7 @@ export function NodeStructureView({
   anchorFocusedNode = false,
   deleteTargetActive = false,
   expandedSystemCardId = null,
+  heldTreeCards = [],
 }) {
   const [mapSize, setMapSize] = useState({
     width: 180,
@@ -188,13 +193,24 @@ export function NodeStructureView({
   const mapFocusedCardIndex = focusedCardId === null
     ? null
     : mapCards.findIndex((card) => card.id === focusedCardId);
-  const previewCards = useMemo(
-    () => buildPreviewCards(
-      mapCards,
-      mapFocusedCardIndex >= 0 ? mapFocusedCardIndex : null,
-      addPreviewRelation,
-    ),
-    [addPreviewRelation, mapCards, mapFocusedCardIndex],
+  const previewCards = useMemo(() => {
+    const targetPosition = mapFocusedCardIndex >= 0 ? mapFocusedCardIndex : null;
+    return heldTreeCards.length > 0
+      ? buildHeldTreePreviewCards(
+        mapCards,
+        heldTreeCards,
+        targetPosition,
+        addPreviewRelation,
+      )
+      : buildPreviewCards(
+        mapCards,
+        targetPosition,
+        addPreviewRelation,
+      );
+  }, [addPreviewRelation, heldTreeCards, mapCards, mapFocusedCardIndex]);
+  const heldPreviewCardIds = useMemo(
+    () => new Set(addPreviewRelation ? heldTreeCards.map((card) => card.id) : []),
+    [addPreviewRelation, heldTreeCards],
   );
   const mapLayout = useMemo(
     () => buildTreeLayout(previewCards, new Set(), MAP_TREE_LAYOUT_OVERRIDES),
@@ -247,7 +263,7 @@ export function NodeStructureView({
           x: MAP_PADDING + (center.x - minCenterX) * safeScale,
           y: MAP_PADDING + (center.y - minCenterY) * safeScale,
           isFocused: entry.card.id === focusedCardId,
-          isPreview: entry.card.id === PREVIEW_CARD_ID,
+          isPreview: entry.card.id === PREVIEW_CARD_ID || heldPreviewCardIds.has(entry.card.id),
           isDone: Boolean(entry.card.done),
           isSystem: Boolean(
             entry.card.isMissionCard || entry.card.isTreasureCard || entry.card.isCollectionCard,
@@ -263,6 +279,7 @@ export function NodeStructureView({
     };
   }, [
     focusedCardId,
+    heldPreviewCardIds,
     activeSystemCardIds,
     deleteTargetActive,
     mapLayout.maxHeight,
@@ -413,7 +430,12 @@ export function NodeStructureView({
                   key={`edge-${entry.card.id}-${childId}-${segmentIndex}`}
                   style={[
                     styles.nodeViewMapLine,
-                    (entry.card.id === PREVIEW_CARD_ID || childId === PREVIEW_CARD_ID)
+                    (
+                      entry.card.id === PREVIEW_CARD_ID
+                      || childId === PREVIEW_CARD_ID
+                      || heldPreviewCardIds.has(entry.card.id)
+                      || heldPreviewCardIds.has(childId)
+                    )
                       && styles.nodeViewMapLinePreview,
                     segment,
                   ]}

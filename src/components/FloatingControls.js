@@ -4,6 +4,7 @@ import {
   Easing,
   PanResponder,
   Pressable,
+  Text,
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -104,6 +105,10 @@ export function FloatingControls({
   parentInsertionBlocked = false,
   disableCardInsertion = false,
   rootDoubleTapEnabled = false,
+  deckCard = null,
+  deckEnabled = false,
+  deckTreeSize = 0,
+  onDeckPress,
 }) {
   const shouldShowDelete = canDeleteCurrentCard;
   const activeStampSource = idleDoneStampEnabled
@@ -458,6 +463,52 @@ export function FloatingControls({
 
   return (
     <>
+      {deckEnabled || deckCard ? (
+        <View style={styles.deckFloatingControl}>
+          <Pressable
+            accessibilityHint={deckCard
+              ? 'Returns the held tree to its original position'
+              : 'Picks up the focused card tree'}
+            accessibilityLabel={deckCard
+              ? `Cancel moving held tree with ${deckTreeSize} cards`
+              : 'Pick up focused card tree'}
+            accessibilityRole="button"
+            onPress={onDeckPress}
+            style={({ pressed }) => [
+              styles.deckButton,
+              deckCard && styles.deckButtonLoaded,
+              pressed && styles.deckButtonPressed,
+            ]}
+          >
+            {deckCard ? (
+              <>
+                <View style={[styles.deckCardLayer, styles.deckCardLayerBack]} />
+                <View style={[styles.deckCardLayer, styles.deckCardLayerMiddle]} />
+                <View
+                  style={[
+                    styles.deckCardLayer,
+                    styles.deckCardLayerFront,
+                    deckCard.backgroundColor
+                      ? { backgroundColor: deckCard.backgroundColor }
+                      : null,
+                  ]}
+                />
+              </>
+            ) : null}
+            <MaterialCommunityIcons
+              color={deckCard ? '#0EA5E9' : '#64748B'}
+              name={deckCard ? 'cards' : 'cards-outline'}
+              size={26}
+            />
+            {deckCard && deckTreeSize > 1 ? (
+              <View style={styles.deckCountBadge}>
+                <Text style={styles.deckCountText}>{deckTreeSize}</Text>
+              </View>
+            ) : null}
+          </Pressable>
+        </View>
+      ) : null}
+
       {shouldShowDelete || idleDoneStampEnabled ? (
         <View
           style={[
