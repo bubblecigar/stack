@@ -2070,6 +2070,7 @@ export default function App() {
         onNewCardBackgroundColorChange={setNewCardBackgroundColor}
         disableCardInsertion={shouldRenderLeaf && insertionTargetCard === null}
         deckCard={heldTreeCards[0] ?? null}
+        deckCards={heldTreeCards}
         deckEnabled={Boolean(
           !shouldRenderLeaf
           && editingIndex === null

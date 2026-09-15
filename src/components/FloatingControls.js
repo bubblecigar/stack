@@ -109,6 +109,7 @@ export function FloatingControls({
   disableCardInsertion = false,
   rootDoubleTapEnabled = false,
   deckCard = null,
+  deckCards = [],
   deckEnabled = false,
   deckTreeSize = 0,
   onDeckPress,
@@ -144,6 +145,29 @@ export function FloatingControls({
   const secondaryCardColor = CARD_BACKGROUND_OPTIONS[
     (selectedColorIndex + 1) % CARD_BACKGROUND_OPTIONS.length
   ];
+  const heldPileColors = useMemo(() => {
+    const layerCount = Math.min(Math.max(deckTreeSize - 1, 0), 2);
+    if (layerCount === 0) {
+      return [];
+    }
+
+    const descendantColors = deckCards
+      .slice(1)
+      .map((card) => card.backgroundColor || '#FFFFFF');
+    const representativeColors = [...new Set(descendantColors)];
+
+    descendantColors.forEach((color) => {
+      if (representativeColors.length < layerCount) {
+        representativeColors.push(color);
+      }
+    });
+
+    while (representativeColors.length < layerCount) {
+      representativeColors.push(deckCard?.backgroundColor || '#FFFFFF');
+    }
+
+    return representativeColors.slice(0, layerCount);
+  }, [deckCard?.backgroundColor, deckCards, deckTreeSize]);
 
   useEffect(() => {
     Animated.timing(flipProgress, {
@@ -505,6 +529,35 @@ export function FloatingControls({
     );
   }
 
+  function renderHeldCardPile() {
+    if (!deckCard || deckTreeSize <= 1) {
+      return null;
+    }
+
+    return (
+      <>
+        <View
+          pointerEvents="none"
+          style={[
+            styles.addHeldPileLayer,
+            styles.addHeldPileLayerBack,
+            { backgroundColor: heldPileColors[0] },
+          ]}
+        />
+        {deckTreeSize > 2 ? (
+          <View
+            pointerEvents="none"
+            style={[
+              styles.addHeldPileLayer,
+              styles.addHeldPileLayerMiddle,
+              { backgroundColor: heldPileColors[1] },
+            ]}
+          />
+        ) : null}
+      </>
+    );
+  }
+
   return (
     <>
       {deckEnabled || deckCard ? (
@@ -716,17 +769,23 @@ export function FloatingControls({
                 },
               ]}
             >
-              <View
-                pointerEvents="none"
-                style={[
-                  styles.settingsSecondaryCard,
-                  { backgroundColor: secondaryCardColor.color },
-                ]}
-              />
+              {deckCard ? renderHeldCardPile() : (
+                <View
+                  pointerEvents="none"
+                  style={[
+                    styles.settingsSecondaryCard,
+                    { backgroundColor: secondaryCardColor.color },
+                  ]}
+                />
+              )}
               <View
                 style={[
                   styles.addCardButton,
-                  { backgroundColor: deckCard?.backgroundColor || newCardBackgroundColor },
+                  {
+                    backgroundColor: deckCard
+                      ? (deckCard.backgroundColor || '#FFFFFF')
+                      : newCardBackgroundColor,
+                  },
                 ]}
               >
                 {deckCard
@@ -751,17 +810,23 @@ export function FloatingControls({
                 },
               ]}
             >
-              <View
-                pointerEvents="none"
-                style={[
-                  styles.settingsSecondaryCard,
-                  { backgroundColor: secondaryCardColor.color },
-                ]}
-              />
+              {deckCard ? renderHeldCardPile() : (
+                <View
+                  pointerEvents="none"
+                  style={[
+                    styles.settingsSecondaryCard,
+                    { backgroundColor: secondaryCardColor.color },
+                  ]}
+                />
+              )}
               <View
                 style={[
                   styles.addCardButton,
-                  { backgroundColor: deckCard?.backgroundColor || newCardBackgroundColor },
+                  {
+                    backgroundColor: deckCard
+                      ? (deckCard.backgroundColor || '#FFFFFF')
+                      : newCardBackgroundColor,
+                  },
                 ]}
               >
                 {deckCard
