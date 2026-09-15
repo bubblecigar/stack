@@ -458,7 +458,7 @@ export const styles = StyleSheet.create({
     position: 'absolute',
     width: 44,
     height: 44,
-    opacity: 0.28,
+    opacity: 1,
   },
   completionProgressDoneArtwork: {
     opacity: 0.55,
