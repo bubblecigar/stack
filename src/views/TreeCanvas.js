@@ -108,6 +108,13 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
     [addPreviewRelation, cards, focusedCardIndex, heldTreeCards, newCardBackgroundColor],
   );
 
+  const heldPreviewCardIds = useMemo(
+    () => new Set(
+      addPreviewRelation ? heldTreeCards.map((card) => card.id) : [],
+    ),
+    [addPreviewRelation, heldTreeCards],
+  );
+
   const {
     maxHeight,
     maxWidth,
@@ -312,8 +319,8 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
           >
             {paddedPositionedCards.map((entry) => {
               const { card, left, top, depth, placementOrder, isCollapsedStacked } = entry;
-              const isPreviewCard = card.id === PREVIEW_CARD_ID || Boolean(
-                addPreviewRelation && card.id === heldTreeCards[0]?.id,
+              const isPreviewCard = (
+                card.id === PREVIEW_CARD_ID || heldPreviewCardIds.has(card.id)
               );
               const isRootCard = !Array.isArray(card.parentIds) || card.parentIds.length === 0;
               const isSystemCard = Boolean(
