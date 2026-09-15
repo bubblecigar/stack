@@ -55,6 +55,7 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
   const onDoneCardRef = useRef(onDoneCard);
   const cardTouchRef = useRef(false);
   const didCanvasPanRef = useRef(false);
+  const lastAutoCenteredCardIdRef = useRef(null);
   const treeScrollOffsetRef = useRef({
     x: 0,
     y: 0,
@@ -158,7 +159,9 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
     ),
     onPanResponderGrant: () => {
       didCanvasPanRef.current = false;
-      treePanStartOffsetRef.current = treeScrollOffsetRef.current;
+      const currentOffset = treeScrollOffsetRef.current;
+      scrollTreeTo(currentOffset.x, currentOffset.y);
+      treePanStartOffsetRef.current = { ...treeScrollOffsetRef.current };
       treeOverscrollX.stopAnimation();
       treeOverscrollY.stopAnimation();
       treeOverscrollX.setValue(0);
@@ -185,7 +188,21 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
   ]);
 
   useEffect(() => {
+    const currentOffset = treeScrollOffsetRef.current;
+    const clampedX = Math.min(Math.max(currentOffset.x, 0), maxScrollX);
+    const clampedY = Math.min(Math.max(currentOffset.y, 0), maxScrollY);
+
+    treeScrollOffsetRef.current = {
+      x: clampedX,
+      y: clampedY,
+    };
+    treeHorizontalScrollRef.current?.scrollTo({ x: clampedX, animated: false });
+    treeVerticalScrollRef.current?.scrollTo({ y: clampedY, animated: false });
+  }, [maxScrollX, maxScrollY]);
+
+  useEffect(() => {
     if (focusedCardIndex === null) {
+      lastAutoCenteredCardIdRef.current = null;
       return;
     }
 
@@ -198,6 +215,12 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
     if (!focusedEntry) {
       return;
     }
+
+    if (lastAutoCenteredCardIdRef.current === focusedEntry.card.id) {
+      return;
+    }
+
+    lastAutoCenteredCardIdRef.current = focusedEntry.card.id;
 
     const centeredX = focusedEntry.left + TREE_CANVAS_PADDING + (nodeWidth / 2);
     const bottomAlignedY = focusedEntry.top + TREE_CANVAS_PADDING + nodeHeight;
@@ -321,6 +344,13 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
         scrollEnabled={false}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.treeHorizontalContent}
+        onScroll={(event) => {
+          treeScrollOffsetRef.current = {
+            ...treeScrollOffsetRef.current,
+            x: event.nativeEvent.contentOffset.x,
+          };
+        }}
+        scrollEventThrottle={16}
       >
         <ScrollView
           ref={treeVerticalScrollRef}
@@ -328,6 +358,13 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
           contentContainerStyle={styles.treeContent}
           scrollEnabled={false}
           showsVerticalScrollIndicator={false}
+          onScroll={(event) => {
+            treeScrollOffsetRef.current = {
+              ...treeScrollOffsetRef.current,
+              y: event.nativeEvent.contentOffset.y,
+            };
+          }}
+          scrollEventThrottle={16}
         >
           <Animated.View
             ref={treeCanvasRef}
