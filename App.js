@@ -543,10 +543,14 @@ export default function App() {
     () => systemTreeCards.filter((card) => !heldTreeCardIds.has(card.id)),
     [heldTreeCardIds, systemTreeCards],
   );
+  const visibleDailyCards = useMemo(
+    () => dailyVisibleCards.filter((card) => !heldTreeCardIds.has(card.id)),
+    [dailyVisibleCards, heldTreeCardIds],
+  );
   useEffect(() => {
     if (
       heldTreeRootId === null
-      || (!shouldRenderLeaf && heldTreeCards.length > 0)
+      || heldTreeCards.length > 0
     ) {
       return;
     }
@@ -554,7 +558,7 @@ export default function App() {
     setHeldTreeRootId(null);
     setAddPreviewRelation(null);
     setIsAddHoldActive(false);
-  }, [heldTreeCards.length, heldTreeRootId, shouldRenderLeaf]);
+  }, [heldTreeCards.length, heldTreeRootId]);
   const leafScopeFocusedCardId = shouldRenderLeaf
     ? leafFocusedCardId
     : focusedCardId;
@@ -574,8 +578,8 @@ export default function App() {
   const leafCards = useMemo(
     () => {
       const scopedCards = getLeafTraversalCards(
-        dailyVisibleCards,
-        systemTreeCards,
+        visibleDailyCards,
+        visibleSystemTreeCards,
         leafScopeFocusedCardId,
       );
 
@@ -583,9 +587,9 @@ export default function App() {
         return scopedCards;
       }
 
-      return dailyVisibleCards;
+      return visibleDailyCards;
     },
-    [dailyVisibleCards, leafScopeFocusedCardId, systemTreeCards],
+    [leafScopeFocusedCardId, visibleDailyCards, visibleSystemTreeCards],
   );
 
   const leafTopPosition = useMemo(() => {
@@ -1438,8 +1442,8 @@ export default function App() {
 
     const currentCardId = visibleCards[0]?.id ?? leafFocusedCardId ?? cards[0]?.id;
     const traversalCards = getLeafTraversalCards(
-      dailyVisibleCards,
-      systemTreeCards,
+      visibleDailyCards,
+      visibleSystemTreeCards,
       currentCardId,
     );
 
@@ -2007,6 +2011,7 @@ export default function App() {
         {shouldRenderLeaf ? (
           <LeafDeck
             cards={leafCards}
+            heldTreeRootCard={heldTreeCards[0] ?? null}
             topIndex={leafTopPosition}
             visibleCount={LEAF_VISIBLE_COUNT}
             editingIndex={editingIndex}
