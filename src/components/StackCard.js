@@ -54,17 +54,13 @@ export function StackCard({
   hideControls = false,
   treePosition,
   isCollapsedStacked = false,
-  isArchivedRoot = false,
   isMissionRoot = false,
-  isRootCard = false,
   isMissionCard = false,
   isTreasureCard = false,
   onPress,
   onPressIn,
   onCreateEdit,
   onAdoptMissionRoot,
-  onArchiveRootTree,
-  onRestoreRootTree,
   onDeleteCard,
   onDeleteHoldComplete,
   onEditingValueChange,
@@ -118,13 +114,6 @@ export function StackCard({
     shouldShowControls
     && isTreeCard
     && isMissionRootCard
-    && !isEditing
-  );
-  const shouldShowArchive = (
-    shouldShowControls
-    && isTreeCard
-    && (isRootCard || isArchivedRoot)
-    && !isSystem
     && !isEditing
   );
   const isPrimaryDeleteHoldCard = isDeleteHoldActive && isFocusedCard;
@@ -386,33 +375,6 @@ export function StackCard({
             <MaterialCommunityIcons
               color="#FFFFFF"
               name="flag-plus-outline"
-              size={18}
-            />
-          </Pressable>
-        )}
-
-        {shouldShowArchive && (
-          <Pressable
-            accessibilityLabel={isArchivedRoot ? 'Restore tree' : 'Archive tree'}
-            accessibilityRole="button"
-            onPressIn={handleControlPressIn}
-            onPress={(event) => handleControlPress(event, () => {
-              if (isArchivedRoot) {
-                onRestoreRootTree?.(id);
-                return;
-              }
-
-              onArchiveRootTree?.(id);
-            })}
-            style={({ pressed }) => [
-              styles.iconButton,
-              styles.archiveButton,
-              pressed && styles.archiveButtonPressed,
-            ]}
-          >
-            <MaterialCommunityIcons
-              color="#FFFFFF"
-              name={isArchivedRoot ? 'archive-arrow-up-outline' : 'treasure-chest-outline'}
               size={18}
             />
           </Pressable>

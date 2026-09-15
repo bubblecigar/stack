@@ -36,8 +36,6 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
   onDeleteCard,
   onDeleteHoldComplete,
   onAdoptMissionRoot,
-  onArchiveRootTree,
-  onRestoreRootTree,
   onEditingValueChange,
   onCompleteEdit,
   onDoneCard,
@@ -322,7 +320,6 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
               const isPreviewCard = (
                 card.id === PREVIEW_CARD_ID || heldPreviewCardIds.has(card.id)
               );
-              const isRootCard = !Array.isArray(card.parentIds) || card.parentIds.length === 0;
               const isSystemCard = Boolean(
                 card.isMissionCard || card.isTreasureCard || card.isCollectionCard,
               );
@@ -341,10 +338,8 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
                   onPressIn={handleCardPressIn}
                   onFocusCard={onCardFocus}
                   hideControls={isPreviewCard || isSystemCard}
-                  isArchivedRoot={Boolean(card.isArchivedRoot)}
                   isMissionRoot={Boolean(card.isMissionRoot)}
                   isPreviewCard={isPreviewCard}
-                  isRootCard={isRootCard}
                   isMissionCard={Boolean(card.isMissionCard)}
                   isTreasureCard={Boolean(card.isTreasureCard)}
                   treePosition={{
@@ -366,8 +361,6 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
                   onDeleteCard={onDeleteCard}
                   onDeleteHoldComplete={onDeleteHoldComplete}
                   onAdoptMissionRoot={onAdoptMissionRoot}
-                  onArchiveRootTree={onArchiveRootTree}
-                  onRestoreRootTree={onRestoreRootTree}
                   onEditingValueChange={onEditingValueChange}
                   onCompleteEdit={onCompleteEdit}
                 />

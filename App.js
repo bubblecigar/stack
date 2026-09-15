@@ -18,7 +18,6 @@ import {
 } from 'react';
 import {
   adoptMissionRoot,
-  archiveRootTree,
   canInsertRelativeTo,
   ensureSystemCards,
   getSnapshot,
@@ -32,7 +31,6 @@ import {
   push,
   removeAt,
   removeDoneCascadeAt,
-  restoreRootTree,
   setCardBackgroundColorAt,
   setCardImageAt,
   setScanStateAt,
@@ -1385,24 +1383,6 @@ export default function App() {
     setIsDeleteHoldActive(false);
   }
 
-  function handleArchiveRootTree(rootId) {
-    const rootCard = cards.find((card) => card.id === rootId);
-    const parentIds = Array.isArray(rootCard?.parentIds) ? rootCard.parentIds : [];
-    if (!rootCard || parentIds.length > 0) {
-      return;
-    }
-
-    if (!archiveRootTree(rootId)) {
-      return;
-    }
-    setFocusedCardIndex(null);
-    setEditingIndex(null);
-    setEditingValue('');
-    setEditingSelection(null);
-    setIsDeleteHoldActive(false);
-    setAddPreviewRelation(null);
-  }
-
   function handleAdoptMissionRoot(rootId) {
     const adoptedIndex = adoptMissionRoot(rootId);
     if (adoptedIndex < 0) {
@@ -1410,24 +1390,6 @@ export default function App() {
     }
 
     setFocusedCardIndex(adoptedIndex);
-    setEditingIndex(null);
-    setEditingValue('');
-    setEditingSelection(null);
-    setIsDeleteHoldActive(false);
-    setAddPreviewRelation(null);
-  }
-
-  function handleRestoreRootTree(rootId) {
-    const rootCard = cards.find((card) => card.id === rootId);
-    if (!rootCard) {
-      return;
-    }
-
-    if (!restoreRootTree(rootId)) {
-      return;
-    }
-    const restoredIndex = getSnapshot().findIndex((card) => card.id === rootId);
-    setFocusedCardIndex(restoredIndex >= 0 ? restoredIndex : rootCard.index);
     setEditingIndex(null);
     setEditingValue('');
     setEditingSelection(null);
@@ -2056,8 +2018,6 @@ export default function App() {
             onDeleteCard={handleDeleteCard}
             onDeleteHoldComplete={handleDeleteCard}
             onAdoptMissionRoot={handleAdoptMissionRoot}
-            onArchiveRootTree={handleArchiveRootTree}
-            onRestoreRootTree={handleRestoreRootTree}
             onEditingValueChange={setEditingValue}
             onCompleteEdit={handleCompleteEdit}
             onDoneCard={handleDoneTreeCard}
