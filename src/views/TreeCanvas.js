@@ -265,7 +265,35 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
     });
   }
 
+  function measureCard(cardId) {
+    return new Promise((resolve) => {
+      const targetEntry = positionedCardsRef.current.find(
+        (entry) => entry.card.id === cardId && !entry.isCollapsedStacked,
+      );
+
+      if (!targetEntry) {
+        resolve(null);
+        return;
+      }
+
+      if (!treeCanvasRef.current?.measureInWindow) {
+        resolve(null);
+        return;
+      }
+
+      treeCanvasRef.current.measureInWindow((canvasX, canvasY) => {
+        resolve({
+          x: canvasX + targetEntry.left,
+          y: canvasY + targetEntry.top,
+          width: treeNodeSizeRef.current.width,
+          height: treeNodeSizeRef.current.height,
+        });
+      });
+    });
+  }
+
   useImperativeHandle(forwardedRef, () => ({
+    measureCard,
     stampCardAtPagePoint,
   }), []);
 

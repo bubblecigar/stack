@@ -10,7 +10,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image as CachedImage } from 'expo-image';
 import {
-  useEffect, useMemo, useRef, useState,
+  forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState,
 } from 'react';
 import { DoneStampArtwork } from './DoneStampArtwork';
 import { constrainAddRelation } from '../lib/cardInsertion';
@@ -87,7 +87,7 @@ function getAddRelationFromPoint(dx, dy, fallbackRelation = null) {
   return fallbackRelation;
 }
 
-export function FloatingControls({
+export const FloatingControls = forwardRef(function FloatingControls({
   layoutMode,
   audioEnabled = true,
   onToggleMode,
@@ -113,7 +113,7 @@ export function FloatingControls({
   deckEnabled = false,
   deckTreeSize = 0,
   onDeckPress,
-}) {
+}, forwardedRef) {
   const shouldShowDelete = canDeleteCurrentCard;
   const activeStampSource = idleDoneStampEnabled
     ? STAMP_ASSETS.done
@@ -139,6 +139,7 @@ export function FloatingControls({
     pageX: 0,
     pageY: 0,
   });
+  const insertionCardRef = useRef(null);
   const selectedColorIndex = CARD_BACKGROUND_OPTIONS.findIndex(
     ({ color }) => color === newCardBackgroundColor,
   );
@@ -168,6 +169,19 @@ export function FloatingControls({
 
     return representativeColors.slice(0, layerCount);
   }, [deckCard?.backgroundColor, deckCards, deckTreeSize]);
+
+  useImperativeHandle(forwardedRef, () => ({
+    measureInsertionCard: () => new Promise((resolve) => {
+      if (!insertionCardRef.current?.measureInWindow) {
+        resolve(null);
+        return;
+      }
+
+      insertionCardRef.current.measureInWindow((x, y, width, height) => {
+        resolve({ x, y, width, height });
+      });
+    }),
+  }), []);
 
   useEffect(() => {
     Animated.timing(flipProgress, {
@@ -736,6 +750,7 @@ export function FloatingControls({
           ]}
         >
           <Animated.View
+            ref={insertionCardRef}
             style={[
               styles.addCardButtonShell,
               {
@@ -869,4 +884,4 @@ export function FloatingControls({
       </Animated.View>
     </>
   );
-}
+});

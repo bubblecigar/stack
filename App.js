@@ -46,6 +46,7 @@ import {
 import { prefetchCardImages } from './src/lib/cardImageCache';
 import { CompletionProgressTree } from './src/components/CompletionProgressTree';
 import { FloatingControls } from './src/components/FloatingControls';
+import { HeldCardFlight } from './src/components/HeldCardFlight';
 import { AuthScreen } from './src/views/AuthScreen';
 import { LeafDeck } from './src/views/LeafDeck';
 import { NodeStructureView } from './src/views/NodeStructureView';
@@ -107,6 +108,21 @@ import { styles } from './src/styles/appStyles';
 
 const LEAF_VISIBLE_COUNT = 5;
 const TREE_COMPLETION_CANVAS_KEY = 'treeCompletionCanvas';
+const HELD_TREE_LAYOUT_ANIMATION = {
+  duration: 460,
+  create: {
+    type: LayoutAnimation.Types.easeInEaseOut,
+    property: LayoutAnimation.Properties.opacity,
+  },
+  update: {
+    type: LayoutAnimation.Types.easeInEaseOut,
+  },
+  delete: {
+    duration: 260,
+    type: LayoutAnimation.Types.easeInEaseOut,
+    property: LayoutAnimation.Properties.opacity,
+  },
+};
 const EMPTY_TREE_COMPLETION_CANVAS = {
   entries: [],
   nodes: [],
@@ -441,6 +457,7 @@ export default function App() {
   const [addPreviewRelation, setAddPreviewRelation] = useState(null);
   const [isAddHoldActive, setIsAddHoldActive] = useState(false);
   const [heldTreeRootId, setHeldTreeRootId] = useState(null);
+  const [heldCardFlight, setHeldCardFlight] = useState(null);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [updatingCardImageIds, setUpdatingCardImageIds] = useState(() => new Set());
   const [uploadingCardImageIds, setUploadingCardImageIds] = useState(() => new Set());
@@ -646,6 +663,8 @@ export default function App() {
     timestamp: 0,
   });
   const treeCanvasRef = useRef(null);
+  const floatingControlsRef = useRef(null);
+  const isHeldTransitionActiveRef = useRef(false);
   useEffect(() => {
     if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
       UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -1011,6 +1030,7 @@ export default function App() {
     }
 
     if (heldTreeRootId !== null) {
+      LayoutAnimation.configureNext(HELD_TREE_LAYOUT_ANIMATION);
       const movedIndex = moveTreeAtInsertion(
         heldTreeRootId,
         currentCard?.id ?? null,
@@ -1361,9 +1381,14 @@ export default function App() {
     }
   }
 
-  function handleDeckPress() {
+  async function handleDeckPress() {
+    if (isHeldTransitionActiveRef.current) {
+      return;
+    }
+
     if (heldTreeRootId !== null) {
       const restoredIndex = cards.findIndex((card) => card.id === heldTreeRootId);
+      LayoutAnimation.configureNext(HELD_TREE_LAYOUT_ANIMATION);
       setHeldTreeRootId(null);
       setFocusedCardIndex(restoredIndex >= 0 ? restoredIndex : null);
       setAddPreviewRelation(null);
@@ -1376,11 +1401,31 @@ export default function App() {
       return;
     }
 
+    isHeldTransitionActiveRef.current = true;
+    const [fromFrame, toFrame] = await Promise.all([
+      treeCanvasRef.current?.measureCard?.(focusedCard.id) ?? Promise.resolve(null),
+      floatingControlsRef.current?.measureInsertionCard?.() ?? Promise.resolve(null),
+    ]);
+
+    const canAnimateFlight = Boolean(fromFrame && toFrame);
+    if (canAnimateFlight) {
+      setHeldCardFlight({
+        card: focusedCard,
+        fromFrame,
+        key: Date.now(),
+        toFrame,
+      });
+    }
+
+    LayoutAnimation.configureNext(HELD_TREE_LAYOUT_ANIMATION);
     setHeldTreeRootId(focusedCard.id);
     setFocusedCardIndex(null);
     setAddPreviewRelation(null);
     setIsAddHoldActive(false);
     setIsDeleteHoldActive(false);
+    if (!canAnimateFlight) {
+      isHeldTransitionActiveRef.current = false;
+    }
   }
 
   function handleAdoptMissionRoot(rootId) {
@@ -2040,6 +2085,7 @@ export default function App() {
       />
 
       <FloatingControls
+        ref={floatingControlsRef}
         audioEnabled={isAudioEnabled}
         canDeleteCurrentCard={!shouldRenderLeaf && canDeleteCurrentCard}
         idleDoneStampEnabled={Boolean(
@@ -2081,6 +2127,19 @@ export default function App() {
         deckTreeSize={heldTreeCardIds.size}
         onDeckPress={handleDeckPress}
       />
+
+      {heldCardFlight ? (
+        <HeldCardFlight
+          key={heldCardFlight.key}
+          card={heldCardFlight.card}
+          fromFrame={heldCardFlight.fromFrame}
+          toFrame={heldCardFlight.toFrame}
+          onComplete={() => {
+            setHeldCardFlight(null);
+            isHeldTransitionActiveRef.current = false;
+          }}
+        />
+      ) : null}
 
       <StatusBar style="light" />
     </View>
