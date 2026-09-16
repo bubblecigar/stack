@@ -57,6 +57,7 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
   const cardTouchRef = useRef(false);
   const didCanvasPanRef = useRef(false);
   const lastAutoCenteredCardIdRef = useRef(null);
+  const lastAutoRevealedPreviewRef = useRef(null);
   const treeScrollOffsetRef = useRef({
     x: 0,
     y: 0,
@@ -249,6 +250,58 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
     positionedCards,
     treeViewport.width,
     treeViewport.height,
+  ]);
+
+  useEffect(() => {
+    if (!addPreviewRelation) {
+      lastAutoRevealedPreviewRef.current = null;
+      return;
+    }
+
+    const viewport = treeViewport;
+    if (!viewport.width || !viewport.height) {
+      return;
+    }
+
+    const previewCardId = heldTreeCards[0]?.id ?? PREVIEW_CARD_ID;
+    const previewEntry = positionedCards.find(
+      ({ card, isCollapsedStacked }) => (
+        card.id === previewCardId && !isCollapsedStacked
+      ),
+    );
+    if (!previewEntry) {
+      return;
+    }
+
+    const revealKey = [
+      previewCardId,
+      addPreviewRelation,
+      previewEntry.left,
+      previewEntry.top,
+      viewport.width,
+      viewport.height,
+    ].join(':');
+    if (lastAutoRevealedPreviewRef.current === revealKey) {
+      return;
+    }
+    lastAutoRevealedPreviewRef.current = revealKey;
+
+    const previewLeft = previewEntry.left + TREE_CANVAS_PADDING;
+    const previewTop = previewEntry.top + TREE_CANVAS_PADDING;
+    const targetX = previewLeft + (nodeWidth / 2) - (viewport.width / 2);
+    const targetY = previewTop + (nodeHeight / 2) - (viewport.height / 2);
+
+    scrollTreeTo(targetX, targetY, true);
+  }, [
+    addPreviewRelation,
+    heldTreeCards,
+    maxScrollX,
+    maxScrollY,
+    nodeHeight,
+    nodeWidth,
+    positionedCards,
+    treeViewport.height,
+    treeViewport.width,
   ]);
 
   const paddedPositionedCards = positionedCards.map((entry) => ({
