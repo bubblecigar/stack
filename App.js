@@ -1030,22 +1030,32 @@ export default function App() {
     }
 
     if (heldTreeRootId !== null) {
-      LayoutAnimation.configureNext(HELD_TREE_LAYOUT_ANIMATION);
-      const movedIndex = moveTreeAtInsertion(
-        heldTreeRootId,
-        currentCard?.id ?? null,
-        relation,
-      );
-      if (movedIndex < 0) {
-        return;
-      }
-
-      setHeldTreeRootId(null);
+      const insertionTargetIndex = currentIndex;
+      setFocusedCardIndex(null);
       setEditingIndex(null);
       setEditingValue('');
       setEditingSelection(null);
-      setFocusedCardIndex(movedIndex);
-      setLeafTopIndex(movedIndex);
+
+      requestAnimationFrame(() => {
+        let movedIndex = -1;
+        LayoutAnimation.configureNext(HELD_TREE_LAYOUT_ANIMATION, () => {
+          if (movedIndex >= 0) {
+            setFocusedCardIndex(movedIndex);
+          }
+        });
+        movedIndex = moveTreeAtInsertion(
+          heldTreeRootId,
+          currentCard?.id ?? null,
+          relation,
+        );
+        if (movedIndex < 0) {
+          setFocusedCardIndex(insertionTargetIndex);
+          return;
+        }
+
+        setHeldTreeRootId(null);
+        setLeafTopIndex(movedIndex);
+      });
       return;
     }
 
@@ -1413,15 +1423,17 @@ export default function App() {
       });
     }
 
-    LayoutAnimation.configureNext(HELD_TREE_LAYOUT_ANIMATION);
-    setHeldTreeRootId(focusedCard.id);
     setFocusedCardIndex(null);
     setAddPreviewRelation(null);
     setIsAddHoldActive(false);
     setIsDeleteHoldActive(false);
-    if (!canAnimateFlight) {
-      isHeldTransitionActiveRef.current = false;
-    }
+    requestAnimationFrame(() => {
+      LayoutAnimation.configureNext(HELD_TREE_LAYOUT_ANIMATION);
+      setHeldTreeRootId(focusedCard.id);
+      if (!canAnimateFlight) {
+        isHeldTransitionActiveRef.current = false;
+      }
+    });
   }
 
   function handleAdoptMissionRoot(rootId) {
