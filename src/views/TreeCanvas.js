@@ -31,6 +31,7 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
   editingValue,
   onCardPress,
   onCardFocus,
+  onHoldCard,
   onCreateEdit,
   onToggleCollapse,
   onDeleteCard,
@@ -402,6 +403,7 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
                   visibleIndex={0}
                   onPressIn={handleCardPressIn}
                   onFocusCard={onCardFocus}
+                  onHoldCard={onHoldCard}
                   hideControls={isPreviewCard || isSystemCard}
                   isMissionRoot={Boolean(card.isMissionRoot)}
                   isPreviewCard={isPreviewCard}

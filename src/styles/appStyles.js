@@ -133,31 +133,6 @@ export const styles = StyleSheet.create({
     zIndex: 6200,
     elevation: 34,
   },
-  deckFloatingControl: {
-    position: 'absolute',
-    right: 0,
-    bottom: 218,
-    zIndex: 6300,
-    elevation: 36,
-  },
-  deckButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 14,
-  },
-  deckButtonPressed: {
-    opacity: 0.72,
-    transform: [{ scale: 0.96 }],
-  },
   heldCardFlight: {
     position: 'absolute',
     overflow: 'hidden',
@@ -1103,6 +1078,12 @@ export const styles = StyleSheet.create({
     backgroundColor: '#64748B',
   },
   archiveButtonPressed: {
+    backgroundColor: '#475569',
+  },
+  holdButton: {
+    backgroundColor: '#64748B',
+  },
+  holdButtonPressed: {
     backgroundColor: '#475569',
   },
   dangerButton: {

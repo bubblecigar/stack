@@ -2054,6 +2054,7 @@ export default function App() {
             doneCleanupPreviewCardIds={doneCleanupPreviewCardIds}
             onCardPress={handleTreeCardPress}
             onCardFocus={handleTreeCardFocus}
+            onHoldCard={handleDeckPress}
             onCreateEdit={handleToggleEdit}
             onToggleCollapse={handleToggleCollapse}
             onDeleteCard={handleDeleteCard}
@@ -2117,15 +2118,7 @@ export default function App() {
         disableCardInsertion={shouldRenderLeaf && insertionTargetCard === null}
         deckCard={heldTreeCards[0] ?? null}
         deckCards={heldTreeCards}
-        deckEnabled={Boolean(
-          heldTreeRootId === null
-          && editingIndex === null
-          && focusedCardIndex !== null
-          && focusedCardIndex >= 0
-          && !isSystemCard(cards[focusedCardIndex])
-        )}
         deckTreeSize={heldTreeCardIds.size}
-        onDeckPress={handleDeckPress}
       />
 
       {heldCardFlight ? (

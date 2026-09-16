@@ -67,6 +67,7 @@ export function StackCard({
   onEditingSelectionChange,
   onCompleteEdit,
   onFocusCard,
+  onHoldCard,
   editingSelection,
   isDeleteHoldActive = false,
   doneCleanupPreviewCardIds = new Set(),
@@ -114,6 +115,12 @@ export function StackCard({
     shouldShowControls
     && isTreeCard
     && isMissionRootCard
+    && !isEditing
+  );
+  const shouldShowHold = (
+    shouldShowControls
+    && isTreeCard
+    && !isSystem
     && !isEditing
   );
   const isPrimaryDeleteHoldCard = isDeleteHoldActive && isFocusedCard;
@@ -412,6 +419,24 @@ export function StackCard({
             ) : (
               <MaterialCommunityIcons color="#FFFFFF" name="pencil" size={18} />
             )}
+          </Pressable>
+        )}
+
+        {shouldShowHold && (
+          <Pressable
+            accessibilityLabel="Pick up card tree"
+            accessibilityRole="button"
+            onPressIn={handleControlPressIn}
+            onPress={(event) => handleControlPress(event, () => {
+              onHoldCard?.(index);
+            })}
+            style={({ pressed }) => [
+              styles.iconButton,
+              styles.holdButton,
+              pressed && styles.holdButtonPressed,
+            ]}
+          >
+            <MaterialCommunityIcons color="#FFFFFF" name="cards-outline" size={19} />
           </Pressable>
         )}
 
