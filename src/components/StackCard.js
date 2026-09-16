@@ -123,6 +123,7 @@ export function StackCard({
     && isTreeCard
     && !isSystem
     && !isEditing
+    && typeof onHoldCard === 'function'
   );
   const isTreeDeleteHoldActive = isTreeCard && isPrimaryDeleteHoldCard;
   const isDoneCleanupPreviewCard = (

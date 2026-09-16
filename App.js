@@ -2096,7 +2096,7 @@ export default function App() {
             doneCleanupPreviewCardIds={doneCleanupPreviewCardIds}
             onCardPress={handleTreeCardPress}
             onCardFocus={handleTreeCardFocus}
-            onHoldCard={handleDeckPress}
+            onHoldCard={heldTreeRootId === null ? handleDeckPress : undefined}
             onCreateEdit={handleToggleEdit}
             onToggleCollapse={handleToggleCollapse}
             onDeleteCard={handleDeleteCard}
