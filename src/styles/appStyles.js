@@ -587,6 +587,16 @@ export const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     alignItems: 'stretch',
   },
+  treeCardFrame: {
+    position: 'absolute',
+    width: 220,
+    minHeight: 100,
+    maxHeight: 116,
+    overflow: 'visible',
+  },
+  treeCardForeground: {
+    zIndex: 1,
+  },
   treeCollapsedCard: {
     opacity: 0.98,
     shadowOpacity: 0,
@@ -1085,10 +1095,19 @@ export const styles = StyleSheet.create({
   },
   treeHoldButton: {
     position: 'absolute',
-    left: 8,
+    left: -29,
     bottom: 8,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+  },
+  treeHoldEar: {
+    backgroundColor: 'transparent',
+    zIndex: 2,
+  },
+  treeHoldHitTarget: {
+    backgroundColor: 'transparent',
     zIndex: 3,
-    transform: [{ scale: 0.8 }],
   },
   dangerButton: {
     backgroundColor: '#DC2626',

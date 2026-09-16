@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import AntDesign from '@expo/vector-icons/AntDesign';
-import Foundation from '@expo/vector-icons/Foundation';
+import Feather from '@expo/vector-icons/Feather';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Image as CachedImage } from 'expo-image';
 import { useEffect, useRef, useState } from 'react';
@@ -301,7 +301,7 @@ export function StackCard({
     />
   );
 
-  return (
+  const cardElement = (
     <AnimatedPressable
       disabled={isLeafCard || isPreviewCard}
       onPressIn={onPressIn}
@@ -317,11 +317,7 @@ export function StackCard({
         isTreeCard && isPreviewCard && styles.treePreviewCard,
         isTreeCard && isCollapsedStacked && styles.treeCollapsedCard,
         isEditing && isLeafCard && styles.leafEditingCard,
-        isTreeCard && treePosition && {
-          left: treePosition.left,
-          top: treePosition.top,
-          position: 'absolute',
-        },
+        isTreeCard && styles.treeCardForeground,
         isFocusedCard && !isLeafCard && styles.focusedCard,
         isFocusedCard && isSystem && styles.focusedTreasureCard,
         isDeleteProgressVisible && styles.deleteFocusedCard,
@@ -329,7 +325,6 @@ export function StackCard({
         isTreeCard
           && (isPrimaryDeleteHoldCard || isDoneCleanupPreviewCard)
           && { opacity: treeDeleteFadeOpacity },
-        zLayer != null ? { zIndex: zLayer } : null,
       ]}
     >
       {shouldShowCollapsedCornerLine ? (
@@ -367,28 +362,6 @@ export function StackCard({
           ]}
         />
       ) : null}
-
-      {shouldShowHold && (
-        <Pressable
-          accessibilityLabel="Pick up card tree"
-          accessibilityRole="button"
-          onPressIn={handleControlPressIn}
-          onPress={(event) => handleControlPress(event, () => {
-            onHoldCard?.(index);
-          })}
-          style={[
-            styles.iconButton,
-            styles.holdButton,
-            styles.treeHoldButton,
-          ]}
-        >
-          <Foundation
-            name="paw"
-            size={24}
-            color={isTreeDeleteHoldActive && !done ? '#DC2626' : '#0EA5E9'}
-          />
-        </Pressable>
-      )}
 
       <View style={[
         styles.cardControls,
@@ -731,5 +704,60 @@ export function StackCard({
         </Text>
       </View>
     </AnimatedPressable>
+  );
+
+  if (!isTreeCard || !treePosition) {
+    return cardElement;
+  }
+
+  return (
+    <View
+      pointerEvents="box-none"
+      style={[
+        styles.treeCardFrame,
+        {
+          left: treePosition.left,
+          top: treePosition.top,
+          zIndex: zLayer,
+        },
+      ]}
+    >
+      {shouldShowHold ? (
+        <View
+          pointerEvents="none"
+          style={[
+            styles.iconButton,
+            styles.treeHoldButton,
+            styles.treeHoldEar,
+          ]}
+        >
+          <Feather
+            name="corner-left-down"
+            size={24}
+            color="#0EA5E9"
+          />
+        </View>
+      ) : null}
+
+      {cardElement}
+
+      {shouldShowHold ? (
+        <Pressable
+          accessibilityLabel="Pick up card tree"
+          accessibilityRole="button"
+          hitSlop={{ top: 8, right: 18, bottom: 8, left: 8 }}
+          onPressIn={handleControlPressIn}
+          onPress={(event) => handleControlPress(event, () => {
+            onHoldCard?.(index);
+          })}
+          style={[
+            styles.iconButton,
+            styles.holdButton,
+            styles.treeHoldButton,
+            styles.treeHoldHitTarget,
+          ]}
+        />
+      ) : null}
+    </View>
   );
 }
