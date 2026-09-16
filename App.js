@@ -2128,8 +2128,7 @@ export default function App() {
         audioEnabled={isAudioEnabled}
         canDeleteCurrentCard={!shouldRenderLeaf && canDeleteCurrentCard}
         idleDoneStampEnabled={Boolean(
-          heldTreeRootId === null
-          && !shouldRenderLeaf
+          !shouldRenderLeaf
           && (focusedCardIndex === null || insertionTargetCard?.isTreasureCard)
         )}
         onIdleDoneStampDrop={(pageX, pageY) => {
