@@ -394,6 +394,27 @@ export function StackCard({
           </Pressable>
         )}
 
+        {shouldShowHold && (
+          <Pressable
+            accessibilityLabel="Pick up card tree"
+            accessibilityRole="button"
+            onPressIn={handleControlPressIn}
+            onPress={(event) => handleControlPress(event, () => {
+              onHoldCard?.(index);
+            })}
+            style={[
+              styles.iconButton,
+              styles.holdButton,
+            ]}
+          >
+            <Foundation
+              name="paw"
+              size={24}
+              color={isTreeDeleteHoldActive && !done ? '#DC2626' : '#0EA5E9'}
+            />
+          </Pressable>
+        )}
+
         {shouldShowControls && shouldShowEdit && (
           <Pressable
             accessibilityLabel={isEditing ? 'Confirm card' : 'Edit card'}
@@ -419,27 +440,6 @@ export function StackCard({
             ) : (
               <MaterialCommunityIcons color="#FFFFFF" name="pencil" size={18} />
             )}
-          </Pressable>
-        )}
-
-        {shouldShowHold && (
-          <Pressable
-            accessibilityLabel="Pick up card tree"
-            accessibilityRole="button"
-            onPressIn={handleControlPressIn}
-            onPress={(event) => handleControlPress(event, () => {
-              onHoldCard?.(index);
-            })}
-            style={[
-              styles.iconButton,
-              styles.holdButton,
-            ]}
-          >
-            <Foundation
-              name="paw"
-              size={24}
-              color={isTreeDeleteHoldActive && !done ? '#DC2626' : '#0EA5E9'}
-            />
           </Pressable>
         )}
 
