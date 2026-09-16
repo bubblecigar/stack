@@ -683,12 +683,16 @@ export const FloatingControls = forwardRef(function FloatingControls({
         <View
           {...addPanResponder.panHandlers}
           accessibilityHint={deckCard
-            ? 'Drag to explicitly insert the held tree. Double tap to switch view.'
+            ? (rootDoubleTapEnabled
+              ? 'Drag to explicitly insert the held tree. Double tap to collapse or expand the visible tree.'
+              : 'Drag to explicitly insert the held tree. Double tap to switch view.')
             : (rootDoubleTapEnabled
               ? 'Double tap to collapse all cards or expand non-treasure cards.'
               : 'Drag to insert a card. Double tap to switch view.')}
           accessibilityLabel={deckCard
-            ? 'Insert held tree or switch view'
+            ? (rootDoubleTapEnabled
+              ? 'Insert held tree or expand or collapse cards'
+              : 'Insert held tree or switch view')
             : (rootDoubleTapEnabled
               ? 'Expand or collapse cards'
               : 'Insert card or switch view')}

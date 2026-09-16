@@ -367,6 +367,28 @@ export function StackCard({
         />
       ) : null}
 
+      {shouldShowHold && (
+        <Pressable
+          accessibilityLabel="Pick up card tree"
+          accessibilityRole="button"
+          onPressIn={handleControlPressIn}
+          onPress={(event) => handleControlPress(event, () => {
+            onHoldCard?.(index);
+          })}
+          style={[
+            styles.iconButton,
+            styles.holdButton,
+            styles.treeHoldButton,
+          ]}
+        >
+          <Foundation
+            name="paw"
+            size={24}
+            color={isTreeDeleteHoldActive && !done ? '#DC2626' : '#0EA5E9'}
+          />
+        </Pressable>
+      )}
+
       <View style={[
         styles.cardControls,
         isTreeCard && styles.treeCardControls,
@@ -390,27 +412,6 @@ export function StackCard({
               color="#FFFFFF"
               name="flag-plus-outline"
               size={18}
-            />
-          </Pressable>
-        )}
-
-        {shouldShowHold && (
-          <Pressable
-            accessibilityLabel="Pick up card tree"
-            accessibilityRole="button"
-            onPressIn={handleControlPressIn}
-            onPress={(event) => handleControlPress(event, () => {
-              onHoldCard?.(index);
-            })}
-            style={[
-              styles.iconButton,
-              styles.holdButton,
-            ]}
-          >
-            <Foundation
-              name="paw"
-              size={24}
-              color={isTreeDeleteHoldActive && !done ? '#DC2626' : '#0EA5E9'}
             />
           </Pressable>
         )}

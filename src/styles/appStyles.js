@@ -1083,6 +1083,13 @@ export const styles = StyleSheet.create({
   holdButton: {
     backgroundColor: 'transparent',
   },
+  treeHoldButton: {
+    position: 'absolute',
+    left: 8,
+    bottom: 8,
+    zIndex: 3,
+    transform: [{ scale: 0.8 }],
+  },
   dangerButton: {
     backgroundColor: '#DC2626',
   },

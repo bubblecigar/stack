@@ -123,6 +123,21 @@ const HELD_TREE_LAYOUT_ANIMATION = {
     property: LayoutAnimation.Properties.opacity,
   },
 };
+const HELD_TREE_INSERT_LAYOUT_ANIMATION = {
+  duration: 240,
+  create: {
+    type: LayoutAnimation.Types.easeInEaseOut,
+    property: LayoutAnimation.Properties.opacity,
+  },
+  update: {
+    type: LayoutAnimation.Types.easeInEaseOut,
+  },
+  delete: {
+    duration: 140,
+    type: LayoutAnimation.Types.easeInEaseOut,
+    property: LayoutAnimation.Properties.opacity,
+  },
+};
 const EMPTY_TREE_COMPLETION_CANVAS = {
   entries: [],
   nodes: [],
@@ -1038,7 +1053,7 @@ export default function App() {
 
       requestAnimationFrame(() => {
         let movedIndex = -1;
-        LayoutAnimation.configureNext(HELD_TREE_LAYOUT_ANIMATION, () => {
+        LayoutAnimation.configureNext(HELD_TREE_INSERT_LAYOUT_ANIMATION, () => {
           if (movedIndex >= 0) {
             setFocusedCardIndex(movedIndex);
           }
@@ -1320,7 +1335,11 @@ export default function App() {
 
   function handleToggleAllTreeCards() {
     const collapsibleCards = systemTreeCards
-      .filter((card) => Array.isArray(card.childIds) && card.childIds.length > 0);
+      .filter((card) => (
+        !heldTreeCardIds.has(card.id)
+        && Array.isArray(card.childIds)
+        && card.childIds.length > 0
+      ));
     const collapsibleIds = collapsibleCards.map((card) => card.id);
     const expandableIds = collapsibleCards
       .filter((card) => (
@@ -2130,8 +2149,7 @@ export default function App() {
         onRootDoubleTap={handleToggleAllTreeCards}
         onLogout={handleLogoutRequest}
         rootDoubleTapEnabled={Boolean(
-          heldTreeRootId === null
-          && !shouldRenderLeaf
+          !shouldRenderLeaf
           && focusedCardIndex === null
         )}
         onToggleMode={handleToggleLayout}
