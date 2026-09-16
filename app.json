@@ -17,7 +17,7 @@
         "NSPhotoLibraryUsageDescription": "Allow Papers to scan selected images into cards.",
         "ITSAppUsesNonExemptEncryption": false
       },
-      "buildNumber": "5"
+      "buildNumber": "7"
     },
     "android": {
       "blockedPermissions": [
