@@ -110,7 +110,6 @@ export function StackCard({
     isFocusedCard
     && !isSystem
     && !imageUri
-    && !(isTreeCard && done)
   );
   const shouldShowAdoptMission = (
     shouldShowControls
@@ -439,7 +438,7 @@ export function StackCard({
             <Foundation
               name="paw"
               size={24}
-              color={isTreeDeleteHoldActive ? '#DC2626' : '#0EA5E9'}
+              color={isTreeDeleteHoldActive && !done ? '#DC2626' : '#0EA5E9'}
             />
           </Pressable>
         )}
