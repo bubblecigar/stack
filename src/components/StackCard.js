@@ -105,7 +105,8 @@ export function StackCard({
         ? focusedCardId === id
         : focusedCardIndex === index)
   );
-  const shouldShowControls = !hideControls && isFocusedCard;
+  const isPrimaryDeleteHoldCard = isDeleteHoldActive && isFocusedCard;
+  const shouldShowControls = !hideControls && isFocusedCard && !isPrimaryDeleteHoldCard;
   const shouldShowEdit = (
     isFocusedCard
     && !isSystem
@@ -123,7 +124,6 @@ export function StackCard({
     && !isSystem
     && !isEditing
   );
-  const isPrimaryDeleteHoldCard = isDeleteHoldActive && isFocusedCard;
   const isTreeDeleteHoldActive = isTreeCard && isPrimaryDeleteHoldCard;
   const isDoneCleanupPreviewCard = (
     done
