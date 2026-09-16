@@ -1407,6 +1407,10 @@ export default function App() {
       return;
     }
 
+    const heldCollapsibleIds = [
+      ...(focusedCard.childIds?.length > 0 ? [focusedCard.id] : []),
+      ...getCollapsibleDescendantIds(cards, focusedCard.id),
+    ];
     isHeldTransitionActiveRef.current = true;
     const [fromFrame, toFrame] = await Promise.all([
       treeCanvasRef.current?.measureCard?.(focusedCard.id) ?? Promise.resolve(null),
@@ -1429,6 +1433,13 @@ export default function App() {
     setIsDeleteHoldActive(false);
     requestAnimationFrame(() => {
       LayoutAnimation.configureNext(HELD_TREE_LAYOUT_ANIMATION);
+      if (heldCollapsibleIds.length > 0) {
+        setCollapsedNodeIds((currentCollapsed) => {
+          const nextCollapsed = new Set(currentCollapsed);
+          heldCollapsibleIds.forEach((cardId) => nextCollapsed.add(cardId));
+          return nextCollapsed;
+        });
+      }
       setHeldTreeRootId(focusedCard.id);
       if (!canAnimateFlight) {
         isHeldTransitionActiveRef.current = false;
