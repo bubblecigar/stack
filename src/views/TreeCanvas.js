@@ -6,7 +6,11 @@ import {
 } from 'react-native';
 import { styles } from '../styles/appStyles';
 import { buildTreeLayout, TREE_CANVAS_PADDING } from '../lib/treeLayout';
-import { buildPreviewCards, PREVIEW_CARD_ID } from '../lib/previewCards';
+import {
+  buildHeldTreePreviewCards,
+  buildPreviewCards,
+  PREVIEW_CARD_ID,
+} from '../lib/previewCards';
 import { getRubberBandDistance } from '../lib/rubberBand';
 import { StackCard } from '../components/StackCard';
 
@@ -27,19 +31,19 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
   editingValue,
   onCardPress,
   onCardFocus,
+  onHoldCard,
   onCreateEdit,
   onToggleCollapse,
   onDeleteCard,
   onDeleteHoldComplete,
   onAdoptMissionRoot,
-  onArchiveRootTree,
-  onRestoreRootTree,
   onEditingValueChange,
   onCompleteEdit,
   onDoneCard,
   onCanvasBlur,
   isDeleteHoldActive = false,
   addPreviewRelation = null,
+  heldTreeCards = [],
   newCardBackgroundColor,
 }, forwardedRef) {
   const treeHorizontalScrollRef = useRef(null);
@@ -52,6 +56,8 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
   const onDoneCardRef = useRef(onDoneCard);
   const cardTouchRef = useRef(false);
   const didCanvasPanRef = useRef(false);
+  const lastAutoCenteredCardIdRef = useRef(null);
+  const lastAutoRevealedPreviewRef = useRef(null);
   const treeScrollOffsetRef = useRef({
     x: 0,
     y: 0,
@@ -85,14 +91,29 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
   const previewCards = useMemo(
     () => {
       const localFocusedPosition = cards.findIndex((card) => card.index === focusedCardIndex);
-      return buildPreviewCards(
-        cards,
-        localFocusedPosition >= 0 ? localFocusedPosition : null,
-        addPreviewRelation,
-        newCardBackgroundColor,
-      );
+      const targetPosition = localFocusedPosition >= 0 ? localFocusedPosition : null;
+      return heldTreeCards.length > 0
+        ? buildHeldTreePreviewCards(
+          cards,
+          heldTreeCards,
+          targetPosition,
+          addPreviewRelation,
+        )
+        : buildPreviewCards(
+          cards,
+          targetPosition,
+          addPreviewRelation,
+          newCardBackgroundColor,
+        );
     },
-    [addPreviewRelation, cards, focusedCardIndex, newCardBackgroundColor],
+    [addPreviewRelation, cards, focusedCardIndex, heldTreeCards, newCardBackgroundColor],
+  );
+
+  const heldPreviewCardIds = useMemo(
+    () => new Set(
+      addPreviewRelation ? heldTreeCards.map((card) => card.id) : [],
+    ),
+    [addPreviewRelation, heldTreeCards],
   );
 
   const {
@@ -140,7 +161,9 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
     ),
     onPanResponderGrant: () => {
       didCanvasPanRef.current = false;
-      treePanStartOffsetRef.current = treeScrollOffsetRef.current;
+      const currentOffset = treeScrollOffsetRef.current;
+      scrollTreeTo(currentOffset.x, currentOffset.y);
+      treePanStartOffsetRef.current = { ...treeScrollOffsetRef.current };
       treeOverscrollX.stopAnimation();
       treeOverscrollY.stopAnimation();
       treeOverscrollX.setValue(0);
@@ -167,7 +190,21 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
   ]);
 
   useEffect(() => {
+    const currentOffset = treeScrollOffsetRef.current;
+    const clampedX = Math.min(Math.max(currentOffset.x, 0), maxScrollX);
+    const clampedY = Math.min(Math.max(currentOffset.y, 0), maxScrollY);
+
+    treeScrollOffsetRef.current = {
+      x: clampedX,
+      y: clampedY,
+    };
+    treeHorizontalScrollRef.current?.scrollTo({ x: clampedX, animated: false });
+    treeVerticalScrollRef.current?.scrollTo({ y: clampedY, animated: false });
+  }, [maxScrollX, maxScrollY]);
+
+  useEffect(() => {
     if (focusedCardIndex === null) {
+      lastAutoCenteredCardIdRef.current = null;
       return;
     }
 
@@ -180,6 +217,12 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
     if (!focusedEntry) {
       return;
     }
+
+    if (lastAutoCenteredCardIdRef.current === focusedEntry.card.id) {
+      return;
+    }
+
+    lastAutoCenteredCardIdRef.current = focusedEntry.card.id;
 
     const centeredX = focusedEntry.left + TREE_CANVAS_PADDING + (nodeWidth / 2);
     const bottomAlignedY = focusedEntry.top + TREE_CANVAS_PADDING + nodeHeight;
@@ -207,6 +250,58 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
     positionedCards,
     treeViewport.width,
     treeViewport.height,
+  ]);
+
+  useEffect(() => {
+    if (!addPreviewRelation) {
+      lastAutoRevealedPreviewRef.current = null;
+      return;
+    }
+
+    const viewport = treeViewport;
+    if (!viewport.width || !viewport.height) {
+      return;
+    }
+
+    const previewCardId = heldTreeCards[0]?.id ?? PREVIEW_CARD_ID;
+    const previewEntry = positionedCards.find(
+      ({ card, isCollapsedStacked }) => (
+        card.id === previewCardId && !isCollapsedStacked
+      ),
+    );
+    if (!previewEntry) {
+      return;
+    }
+
+    const revealKey = [
+      previewCardId,
+      addPreviewRelation,
+      previewEntry.left,
+      previewEntry.top,
+      viewport.width,
+      viewport.height,
+    ].join(':');
+    if (lastAutoRevealedPreviewRef.current === revealKey) {
+      return;
+    }
+    lastAutoRevealedPreviewRef.current = revealKey;
+
+    const previewLeft = previewEntry.left + TREE_CANVAS_PADDING;
+    const previewTop = previewEntry.top + TREE_CANVAS_PADDING;
+    const targetX = previewLeft + (nodeWidth / 2) - (viewport.width / 2);
+    const targetY = previewTop + (nodeHeight / 2) - (viewport.height / 2);
+
+    scrollTreeTo(targetX, targetY, true);
+  }, [
+    addPreviewRelation,
+    heldTreeCards,
+    maxScrollX,
+    maxScrollY,
+    nodeHeight,
+    nodeWidth,
+    positionedCards,
+    treeViewport.height,
+    treeViewport.width,
   ]);
 
   const paddedPositionedCards = positionedCards.map((entry) => ({
@@ -247,7 +342,35 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
     });
   }
 
+  function measureCard(cardId) {
+    return new Promise((resolve) => {
+      const targetEntry = positionedCardsRef.current.find(
+        (entry) => entry.card.id === cardId && !entry.isCollapsedStacked,
+      );
+
+      if (!targetEntry) {
+        resolve(null);
+        return;
+      }
+
+      if (!treeCanvasRef.current?.measureInWindow) {
+        resolve(null);
+        return;
+      }
+
+      treeCanvasRef.current.measureInWindow((canvasX, canvasY) => {
+        resolve({
+          x: canvasX + targetEntry.left,
+          y: canvasY + targetEntry.top,
+          width: treeNodeSizeRef.current.width,
+          height: treeNodeSizeRef.current.height,
+        });
+      });
+    });
+  }
+
   useImperativeHandle(forwardedRef, () => ({
+    measureCard,
     stampCardAtPagePoint,
   }), []);
 
@@ -275,6 +398,13 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
         scrollEnabled={false}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.treeHorizontalContent}
+        onScroll={(event) => {
+          treeScrollOffsetRef.current = {
+            ...treeScrollOffsetRef.current,
+            x: event.nativeEvent.contentOffset.x,
+          };
+        }}
+        scrollEventThrottle={16}
       >
         <ScrollView
           ref={treeVerticalScrollRef}
@@ -282,6 +412,13 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
           contentContainerStyle={styles.treeContent}
           scrollEnabled={false}
           showsVerticalScrollIndicator={false}
+          onScroll={(event) => {
+            treeScrollOffsetRef.current = {
+              ...treeScrollOffsetRef.current,
+              y: event.nativeEvent.contentOffset.y,
+            };
+          }}
+          scrollEventThrottle={16}
         >
           <Animated.View
             ref={treeCanvasRef}
@@ -299,8 +436,9 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
           >
             {paddedPositionedCards.map((entry) => {
               const { card, left, top, depth, placementOrder, isCollapsedStacked } = entry;
-              const isPreviewCard = card.id === PREVIEW_CARD_ID;
-              const isRootCard = !Array.isArray(card.parentIds) || card.parentIds.length === 0;
+              const isPreviewCard = (
+                card.id === PREVIEW_CARD_ID || heldPreviewCardIds.has(card.id)
+              );
               const isSystemCard = Boolean(
                 card.isMissionCard || card.isTreasureCard || card.isCollectionCard,
               );
@@ -318,11 +456,10 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
                   visibleIndex={0}
                   onPressIn={handleCardPressIn}
                   onFocusCard={onCardFocus}
+                  onHoldCard={onHoldCard}
                   hideControls={isPreviewCard || isSystemCard}
-                  isArchivedRoot={Boolean(card.isArchivedRoot)}
                   isMissionRoot={Boolean(card.isMissionRoot)}
                   isPreviewCard={isPreviewCard}
-                  isRootCard={isRootCard}
                   isMissionCard={Boolean(card.isMissionCard)}
                   isTreasureCard={Boolean(card.isTreasureCard)}
                   treePosition={{
@@ -344,8 +481,6 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
                   onDeleteCard={onDeleteCard}
                   onDeleteHoldComplete={onDeleteHoldComplete}
                   onAdoptMissionRoot={onAdoptMissionRoot}
-                  onArchiveRootTree={onArchiveRootTree}
-                  onRestoreRootTree={onRestoreRootTree}
                   onEditingValueChange={onEditingValueChange}
                   onCompleteEdit={onCompleteEdit}
                 />

@@ -4,18 +4,22 @@ import {
   Easing,
   PanResponder,
   Pressable,
+  Text,
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Image as CachedImage } from 'expo-image';
 import {
-  useEffect, useMemo, useRef, useState,
+  forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState,
 } from 'react';
+import { DoneStampArtwork } from './DoneStampArtwork';
 import { constrainAddRelation } from '../lib/cardInsertion';
 import {
   CARD_BACKGROUND_OPTIONS,
   DEFAULT_CARD_BACKGROUND_COLOR,
 } from '../lib/cardBackground';
 import { STAMP_ASSETS, STAMP_RENDER_SCALE } from '../config/stampAssets';
+import { getCardImageSource } from '../lib/cardImageCache';
 import { styles } from '../styles/appStyles';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -83,7 +87,7 @@ function getAddRelationFromPoint(dx, dy, fallbackRelation = null) {
   return fallbackRelation;
 }
 
-export function FloatingControls({
+export const FloatingControls = forwardRef(function FloatingControls({
   layoutMode,
   audioEnabled = true,
   onToggleMode,
@@ -104,7 +108,10 @@ export function FloatingControls({
   parentInsertionBlocked = false,
   disableCardInsertion = false,
   rootDoubleTapEnabled = false,
-}) {
+  deckCard = null,
+  deckCards = [],
+  deckTreeSize = 0,
+}, forwardedRef) {
   const shouldShowDelete = canDeleteCurrentCard;
   const activeStampSource = idleDoneStampEnabled
     ? STAMP_ASSETS.done
@@ -130,12 +137,49 @@ export function FloatingControls({
     pageX: 0,
     pageY: 0,
   });
+  const insertionCardRef = useRef(null);
   const selectedColorIndex = CARD_BACKGROUND_OPTIONS.findIndex(
     ({ color }) => color === newCardBackgroundColor,
   );
   const secondaryCardColor = CARD_BACKGROUND_OPTIONS[
     (selectedColorIndex + 1) % CARD_BACKGROUND_OPTIONS.length
   ];
+  const heldPileColors = useMemo(() => {
+    const layerCount = Math.min(Math.max(deckTreeSize - 1, 0), 2);
+    if (layerCount === 0) {
+      return [];
+    }
+
+    const descendantColors = deckCards
+      .slice(1)
+      .map((card) => card.backgroundColor || '#FFFFFF');
+    const representativeColors = [...new Set(descendantColors)];
+
+    descendantColors.forEach((color) => {
+      if (representativeColors.length < layerCount) {
+        representativeColors.push(color);
+      }
+    });
+
+    while (representativeColors.length < layerCount) {
+      representativeColors.push(deckCard?.backgroundColor || '#FFFFFF');
+    }
+
+    return representativeColors.slice(0, layerCount);
+  }, [deckCard?.backgroundColor, deckCards, deckTreeSize]);
+
+  useImperativeHandle(forwardedRef, () => ({
+    measureInsertionCard: () => new Promise((resolve) => {
+      if (!insertionCardRef.current?.measureInWindow) {
+        resolve(null);
+        return;
+      }
+
+      insertionCardRef.current.measureInWindow((x, y, width, height) => {
+        resolve({ x, y, width, height });
+      });
+    }),
+  }), []);
 
   useEffect(() => {
     Animated.timing(flipProgress, {
@@ -268,7 +312,7 @@ export function FloatingControls({
     resetAddPointing();
   }
 
-  function handleModeTap(dx, dy) {
+  function handleModeDoubleTap(dx, dy) {
     if (Math.hypot(dx, dy) > ADD_POINT_DEAD_ZONE) {
       lastModeTapRef.current = 0;
       return;
@@ -363,7 +407,7 @@ export function FloatingControls({
         return;
       }
 
-      handleModeTap(dx, dy);
+      handleModeDoubleTap(dx, dy);
     },
     onPanResponderTerminate: () => {
       resetAddPointing();
@@ -453,6 +497,71 @@ export function FloatingControls({
           <View pointerEvents="none" style={styles.settingsColorCutEdge} />
         </Pressable>
       </View>
+    );
+  }
+
+  function renderHeldInsertionCard() {
+    if (!deckCard) {
+      return null;
+    }
+
+    return (
+      <View pointerEvents="none" style={styles.addHeldCardContent}>
+        {deckCard.imageUri ? (
+          <CachedImage
+            cachePolicy="memory-disk"
+            contentFit="cover"
+            recyclingKey={deckCard.imageUri}
+            source={getCardImageSource(deckCard.imageUri)}
+            style={styles.addHeldCardImage}
+          />
+        ) : (
+          <Text
+            numberOfLines={8}
+            style={[
+              styles.addHeldCardText,
+              deckCard.done && styles.addHeldCardTextDone,
+            ]}
+          >
+            {deckCard.text}
+          </Text>
+        )}
+        {deckCard.done ? (
+          <DoneStampArtwork
+            uri={deckCard.doneStampUri}
+            style={styles.addHeldDoneStamp}
+          />
+        ) : null}
+      </View>
+    );
+  }
+
+  function renderHeldCardPile() {
+    if (!deckCard || deckTreeSize <= 1) {
+      return null;
+    }
+
+    return (
+      <>
+        <View
+          pointerEvents="none"
+          style={[
+            styles.addHeldPileLayer,
+            styles.addHeldPileLayerBack,
+            { backgroundColor: heldPileColors[0] },
+          ]}
+        />
+        {deckTreeSize > 2 ? (
+          <View
+            pointerEvents="none"
+            style={[
+              styles.addHeldPileLayer,
+              styles.addHeldPileLayerMiddle,
+              { backgroundColor: heldPileColors[1] },
+            ]}
+          />
+        ) : null}
+      </>
     );
   }
 
@@ -573,12 +682,20 @@ export function FloatingControls({
       >
         <View
           {...addPanResponder.panHandlers}
-          accessibilityHint={rootDoubleTapEnabled
-            ? 'Double tap to collapse all cards or expand non-treasure cards.'
-            : 'Drag to insert a card. Double tap to toggle leaf or tree view.'}
-          accessibilityLabel={rootDoubleTapEnabled
-            ? 'Expand or collapse cards'
-            : 'Insert card or toggle view'}
+          accessibilityHint={deckCard
+            ? (rootDoubleTapEnabled
+              ? 'Drag to explicitly insert the held tree. Double tap to collapse or expand the visible tree.'
+              : 'Drag to explicitly insert the held tree. Double tap to switch view.')
+            : (rootDoubleTapEnabled
+              ? 'Double tap to collapse all cards or expand non-treasure cards.'
+              : 'Drag to insert a card. Double tap to switch view.')}
+          accessibilityLabel={deckCard
+            ? (rootDoubleTapEnabled
+              ? 'Insert held tree or expand or collapse cards'
+              : 'Insert held tree or switch view')
+            : (rootDoubleTapEnabled
+              ? 'Expand or collapse cards'
+              : 'Insert card or switch view')}
           accessibilityRole="button"
           style={[
             styles.addCardControl,
@@ -586,6 +703,7 @@ export function FloatingControls({
           ]}
         >
           <Animated.View
+            ref={insertionCardRef}
             style={[
               styles.addCardButtonShell,
               {
@@ -619,20 +737,28 @@ export function FloatingControls({
                 },
               ]}
             >
-              <View
-                pointerEvents="none"
-                style={[
-                  styles.settingsSecondaryCard,
-                  { backgroundColor: secondaryCardColor.color },
-                ]}
-              />
+              {deckCard ? renderHeldCardPile() : (
+                <View
+                  pointerEvents="none"
+                  style={[
+                    styles.settingsSecondaryCard,
+                    { backgroundColor: secondaryCardColor.color },
+                  ]}
+                />
+              )}
               <View
                 style={[
                   styles.addCardButton,
-                  { backgroundColor: newCardBackgroundColor },
+                  {
+                    backgroundColor: deckCard
+                      ? (deckCard.backgroundColor || '#FFFFFF')
+                      : newCardBackgroundColor,
+                  },
                 ]}
               >
-                {renderColorPicker(isSettingsPanelOpen && layoutMode === 'leaf')}
+                {deckCard
+                  ? renderHeldInsertionCard()
+                  : renderColorPicker(isSettingsPanelOpen && layoutMode === 'leaf')}
               </View>
             </Animated.View>
             <Animated.View
@@ -652,20 +778,28 @@ export function FloatingControls({
                 },
               ]}
             >
-              <View
-                pointerEvents="none"
-                style={[
-                  styles.settingsSecondaryCard,
-                  { backgroundColor: secondaryCardColor.color },
-                ]}
-              />
+              {deckCard ? renderHeldCardPile() : (
+                <View
+                  pointerEvents="none"
+                  style={[
+                    styles.settingsSecondaryCard,
+                    { backgroundColor: secondaryCardColor.color },
+                  ]}
+                />
+              )}
               <View
                 style={[
                   styles.addCardButton,
-                  { backgroundColor: newCardBackgroundColor },
+                  {
+                    backgroundColor: deckCard
+                      ? (deckCard.backgroundColor || '#FFFFFF')
+                      : newCardBackgroundColor,
+                  },
                 ]}
               >
-                {renderColorPicker(isSettingsPanelOpen && layoutMode === 'tree')}
+                {deckCard
+                  ? renderHeldInsertionCard()
+                  : renderColorPicker(isSettingsPanelOpen && layoutMode === 'tree')}
               </View>
             </Animated.View>
             <View pointerEvents="box-none" style={styles.settingsPanelContent}>
@@ -703,4 +837,4 @@ export function FloatingControls({
       </Animated.View>
     </>
   );
-}
+});

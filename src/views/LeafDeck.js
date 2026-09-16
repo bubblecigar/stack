@@ -226,6 +226,7 @@ function getAddPreviewEndRotation(relation) {
 
 export function LeafDeck({
   cards,
+  heldTreeRootCard = null,
   topIndex,
   visibleCount = DEFAULT_VISIBLE_COUNT,
   editingIndex,
@@ -326,7 +327,7 @@ export function LeafDeck({
     childIds: [],
     text: '',
   };
-  const addPreviewCard = {
+  const addPreviewCard = heldTreeRootCard ?? {
     ...visualCard,
     backgroundColor: newCardBackgroundColor,
   };
@@ -1139,7 +1140,7 @@ export function LeafDeck({
                       onCompleteEdit={onCompleteEdit}
                       editingSelection={undefined}
                       onToggleCollapse={() => {}}
-                      leafContentMode="none"
+                      leafContentMode={heldTreeRootCard ? 'text' : 'none'}
                     />
                   </View>
                 </Animated.View>

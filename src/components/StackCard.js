@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import AntDesign from '@expo/vector-icons/AntDesign';
+import Feather from '@expo/vector-icons/Feather';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Image as CachedImage } from 'expo-image';
 import { useEffect, useRef, useState } from 'react';
@@ -54,23 +55,20 @@ export function StackCard({
   hideControls = false,
   treePosition,
   isCollapsedStacked = false,
-  isArchivedRoot = false,
   isMissionRoot = false,
-  isRootCard = false,
   isMissionCard = false,
   isTreasureCard = false,
   onPress,
   onPressIn,
   onCreateEdit,
   onAdoptMissionRoot,
-  onArchiveRootTree,
-  onRestoreRootTree,
   onDeleteCard,
   onDeleteHoldComplete,
   onEditingValueChange,
   onEditingSelectionChange,
   onCompleteEdit,
   onFocusCard,
+  onHoldCard,
   editingSelection,
   isDeleteHoldActive = false,
   doneCleanupPreviewCardIds = new Set(),
@@ -107,12 +105,12 @@ export function StackCard({
         ? focusedCardId === id
         : focusedCardIndex === index)
   );
-  const shouldShowControls = !hideControls && isFocusedCard;
+  const isPrimaryDeleteHoldCard = isDeleteHoldActive && isFocusedCard;
+  const shouldShowControls = !hideControls && isFocusedCard && !isPrimaryDeleteHoldCard;
   const shouldShowEdit = (
     isFocusedCard
     && !isSystem
     && !imageUri
-    && !(isTreeCard && done)
   );
   const shouldShowAdoptMission = (
     shouldShowControls
@@ -120,14 +118,13 @@ export function StackCard({
     && isMissionRootCard
     && !isEditing
   );
-  const shouldShowArchive = (
+  const shouldShowHold = (
     shouldShowControls
     && isTreeCard
-    && (isRootCard || isArchivedRoot)
     && !isSystem
     && !isEditing
+    && typeof onHoldCard === 'function'
   );
-  const isPrimaryDeleteHoldCard = isDeleteHoldActive && isFocusedCard;
   const isTreeDeleteHoldActive = isTreeCard && isPrimaryDeleteHoldCard;
   const isDoneCleanupPreviewCard = (
     done
@@ -165,9 +162,16 @@ export function StackCard({
       - (treePosition.placementOrder ?? 0)
     )
     : -1;
+  const previewTreeStackLayer = treePosition
+    ? (
+      13000
+      - ((treePosition.depth ?? 0) * 80)
+      - (treePosition.placementOrder ?? 0)
+    )
+    : 13000;
 
   const zLayer = isTreeCard
-    ? (isPreviewCard ? 13000 : (isFocusedCard ? 12000 : treeStackLayer))
+    ? (isPreviewCard ? previewTreeStackLayer : (isFocusedCard ? 12000 : treeStackLayer))
     : null;
 
   const dependencyText = '';
@@ -297,7 +301,7 @@ export function StackCard({
     />
   );
 
-  return (
+  const cardElement = (
     <AnimatedPressable
       disabled={isLeafCard || isPreviewCard}
       onPressIn={onPressIn}
@@ -313,11 +317,7 @@ export function StackCard({
         isTreeCard && isPreviewCard && styles.treePreviewCard,
         isTreeCard && isCollapsedStacked && styles.treeCollapsedCard,
         isEditing && isLeafCard && styles.leafEditingCard,
-        isTreeCard && treePosition && {
-          left: treePosition.left,
-          top: treePosition.top,
-          position: 'absolute',
-        },
+        isTreeCard && styles.treeCardForeground,
         isFocusedCard && !isLeafCard && styles.focusedCard,
         isFocusedCard && isSystem && styles.focusedTreasureCard,
         isDeleteProgressVisible && styles.deleteFocusedCard,
@@ -325,7 +325,6 @@ export function StackCard({
         isTreeCard
           && (isPrimaryDeleteHoldCard || isDoneCleanupPreviewCard)
           && { opacity: treeDeleteFadeOpacity },
-        zLayer != null ? { zIndex: zLayer } : null,
       ]}
     >
       {shouldShowCollapsedCornerLine ? (
@@ -386,33 +385,6 @@ export function StackCard({
             <MaterialCommunityIcons
               color="#FFFFFF"
               name="flag-plus-outline"
-              size={18}
-            />
-          </Pressable>
-        )}
-
-        {shouldShowArchive && (
-          <Pressable
-            accessibilityLabel={isArchivedRoot ? 'Restore tree' : 'Archive tree'}
-            accessibilityRole="button"
-            onPressIn={handleControlPressIn}
-            onPress={(event) => handleControlPress(event, () => {
-              if (isArchivedRoot) {
-                onRestoreRootTree?.(id);
-                return;
-              }
-
-              onArchiveRootTree?.(id);
-            })}
-            style={({ pressed }) => [
-              styles.iconButton,
-              styles.archiveButton,
-              pressed && styles.archiveButtonPressed,
-            ]}
-          >
-            <MaterialCommunityIcons
-              color="#FFFFFF"
-              name={isArchivedRoot ? 'archive-arrow-up-outline' : 'treasure-chest-outline'}
               size={18}
             />
           </Pressable>
@@ -732,5 +704,60 @@ export function StackCard({
         </Text>
       </View>
     </AnimatedPressable>
+  );
+
+  if (!isTreeCard || !treePosition) {
+    return cardElement;
+  }
+
+  return (
+    <View
+      pointerEvents="box-none"
+      style={[
+        styles.treeCardFrame,
+        {
+          left: treePosition.left,
+          top: treePosition.top,
+          zIndex: zLayer,
+        },
+      ]}
+    >
+      {shouldShowHold ? (
+        <View
+          pointerEvents="none"
+          style={[
+            styles.iconButton,
+            styles.treeHoldButton,
+            styles.treeHoldEar,
+          ]}
+        >
+          <Feather
+            name="corner-left-down"
+            size={24}
+            color="#0EA5E9"
+          />
+        </View>
+      ) : null}
+
+      {cardElement}
+
+      {shouldShowHold ? (
+        <Pressable
+          accessibilityLabel="Pick up card tree"
+          accessibilityRole="button"
+          hitSlop={{ top: 8, right: 18, bottom: 8, left: 8 }}
+          onPressIn={handleControlPressIn}
+          onPress={(event) => handleControlPress(event, () => {
+            onHoldCard?.(index);
+          })}
+          style={[
+            styles.iconButton,
+            styles.holdButton,
+            styles.treeHoldButton,
+            styles.treeHoldHitTarget,
+          ]}
+        />
+      ) : null}
+    </View>
   );
 }

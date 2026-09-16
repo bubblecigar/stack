@@ -1,5 +1,6 @@
 import {
   buildCardTraversal,
+  getCardTreeIds,
   getCollapsibleDescendantIds,
   moveInTraversal,
 } from './cardTraversal';
@@ -76,5 +77,18 @@ describe('getCollapsibleDescendantIds', () => {
     ];
 
     expect(getCollapsibleDescendantIds(cards, 'treasure')).toEqual(['branch']);
+  });
+});
+
+describe('getCardTreeIds', () => {
+  it('includes the root and every descendant', () => {
+    const cards = [
+      card('root', ['child']),
+      card('child', ['leaf'], ['root']),
+      card('leaf', [], ['child']),
+      card('other'),
+    ];
+
+    expect([...getCardTreeIds(cards, 'root')]).toEqual(['root', 'child', 'leaf']);
   });
 });

@@ -1,4 +1,8 @@
-import { buildPreviewCards, PREVIEW_CARD_ID } from './previewCards';
+import {
+  buildHeldTreePreviewCards,
+  buildPreviewCards,
+  PREVIEW_CARD_ID,
+} from './previewCards';
 
 function card(id, childIds = [], parentIds = []) {
   return {
@@ -74,5 +78,45 @@ describe('buildPreviewCards', () => {
 
     expect(root.childIds).toEqual(['first', PREVIEW_CARD_ID, 'second']);
     expect(preview.parentIds).toEqual(['root']);
+  });
+});
+
+describe('buildHeldTreePreviewCards', () => {
+  it('previews a held tree as the parent and appends the target after existing children', () => {
+    const visibleCards = [
+      card('root', ['target', 'held']),
+      card('target', [], ['root']),
+    ];
+    const heldCards = [
+      card('held', ['held-child']),
+      card('held-child', [], ['held']),
+    ];
+
+    const preview = buildHeldTreePreviewCards(visibleCards, heldCards, 1, 'parent');
+
+    expect(preview.find((entry) => entry.id === 'root').childIds).toEqual(['held']);
+    expect(preview.find((entry) => entry.id === 'held')).toMatchObject({
+      childIds: ['held-child', 'target'],
+      parentIds: ['root'],
+    });
+    expect(preview.find((entry) => entry.id === 'target').parentIds).toEqual(['held']);
+  });
+
+  it('previews a held tree at an unfocused root boundary', () => {
+    const visibleCards = [
+      { ...card('mission'), isMissionCard: true },
+      card('root'),
+      { ...card('treasure'), isTreasureCard: true },
+    ];
+    const heldCards = [card('held')];
+
+    expect(buildHeldTreePreviewCards(
+      visibleCards,
+      heldCards,
+      null,
+      'nextSibling',
+    ).map((entry) => entry.id)).toEqual([
+      'mission', 'root', 'held', 'treasure',
+    ]);
   });
 });
