@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import AntDesign from '@expo/vector-icons/AntDesign';
+import Foundation from '@expo/vector-icons/Foundation';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Image as CachedImage } from 'expo-image';
 import { useEffect, useRef, useState } from 'react';
@@ -430,13 +431,16 @@ export function StackCard({
             onPress={(event) => handleControlPress(event, () => {
               onHoldCard?.(index);
             })}
-            style={({ pressed }) => [
+            style={[
               styles.iconButton,
               styles.holdButton,
-              pressed && styles.holdButtonPressed,
             ]}
           >
-            <MaterialCommunityIcons color="#FFFFFF" name="cards-outline" size={19} />
+            <Foundation
+              name="paw"
+              size={24}
+              color={isTreeDeleteHoldActive ? '#DC2626' : '#0EA5E9'}
+            />
           </Pressable>
         )}
 

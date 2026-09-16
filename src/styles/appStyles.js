@@ -1081,10 +1081,7 @@ export const styles = StyleSheet.create({
     backgroundColor: '#475569',
   },
   holdButton: {
-    backgroundColor: '#64748B',
-  },
-  holdButtonPressed: {
-    backgroundColor: '#475569',
+    backgroundColor: 'transparent',
   },
   dangerButton: {
     backgroundColor: '#DC2626',
