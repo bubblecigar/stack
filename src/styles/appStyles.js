@@ -155,6 +155,13 @@ export const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
   },
+  heldPhotoCardFlightImage: {
+    left: 12,
+    right: 12,
+    top: 12,
+    bottom: 12,
+    borderRadius: 4,
+  },
   heldCardFlightTextWrap: {
     flex: 1,
     padding: 18,

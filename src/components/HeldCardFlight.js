@@ -40,6 +40,53 @@ export function HeldCardFlight({ card, fromFrame, onComplete, toFrame }) {
     inputRange: [0, 1],
     outputRange: [fromValue, toValue],
   });
+  const isPhotoCard = Boolean(card.imageUri);
+  const photoTargetScale = isPhotoCard
+    ? Math.min(
+      toFrame.width / Math.max(fromFrame.width, 1),
+      toFrame.height / Math.max(fromFrame.height, 1),
+    )
+    : 1;
+  const photoTargetLeft = toFrame.x + ((toFrame.width - fromFrame.width) / 2);
+  const photoTargetTop = toFrame.y + ((toFrame.height - fromFrame.height) / 2);
+  const flightLayoutStyle = isPhotoCard
+    ? {
+      left: interpolate(fromFrame.x, photoTargetLeft),
+      top: interpolate(fromFrame.y, photoTargetTop),
+      width: fromFrame.width,
+      height: fromFrame.height,
+      opacity: progress.interpolate({
+        inputRange: [0, 0.72, 1],
+        outputRange: [1, 1, 0],
+      }),
+      transform: [
+        {
+          scale: interpolate(1, photoTargetScale),
+        },
+        {
+          rotate: progress.interpolate({
+            inputRange: [0, 1],
+            outputRange: ['0deg', '-8deg'],
+          }),
+        },
+      ],
+    }
+    : {
+      left: interpolate(fromFrame.x, toFrame.x),
+      top: interpolate(fromFrame.y, toFrame.y),
+      width: interpolate(fromFrame.width, toFrame.width),
+      height: interpolate(fromFrame.height, toFrame.height),
+      opacity: progress.interpolate({
+        inputRange: [0, 0.82, 1],
+        outputRange: [1, 1, 0],
+      }),
+      transform: [{
+        rotate: progress.interpolate({
+          inputRange: [0, 1],
+          outputRange: ['0deg', '45deg'],
+        }),
+      }],
+    };
 
   return (
     <Animated.View
@@ -47,23 +94,10 @@ export function HeldCardFlight({ card, fromFrame, onComplete, toFrame }) {
       style={[
         styles.heldCardFlight,
         {
-          left: interpolate(fromFrame.x, toFrame.x),
-          top: interpolate(fromFrame.y, toFrame.y),
-          width: interpolate(fromFrame.width, toFrame.width),
-          height: interpolate(fromFrame.height, toFrame.height),
           borderRadius: interpolate(8, 8),
           backgroundColor: card.backgroundColor || '#FFFFFF',
-          opacity: progress.interpolate({
-            inputRange: [0, 0.82, 1],
-            outputRange: [1, 1, 0],
-          }),
-          transform: [{
-            rotate: progress.interpolate({
-              inputRange: [0, 1],
-              outputRange: ['0deg', '45deg'],
-            }),
-          }],
         },
+        flightLayoutStyle,
       ]}
     >
       {card.imageUri ? (
@@ -72,7 +106,10 @@ export function HeldCardFlight({ card, fromFrame, onComplete, toFrame }) {
           contentFit="cover"
           recyclingKey={card.imageUri}
           source={getCardImageSource(card.imageUri)}
-          style={styles.heldCardFlightImage}
+          style={[
+            styles.heldCardFlightImage,
+            styles.heldPhotoCardFlightImage,
+          ]}
         />
       ) : (
         <View style={styles.heldCardFlightTextWrap}>
