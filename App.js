@@ -19,6 +19,7 @@ import {
 import {
   adoptMissionRoot,
   canInsertRelativeTo,
+  clearCardImageAt,
   ensureSystemCards,
   getSnapshot,
   hasChildOnlyInsertion,
@@ -1741,6 +1742,29 @@ export default function App() {
 
   function handleCardCameraPress(card) {
     if (!card || isSystemCard(card) || updatingCardImageIdsRef.current.has(card.id)) {
+      return;
+    }
+
+    if (card.imagePath) {
+      Alert.alert(
+        'Remove card photo?',
+        'This will turn the picture card back into a blank card.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Remove photo',
+            style: 'destructive',
+            onPress: () => {
+              const currentIndex = getSnapshot().findIndex((item) => item.id === card.id);
+              if (clearCardImageAt(currentIndex)) {
+                setFocusedCardIndex(currentIndex);
+                setLeafTopIndex(currentIndex);
+                setLeafFocusedCardId(card.id);
+              }
+            },
+          },
+        ],
+      );
       return;
     }
 

@@ -1274,6 +1274,7 @@ export function LeafDeck({
       {canUseMathNotationPalette ? (
         <MathNotationPalette
           cameraDisabled={Boolean(activeCard?.isImageUpdating)}
+          hasPhoto={Boolean(activeCard?.imagePath)}
           locked={Boolean(activeCard?.isImageUpdating || activeCardDone)}
           onBackgroundColorChange={(backgroundColor) => {
             onCardBackgroundColorChange?.(activeCard.index, backgroundColor);

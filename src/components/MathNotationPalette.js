@@ -2,13 +2,14 @@ import {
   Pressable,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { CARD_BACKGROUND_OPTIONS } from '../lib/cardBackground';
 import { styles } from '../styles/appStyles';
 
 export function MathNotationPalette({
   cameraDisabled = false,
   disabled = false,
+  hasPhoto = false,
   locked = false,
   onBackgroundColorChange,
   onCameraPress,
@@ -28,7 +29,7 @@ export function MathNotationPalette({
         style={styles.mathNotationGrid}
       >
         <Pressable
-          accessibilityLabel="Take card photo"
+          accessibilityLabel={hasPhoto ? 'Remove card photo' : 'Take card photo'}
           accessibilityRole="button"
           disabled={disabled || locked || cameraDisabled}
           onTouchStart={onTouchStart}
@@ -40,31 +41,43 @@ export function MathNotationPalette({
             pressed && styles.mathNotationKeyPressed,
           ]}
         >
-          <Ionicons color="#94A3B8" name="camera-outline" size={22} />
+          {hasPhoto ? (
+            <MaterialCommunityIcons
+              color="#94A3B8"
+              name="image-remove-outline"
+              size={24}
+            />
+          ) : (
+            <Ionicons color="#94A3B8" name="camera-outline" size={22} />
+          )}
         </Pressable>
         {[
           ...CARD_BACKGROUND_OPTIONS.slice(1),
           CARD_BACKGROUND_OPTIONS[0],
         ].map((option) => (
-          <Pressable
-            key={option.color}
-            accessibilityLabel={`Set card color to ${option.label}`}
-            accessibilityRole="button"
-            disabled={disabled || locked}
-            onPress={() => onBackgroundColorChange?.(option.color)}
-            onTouchStart={onTouchStart}
-            style={({ pressed }) => [
-              styles.leafCardColorButton,
-              pressed && styles.mathNotationKeyPressed,
-            ]}
-          >
-            <View
-              style={[
-                styles.leafCardColorSwatch,
-                { backgroundColor: option.color },
+          hasPhoto ? (
+            <View key={option.color} style={styles.leafCardColorButton} />
+          ) : (
+            <Pressable
+              key={option.color}
+              accessibilityLabel={`Set card color to ${option.label}`}
+              accessibilityRole="button"
+              disabled={disabled || locked}
+              onPress={() => onBackgroundColorChange?.(option.color)}
+              onTouchStart={onTouchStart}
+              style={({ pressed }) => [
+                styles.leafCardColorButton,
+                pressed && styles.mathNotationKeyPressed,
               ]}
-            />
-          </Pressable>
+            >
+              <View
+                style={[
+                  styles.leafCardColorSwatch,
+                  { backgroundColor: option.color },
+                ]}
+              />
+            </Pressable>
+          )
         ))}
       </View>
     </View>
