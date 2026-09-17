@@ -1,6 +1,7 @@
 import {
   ActivityIndicator,
   Animated,
+  Easing,
   Image,
   Pressable,
   ScrollView,
@@ -188,11 +189,10 @@ export function StackCard({
     }
 
     treeEditReveal.setValue(0);
-    const animation = Animated.spring(treeEditReveal, {
+    const animation = Animated.timing(treeEditReveal, {
       toValue: 1,
-      damping: 12,
-      stiffness: 220,
-      mass: 0.8,
+      duration: 180,
+      easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     });
 
@@ -214,11 +214,10 @@ export function StackCard({
     }
 
     treeHoldReveal.setValue(0);
-    const animation = Animated.spring(treeHoldReveal, {
+    const animation = Animated.timing(treeHoldReveal, {
       toValue: 1,
-      damping: 12,
-      stiffness: 220,
-      mass: 0.8,
+      duration: 180,
+      easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     });
 

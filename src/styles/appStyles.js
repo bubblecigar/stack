@@ -1096,7 +1096,7 @@ export const styles = StyleSheet.create({
   treeHoldButton: {
     position: 'absolute',
     left: -29,
-    bottom: 8,
+    bottom: 22,
     width: 34,
     height: 34,
     borderRadius: 17,
