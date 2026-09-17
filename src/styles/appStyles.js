@@ -1103,7 +1103,7 @@ export const styles = StyleSheet.create({
   },
   treeHoldEar: {
     backgroundColor: 'transparent',
-    zIndex: 2,
+    zIndex: 0,
   },
   treeHoldHitTarget: {
     backgroundColor: 'transparent',

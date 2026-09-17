@@ -179,6 +179,7 @@ export function StackCard({
   const placeholderPulse = useRef(new Animated.Value(0)).current;
   const deleteHoldProgress = useRef(new Animated.Value(0)).current;
   const treeEditReveal = useRef(new Animated.Value(0)).current;
+  const treeHoldReveal = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (!isTreeCard || !shouldShowControls || !shouldShowEdit) {
@@ -204,6 +205,29 @@ export function StackCard({
     shouldShowControls,
     shouldShowEdit,
     treeEditReveal,
+  ]);
+
+  useEffect(() => {
+    if (!shouldShowHold) {
+      treeHoldReveal.setValue(0);
+      return undefined;
+    }
+
+    treeHoldReveal.setValue(0);
+    const animation = Animated.spring(treeHoldReveal, {
+      toValue: 1,
+      damping: 12,
+      stiffness: 220,
+      mass: 0.8,
+      useNativeDriver: true,
+    });
+
+    animation.start();
+
+    return () => animation.stop();
+  }, [
+    shouldShowHold,
+    treeHoldReveal,
   ]);
 
   useEffect(() => {
@@ -750,12 +774,29 @@ export function StackCard({
       ]}
     >
       {shouldShowHold ? (
-        <View
+        <Animated.View
           pointerEvents="none"
           style={[
             styles.iconButton,
             styles.treeHoldButton,
             styles.treeHoldEar,
+            {
+              opacity: treeHoldReveal,
+              transform: [
+                {
+                  translateX: treeHoldReveal.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [24, 0],
+                  }),
+                },
+                {
+                  scale: treeHoldReveal.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.72, 1],
+                  }),
+                },
+              ],
+            },
           ]}
         >
           <Feather
@@ -763,7 +804,7 @@ export function StackCard({
             size={24}
             color="#0EA5E9"
           />
-        </View>
+        </Animated.View>
       ) : null}
 
       {cardElement}
