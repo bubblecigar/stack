@@ -216,8 +216,8 @@ export function StackCard({
     treeHoldReveal.setValue(0);
     const animation = Animated.timing(treeHoldReveal, {
       toValue: 1,
-      duration: 180,
-      easing: Easing.out(Easing.cubic),
+      duration: 240,
+      easing: Easing.bezier(0.22, 1, 0.36, 1),
       useNativeDriver: true,
     });
 
@@ -785,13 +785,13 @@ export function StackCard({
                 {
                   translateX: treeHoldReveal.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [24, 0],
+                    outputRange: [18, 0],
                   }),
                 },
                 {
                   scale: treeHoldReveal.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [0.72, 1],
+                    outputRange: [0.88, 1],
                   }),
                 },
               ],
