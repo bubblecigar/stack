@@ -178,6 +178,33 @@ export function StackCard({
   const editingInputRef = useRef(null);
   const placeholderPulse = useRef(new Animated.Value(0)).current;
   const deleteHoldProgress = useRef(new Animated.Value(0)).current;
+  const treeEditReveal = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!isTreeCard || !shouldShowControls || !shouldShowEdit) {
+      treeEditReveal.setValue(0);
+      return undefined;
+    }
+
+    treeEditReveal.setValue(0);
+    const animation = Animated.spring(treeEditReveal, {
+      toValue: 1,
+      damping: 12,
+      stiffness: 220,
+      mass: 0.8,
+      useNativeDriver: true,
+    });
+
+    animation.start();
+
+    return () => animation.stop();
+  }, [
+    isEditing,
+    isTreeCard,
+    shouldShowControls,
+    shouldShowEdit,
+    treeEditReveal,
+  ]);
 
   useEffect(() => {
     if (!isLeafCard || leafContentMode !== 'placeholder') {
@@ -742,31 +769,54 @@ export function StackCard({
       {cardElement}
 
       {shouldShowControls && shouldShowEdit ? (
-        <Pressable
-          accessibilityLabel={isEditing ? 'Confirm card' : 'Edit card'}
-          accessibilityRole="button"
-          hitSlop={{ top: 8, right: 8, bottom: 8, left: 18 }}
-          onPressIn={handleControlPressIn}
-          onPress={(event) => handleControlPress(event, () => {
-            if (isEditing) {
-              onCompleteEdit?.(index, editingValue);
-              return;
-            }
-
-            onCreateEdit(index, text);
-          })}
-          style={({ pressed }) => [
-            styles.iconButton,
+        <Animated.View
+          style={[
             styles.treeEditButton,
-            pressed && styles.treeEditButtonPressed,
+            {
+              opacity: treeEditReveal,
+              transform: [
+                {
+                  translateX: treeEditReveal.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [-24, 0],
+                  }),
+                },
+                {
+                  scale: treeEditReveal.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.72, 1],
+                  }),
+                },
+              ],
+            },
           ]}
         >
-          {isEditing ? (
-            <MaterialCommunityIcons color="#0EA5E9" name="check-underline" size={25} />
-          ) : (
-            <AntDesign color="#0EA5E9" name="edit" size={23} />
-          )}
-        </Pressable>
+          <Pressable
+            accessibilityLabel={isEditing ? 'Confirm card' : 'Edit card'}
+            accessibilityRole="button"
+            hitSlop={{ top: 8, right: 8, bottom: 8, left: 18 }}
+            onPressIn={handleControlPressIn}
+            onPress={(event) => handleControlPress(event, () => {
+              if (isEditing) {
+                onCompleteEdit?.(index, editingValue);
+                return;
+              }
+
+              onCreateEdit(index, text);
+            })}
+            style={({ pressed }) => [
+              styles.iconButton,
+              styles.treeEditButtonSurface,
+              pressed && styles.treeEditButtonPressed,
+            ]}
+          >
+            {isEditing ? (
+              <MaterialCommunityIcons color="#0EA5E9" name="check-underline" size={25} />
+            ) : (
+              <AntDesign color="#0EA5E9" name="edit" size={23} />
+            )}
+          </Pressable>
+        </Animated.View>
       ) : null}
 
       {shouldShowHold ? (
