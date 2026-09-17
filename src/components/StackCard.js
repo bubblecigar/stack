@@ -390,7 +390,7 @@ export function StackCard({
           </Pressable>
         )}
 
-        {shouldShowControls && shouldShowEdit && (
+        {shouldShowControls && shouldShowEdit && !isTreeCard && (
           <Pressable
             accessibilityLabel={isEditing ? 'Confirm card' : 'Edit card'}
             accessibilityRole="button"
@@ -740,6 +740,34 @@ export function StackCard({
       ) : null}
 
       {cardElement}
+
+      {shouldShowControls && shouldShowEdit ? (
+        <Pressable
+          accessibilityLabel={isEditing ? 'Confirm card' : 'Edit card'}
+          accessibilityRole="button"
+          hitSlop={{ top: 8, right: 8, bottom: 8, left: 18 }}
+          onPressIn={handleControlPressIn}
+          onPress={(event) => handleControlPress(event, () => {
+            if (isEditing) {
+              onCompleteEdit?.(index, editingValue);
+              return;
+            }
+
+            onCreateEdit(index, text);
+          })}
+          style={({ pressed }) => [
+            styles.iconButton,
+            styles.treeEditButton,
+            pressed && styles.treeEditButtonPressed,
+          ]}
+        >
+          {isEditing ? (
+            <MaterialCommunityIcons color="#0EA5E9" name="check-underline" size={25} />
+          ) : (
+            <AntDesign color="#0EA5E9" name="edit" size={23} />
+          )}
+        </Pressable>
+      ) : null}
 
       {shouldShowHold ? (
         <Pressable

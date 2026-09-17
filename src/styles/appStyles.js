@@ -1109,6 +1109,16 @@ export const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     zIndex: 3,
   },
+  treeEditButton: {
+    position: 'absolute',
+    right: -31,
+    bottom: 22,
+    backgroundColor: 'transparent',
+    zIndex: 3,
+  },
+  treeEditButtonPressed: {
+    opacity: 0.62,
+  },
   dangerButton: {
     backgroundColor: '#DC2626',
   },
