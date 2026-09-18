@@ -1,8 +1,36 @@
 import { Animated, Easing, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { useEffect, useRef, useState } from 'react';
 import { styles } from '../styles/appStyles';
 
 const DELETE_HOLD_MS = 500;
+const WATER_WAVE_PERIOD = 160;
+const WATER_WAVE_WIDTH = 960;
+const WATER_WAVE_HEIGHT = 20;
+const WATER_WAVE_PATH = [
+  'M 0 7',
+  ...Array.from({ length: 6 }, (_, index) => {
+    const startX = index * WATER_WAVE_PERIOD;
+    return [
+      `C ${startX + 27} 2 ${startX + 53} 2 ${startX + 80} 7`,
+      `C ${startX + 107} 12 ${startX + 133} 12 ${startX + 160} 7`,
+    ].join(' ');
+  }),
+  `L ${WATER_WAVE_WIDTH} ${WATER_WAVE_HEIGHT}`,
+  `L 0 ${WATER_WAVE_HEIGHT} Z`,
+].join(' ');
+
+function WaterWave() {
+  return (
+    <Svg
+      height={WATER_WAVE_HEIGHT}
+      viewBox={`0 0 ${WATER_WAVE_WIDTH} ${WATER_WAVE_HEIGHT}`}
+      width={WATER_WAVE_WIDTH}
+    >
+      <Path d={WATER_WAVE_PATH} fill="#2563EB" />
+    </Svg>
+  );
+}
 
 export function DeleteHoldIndicator({
   active,
@@ -68,9 +96,21 @@ export function DeleteHoldIndicator({
     return null;
   }
 
-  const fillTranslateX = progress.interpolate({
+  const fillTranslateY = progress.interpolate({
     inputRange: [0, 1],
-    outputRange: ['-100%', '0%'],
+    outputRange: ['100%', '0%'],
+  });
+  const waveTranslateX = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -WATER_WAVE_PERIOD],
+  });
+  const backWaveTranslateX = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-WATER_WAVE_PERIOD, 0],
+  });
+  const backWaveTranslateY = progress.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0, 3, 0],
   });
 
   return (
@@ -85,10 +125,30 @@ export function DeleteHoldIndicator({
         style={[
           styles.deleteProgressCardFill,
           {
-            transform: [{ translateX: fillTranslateX }],
+            transform: [{ translateY: fillTranslateY }],
           },
         ]}
       >
+        <Animated.View style={[
+          styles.deleteProgressWaterWave,
+          styles.deleteProgressWaterWaveBack,
+          {
+            transform: [
+              { translateX: backWaveTranslateX },
+              { translateY: backWaveTranslateY },
+            ],
+          },
+        ]}
+        >
+          <WaterWave />
+        </Animated.View>
+        <Animated.View style={[
+          styles.deleteProgressWaterWave,
+          { transform: [{ translateX: waveTranslateX }] },
+        ]}
+        >
+          <WaterWave />
+        </Animated.View>
         <View
           style={[
             styles.deleteProgressCardFillSurface,

@@ -301,6 +301,18 @@ export const styles = StyleSheet.create({
     right: 0,
     top: 0,
     bottom: 0,
+    opacity: 0.14,
+  },
+  deleteProgressWaterWave: {
+    position: 'absolute',
+    left: -160,
+    top: -11,
+    width: 960,
+    height: 20,
+  },
+  deleteProgressWaterWaveBack: {
+    top: -9,
+    opacity: 0.48,
   },
   deleteProgressCardFillSurface: {
     position: 'absolute',
@@ -308,10 +320,10 @@ export const styles = StyleSheet.create({
     right: 0,
     top: 0,
     bottom: 0,
-    backgroundColor: 'rgba(37, 99, 235, 0.14)',
+    backgroundColor: '#2563EB',
   },
   doneProgressCardFillSurface: {
-    backgroundColor: 'rgba(37, 99, 235, 0.14)',
+    backgroundColor: '#2563EB',
   },
   deleteCompletionFlash: {
     position: 'absolute',
