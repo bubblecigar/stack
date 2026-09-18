@@ -642,25 +642,17 @@ export function StackCard({
               </View>
             ) : null}
             {canShowDoneStamp ? (
-              <>
-                {imageUri ? (
-                  <View
-                    pointerEvents="none"
-                    style={styles.leafImageDoneStampBackground}
-                  />
-                ) : null}
-                <DoneStampArtwork
-                  overrideSource={isDoneCleanupPreviewCard
-                    ? STAMP_ASSETS.card.void
-                    : null}
-                  uri={doneStampUri}
-                  style={[
-                    styles.leafDoneStampOverlay,
-                    imageUri && styles.imageDoneStampArtwork,
-                    deleteStampAnimatedStyle,
-                  ]}
-                />
-              </>
+              <DoneStampArtwork
+                overrideSource={isDoneCleanupPreviewCard
+                  ? STAMP_ASSETS.card.void
+                  : null}
+                uri={doneStampUri}
+                style={[
+                  styles.leafDoneStampOverlay,
+                  imageUri && styles.imageDoneStampArtwork,
+                  deleteStampAnimatedStyle,
+                ]}
+              />
             ) : null}
           </View>
         ) : (
@@ -719,25 +711,17 @@ export function StackCard({
               </Text>
             )}
             {done ? (
-              <>
-                {imageUri ? (
-                  <View
-                    pointerEvents="none"
-                    style={styles.treeImageDoneStampBackground}
-                  />
-                ) : null}
-                <DoneStampArtwork
-                  overrideSource={isFocusedCard || isDoneCleanupPreviewCard
-                    ? STAMP_ASSETS.card.void
-                    : null}
-                  uri={doneStampUri}
-                  style={[
-                    styles.treeDoneStampOverlay,
-                    imageUri && styles.imageDoneStampArtwork,
-                    deleteStampAnimatedStyle,
-                  ]}
-                />
-              </>
+              <DoneStampArtwork
+                overrideSource={isFocusedCard || isDoneCleanupPreviewCard
+                  ? STAMP_ASSETS.card.void
+                  : null}
+                uri={doneStampUri}
+                style={[
+                  styles.treeDoneStampOverlay,
+                  imageUri && styles.imageDoneStampArtwork,
+                  deleteStampAnimatedStyle,
+                ]}
+              />
             ) : null}
           </Animated.View>
         )
