@@ -62,7 +62,7 @@ export function CompletionProgressTree({
             <DoneStampArtwork
               defaultArtworkStyle={styles.completionProgressDoneArtwork}
               key={entry.card.id || `completion-stamp-${entryIndex}`}
-              overrideSource={shouldShowVoidCircle ? STAMP_ASSETS.void.background : null}
+              overrideSource={shouldShowVoidCircle ? STAMP_ASSETS.control.gray.circle : null}
               uri={resolveApiAssetUrl(getDoneCollectionPath(visualId))}
               style={[
                 styles.completionProgressStamp,

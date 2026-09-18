@@ -8,20 +8,20 @@ const CAT_EXIT_DURATION_MS = 300;
 const CIRCLE_COLOR_DURATION_MS = 300;
 const CAT_HIDDEN_OFFSET_Y = 42;
 
-export const STAMP_STATE_BLUE_CAT = 'blue-cat';
-export const STAMP_STATE_BLUE_CIRCLE = 'blue-circle';
-export const STAMP_STATE_GRAY_CAT = 'gray-cat';
-export const STAMP_STATE_GRAY_CIRCLE = 'gray-circle';
+export const STAMP_CONTROL_STATE_BLUE_CAT = 'blue-cat';
+export const STAMP_CONTROL_STATE_BLUE_CIRCLE = 'blue-circle';
+export const STAMP_CONTROL_STATE_GRAY_CAT = 'gray-cat';
+export const STAMP_CONTROL_STATE_GRAY_CIRCLE = 'gray-circle';
 
 function getStampProgress(stampState) {
   const isGray = (
-    stampState === STAMP_STATE_GRAY_CAT
-    || stampState === STAMP_STATE_GRAY_CIRCLE
+    stampState === STAMP_CONTROL_STATE_GRAY_CAT
+    || stampState === STAMP_CONTROL_STATE_GRAY_CIRCLE
   );
 
   return {
-    blueCat: stampState === STAMP_STATE_BLUE_CAT ? 1 : 0,
-    grayCat: stampState === STAMP_STATE_GRAY_CAT ? 1 : 0,
+    blueCat: stampState === STAMP_CONTROL_STATE_BLUE_CAT ? 1 : 0,
+    grayCat: stampState === STAMP_CONTROL_STATE_GRAY_CAT ? 1 : 0,
     grayCircle: isGray ? 1 : 0,
   };
 }
@@ -37,7 +37,7 @@ function createCatAnimation(progress, visible) {
   });
 }
 
-export function AnimatedStampArtwork({ stampState, style }) {
+export function StampControlArtwork({ stampState, style }) {
   const initialProgress = getStampProgress(stampState);
   const blueCatProgress = useRef(new Animated.Value(initialProgress.blueCat)).current;
   const grayCatProgress = useRef(new Animated.Value(initialProgress.grayCat)).current;
@@ -53,22 +53,22 @@ export function AnimatedStampArtwork({ stampState, style }) {
     grayCircleProgress.stopAnimation();
 
     const isBlueCatTransition = (
-      (previousStampState === STAMP_STATE_BLUE_CAT
-        && stampState === STAMP_STATE_BLUE_CIRCLE)
-      || (previousStampState === STAMP_STATE_BLUE_CIRCLE
-        && stampState === STAMP_STATE_BLUE_CAT)
+      (previousStampState === STAMP_CONTROL_STATE_BLUE_CAT
+        && stampState === STAMP_CONTROL_STATE_BLUE_CIRCLE)
+      || (previousStampState === STAMP_CONTROL_STATE_BLUE_CIRCLE
+        && stampState === STAMP_CONTROL_STATE_BLUE_CAT)
     );
     const isGrayCatTransition = (
-      (previousStampState === STAMP_STATE_GRAY_CAT
-        && stampState === STAMP_STATE_GRAY_CIRCLE)
-      || (previousStampState === STAMP_STATE_GRAY_CIRCLE
-        && stampState === STAMP_STATE_GRAY_CAT)
+      (previousStampState === STAMP_CONTROL_STATE_GRAY_CAT
+        && stampState === STAMP_CONTROL_STATE_GRAY_CIRCLE)
+      || (previousStampState === STAMP_CONTROL_STATE_GRAY_CIRCLE
+        && stampState === STAMP_CONTROL_STATE_GRAY_CAT)
     );
     const isBlueCircleGrayCatTransition = (
-      (previousStampState === STAMP_STATE_BLUE_CIRCLE
-        && stampState === STAMP_STATE_GRAY_CAT)
-      || (previousStampState === STAMP_STATE_GRAY_CAT
-        && stampState === STAMP_STATE_BLUE_CIRCLE)
+      (previousStampState === STAMP_CONTROL_STATE_BLUE_CIRCLE
+        && stampState === STAMP_CONTROL_STATE_GRAY_CAT)
+      || (previousStampState === STAMP_CONTROL_STATE_GRAY_CAT
+        && stampState === STAMP_CONTROL_STATE_BLUE_CIRCLE)
     );
 
     if (isBlueCatTransition) {
@@ -76,7 +76,7 @@ export function AnimatedStampArtwork({ stampState, style }) {
       grayCircleProgress.setValue(0);
       const animation = createCatAnimation(
         blueCatProgress,
-        stampState === STAMP_STATE_BLUE_CAT,
+        stampState === STAMP_CONTROL_STATE_BLUE_CAT,
       );
       animation.start();
       return () => animation.stop();
@@ -87,7 +87,7 @@ export function AnimatedStampArtwork({ stampState, style }) {
       grayCircleProgress.setValue(1);
       const animation = createCatAnimation(
         grayCatProgress,
-        stampState === STAMP_STATE_GRAY_CAT,
+        stampState === STAMP_CONTROL_STATE_GRAY_CAT,
       );
       animation.start();
       return () => animation.stop();
@@ -95,7 +95,7 @@ export function AnimatedStampArtwork({ stampState, style }) {
 
     if (isBlueCircleGrayCatTransition) {
       blueCatProgress.setValue(0);
-      const showGrayStamp = stampState === STAMP_STATE_GRAY_CAT;
+      const showGrayStamp = stampState === STAMP_CONTROL_STATE_GRAY_CAT;
       const animation = Animated.parallel([
         createCatAnimation(grayCatProgress, showGrayStamp),
         Animated.timing(grayCircleProgress, {
@@ -135,14 +135,14 @@ export function AnimatedStampArtwork({ stampState, style }) {
   return (
     <Animated.View pointerEvents="none" style={style}>
       <Animated.Image
-        source={STAMP_ASSETS.void.default}
+        source={STAMP_ASSETS.control.blue.circle}
         style={[
           styles.voidStampCircleArtwork,
           { opacity: blueCircleOpacity },
         ]}
       />
       <Animated.Image
-        source={STAMP_ASSETS.void.grayCircle}
+        source={STAMP_ASSETS.control.gray.circle}
         style={[
           styles.voidStampCircleArtwork,
           { opacity: grayCircleProgress },
@@ -150,14 +150,14 @@ export function AnimatedStampArtwork({ stampState, style }) {
       />
       <View style={styles.voidStampCatClip}>
         <Animated.Image
-          source={STAMP_ASSETS.void.cat}
+          source={STAMP_ASSETS.control.blue.cat}
           style={[
             styles.voidStampCatArtwork,
             { transform: [{ translateY: blueCatTranslateY }] },
           ]}
         />
         <Animated.Image
-          source={STAMP_ASSETS.void.grayCat}
+          source={STAMP_ASSETS.control.gray.cat}
           style={[
             styles.voidStampCatArtwork,
             { transform: [{ translateY: grayCatTranslateY }] },

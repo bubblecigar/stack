@@ -33,7 +33,7 @@ export function DoneStampArtwork({
     return (
       <Animated.View pointerEvents="none" style={style}>
         <Image
-          source={STAMP_ASSETS.done}
+          source={STAMP_ASSETS.card.default}
           style={[
             styles.doneStampFullArtwork,
             styles.doneStampDefaultArtwork,
@@ -47,7 +47,10 @@ export function DoneStampArtwork({
 
   return (
     <Animated.View pointerEvents="none" style={style}>
-      <Image source={STAMP_ASSETS.doneRings} style={styles.doneStampMonsterBackgroundArtwork} />
+      <Image
+        source={STAMP_ASSETS.card.collectionRings}
+        style={styles.doneStampMonsterBackgroundArtwork}
+      />
       <CachedImage
         cachePolicy="memory-disk"
         contentFit="contain"

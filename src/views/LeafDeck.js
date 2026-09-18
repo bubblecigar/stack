@@ -16,10 +16,10 @@ import { Image as CachedImage } from 'expo-image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MathNotationPalette } from '../components/MathNotationPalette';
 import {
-  AnimatedStampArtwork,
-  STAMP_STATE_GRAY_CAT,
-  STAMP_STATE_GRAY_CIRCLE,
-} from '../components/AnimatedStampArtwork';
+  StampControlArtwork,
+  STAMP_CONTROL_STATE_GRAY_CAT,
+  STAMP_CONTROL_STATE_GRAY_CIRCLE,
+} from '../components/StampControlArtwork';
 import { StackCard } from '../components/StackCard';
 import { STAMP_RENDER_SCALE } from '../config/stampAssets';
 import { getCardImageSource } from '../lib/cardImageCache';
@@ -1240,8 +1240,10 @@ export function LeafDeck({
               },
             ]}
           >
-            <AnimatedStampArtwork
-              stampState={activeCardDone ? STAMP_STATE_GRAY_CIRCLE : STAMP_STATE_GRAY_CAT}
+            <StampControlArtwork
+              stampState={activeCardDone
+                ? STAMP_CONTROL_STATE_GRAY_CIRCLE
+                : STAMP_CONTROL_STATE_GRAY_CAT}
               style={[
                 styles.leafDoneStampIcon,
                 {

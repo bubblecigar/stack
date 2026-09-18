@@ -1,15 +1,20 @@
 // Change these static asset references to try a different stamp design.
 // Keep require() paths literal so Metro can include the images in the app bundle.
 export const STAMP_ASSETS = Object.freeze({
-  done: require('../../assets/collections/mobile/monster-gray-02fe9eabd8acbc2c.webp'),
-  doneRings: require('../../assets/card/done_stamp_rings_gray.png'),
-  void: Object.freeze({
-    background: require('../../assets/collections/monster-gray-out-circle.webp'),
-    cat: require('../../assets/collections/mobile/cat.webp'),
-    default: require('../../assets/collections/monster-blue-out-circle.webp'),
-    doneCard: require('../../assets/collections/mobile/monster-blue-f70c8ce7fea5d0ef.webp'),
-    grayCat: require('../../assets/collections/mobile/gray-cat.webp'),
-    grayCircle: require('../../assets/collections/mobile/gray-circle.webp'),
+  card: Object.freeze({
+    collectionRings: require('../../assets/stamps/card/collection-rings-gray.png'),
+    default: require('../../assets/stamps/card/gray-cat.webp'),
+    void: require('../../assets/stamps/card/blue-cat.webp'),
+  }),
+  control: Object.freeze({
+    blue: Object.freeze({
+      cat: require('../../assets/stamps/control/blue-cat.webp'),
+      circle: require('../../assets/stamps/control/blue-circle.webp'),
+    }),
+    gray: Object.freeze({
+      cat: require('../../assets/stamps/control/gray-cat.webp'),
+      circle: require('../../assets/stamps/control/gray-circle.webp'),
+    }),
   }),
 });
 

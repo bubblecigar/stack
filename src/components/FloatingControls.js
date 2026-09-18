@@ -14,11 +14,11 @@ import {
 } from 'react';
 import { DoneStampArtwork } from './DoneStampArtwork';
 import {
-  AnimatedStampArtwork,
-  STAMP_STATE_BLUE_CAT,
-  STAMP_STATE_BLUE_CIRCLE,
-  STAMP_STATE_GRAY_CAT,
-} from './AnimatedStampArtwork';
+  StampControlArtwork,
+  STAMP_CONTROL_STATE_BLUE_CAT,
+  STAMP_CONTROL_STATE_BLUE_CIRCLE,
+  STAMP_CONTROL_STATE_GRAY_CAT,
+} from './StampControlArtwork';
 import { constrainAddRelation } from '../lib/cardInsertion';
 import {
   CARD_BACKGROUND_OPTIONS,
@@ -119,8 +119,10 @@ export const FloatingControls = forwardRef(function FloatingControls({
 }, forwardedRef) {
   const shouldShowDelete = canDeleteCurrentCard;
   const treeStampState = idleDoneStampEnabled
-    ? STAMP_STATE_GRAY_CAT
-    : (deleteTargetDone ? STAMP_STATE_BLUE_CAT : STAMP_STATE_BLUE_CIRCLE);
+    ? STAMP_CONTROL_STATE_GRAY_CAT
+    : (deleteTargetDone
+      ? STAMP_CONTROL_STATE_BLUE_CAT
+      : STAMP_CONTROL_STATE_BLUE_CIRCLE);
   const [isAddPressed, setIsAddPressed] = useState(false);
   const [addCardRotation, setAddCardRotation] = useState(ADD_CARD_BASE_ROTATION);
   const [addCardOffsetX, setAddCardOffsetX] = useState(0);
@@ -556,7 +558,7 @@ export const FloatingControls = forwardRef(function FloatingControls({
               (isDeleteStampPressed || isIdleStampDragging) && styles.deleteCardButtonPressed,
             ]}
           >
-            <AnimatedStampArtwork
+            <StampControlArtwork
               stampState={treeStampState}
               style={[
                 styles.deleteStampIcon,
