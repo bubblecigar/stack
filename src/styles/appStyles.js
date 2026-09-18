@@ -308,7 +308,7 @@ export const styles = StyleSheet.create({
     right: 0,
     top: 0,
     bottom: 0,
-    backgroundColor: 'rgba(220, 38, 38, 0.16)',
+    backgroundColor: 'rgba(37, 99, 235, 0.14)',
   },
   doneProgressCardFillSurface: {
     backgroundColor: 'rgba(37, 99, 235, 0.14)',
@@ -640,8 +640,8 @@ export const styles = StyleSheet.create({
     opacity: 1,
   },
   deleteTreeCollapsedCornerLine: {
-    borderRightColor: '#DC2626',
-    borderBottomColor: '#DC2626',
+    borderRightColor: '#0EA5E9',
+    borderBottomColor: '#0EA5E9',
     opacity: 1,
   },
   doneCleanupTreeCollapsedCornerLine: {
@@ -1060,8 +1060,8 @@ export const styles = StyleSheet.create({
     elevation: 18,
   },
   deleteFocusedCard: {
-    borderColor: '#DC2626',
-    shadowColor: '#DC2626',
+    borderColor: '#0EA5E9',
+    shadowColor: '#0EA5E9',
     shadowOpacity: 0.38,
   },
   doneCleanupFocusedCard: {

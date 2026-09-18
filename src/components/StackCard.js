@@ -142,10 +142,10 @@ export function StackCard({
     && !isCollection
   );
   const editButtonColor = isTreeDeleteHoldActive
-    ? (done || isCollection ? '#0EA5E9' : '#DC2626')
+    ? '#0EA5E9'
     : (isTreeCard ? '#0EA5E9' : '#0F172A');
   const editButtonPressedColor = isTreeDeleteHoldActive
-    ? (done || isCollection ? '#0284C7' : '#B91C1C')
+    ? '#0284C7'
     : (isTreeCard ? '#0284C7' : '#2563EB');
   const treasureIconSize = isLeafCard ? 40 : 30;
   const canShowDoneStamp = done && !isSystem;
