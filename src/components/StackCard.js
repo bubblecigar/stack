@@ -725,7 +725,9 @@ export function StackCard({
                   />
                 ) : null}
                 <DoneStampArtwork
-                  overrideSource={isDoneCleanupPreviewCard ? STAMP_ASSETS.void.doneCard : null}
+                  overrideSource={isFocusedCard || isDoneCleanupPreviewCard
+                    ? STAMP_ASSETS.void.doneCard
+                    : null}
                   uri={doneStampUri}
                   style={[
                     styles.treeDoneStampOverlay,
