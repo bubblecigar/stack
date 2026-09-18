@@ -2,6 +2,7 @@ import {
   Animated,
   Dimensions,
   Easing,
+  Image,
   PanResponder,
   Pressable,
   Text,
@@ -39,6 +40,50 @@ const SETTINGS_PANEL_CENTER_OFFSET_X = 0;
 const SETTINGS_PANEL_CENTER_OFFSET_Y = -(SCREEN_HEIGHT / 2 + 150);
 const SETTINGS_PANEL_TOGGLE_DURATION_MS = 260;
 const STAMP_SPIN_HALF_DURATION_MS = 150;
+const VOID_CAT_ENTER_DURATION_MS = 420;
+const VOID_CAT_EXIT_DURATION_MS = 300;
+const VOID_CAT_HIDDEN_OFFSET_Y = 42;
+
+function AnimatedVoidStamp({ catVisible, style }) {
+  const catProgress = useRef(new Animated.Value(catVisible ? 1 : 0)).current;
+
+  useEffect(() => {
+    const animation = Animated.timing(catProgress, {
+      toValue: catVisible ? 1 : 0,
+      duration: catVisible ? VOID_CAT_ENTER_DURATION_MS : VOID_CAT_EXIT_DURATION_MS,
+      easing: catVisible
+        ? Easing.bezier(0.22, 1, 0.36, 1)
+        : Easing.in(Easing.cubic),
+      useNativeDriver: true,
+    });
+
+    animation.start();
+
+    return () => animation.stop();
+  }, [catProgress, catVisible]);
+
+  const catTranslateY = catProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [VOID_CAT_HIDDEN_OFFSET_Y, 0],
+    extrapolate: 'clamp',
+  });
+
+  return (
+    <Animated.View pointerEvents="none" style={style}>
+      <Image source={STAMP_ASSETS.void.default} style={styles.voidStampCircleArtwork} />
+      <View style={styles.voidStampCatClip}>
+        <Animated.Image
+          source={STAMP_ASSETS.void.cat}
+          style={[
+            styles.voidStampCatArtwork,
+            { transform: [{ translateY: catTranslateY }] },
+          ]}
+        />
+      </View>
+    </Animated.View>
+  );
+}
+
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
@@ -115,7 +160,7 @@ export const FloatingControls = forwardRef(function FloatingControls({
   const shouldShowDelete = canDeleteCurrentCard;
   const activeStampSource = idleDoneStampEnabled
     ? STAMP_ASSETS.done
-    : (deleteTargetDone ? STAMP_ASSETS.void.doneCard : STAMP_ASSETS.void.default);
+    : STAMP_ASSETS.void.default;
   const [isAddPressed, setIsAddPressed] = useState(false);
   const [addCardRotation, setAddCardRotation] = useState(ADD_CARD_BASE_ROTATION);
   const [addCardOffsetX, setAddCardOffsetX] = useState(0);
@@ -624,9 +669,8 @@ export const FloatingControls = forwardRef(function FloatingControls({
                 pressed && styles.deleteCardButtonPressed,
               ]}
             >
-              <Animated.Image
-                pointerEvents="none"
-                source={displayedStampSource}
+              <AnimatedVoidStamp
+                catVisible={deleteTargetDone}
                 style={[
                   styles.deleteStampIcon,
                   {
