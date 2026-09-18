@@ -13,12 +13,18 @@ import {
   forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState,
 } from 'react';
 import { DoneStampArtwork } from './DoneStampArtwork';
+import {
+  AnimatedStampArtwork,
+  STAMP_STATE_BLUE_CAT,
+  STAMP_STATE_BLUE_CIRCLE,
+  STAMP_STATE_GRAY_CAT,
+} from './AnimatedStampArtwork';
 import { constrainAddRelation } from '../lib/cardInsertion';
 import {
   CARD_BACKGROUND_OPTIONS,
   DEFAULT_CARD_BACKGROUND_COLOR,
 } from '../lib/cardBackground';
-import { STAMP_ASSETS, STAMP_RENDER_SCALE } from '../config/stampAssets';
+import { STAMP_RENDER_SCALE } from '../config/stampAssets';
 import { getCardImageSource } from '../lib/cardImageCache';
 import { styles } from '../styles/appStyles';
 
@@ -38,148 +44,6 @@ const SETTINGS_PANEL_TRIGGER_DRAG_Y = -160;
 const SETTINGS_PANEL_CENTER_OFFSET_X = 0;
 const SETTINGS_PANEL_CENTER_OFFSET_Y = -(SCREEN_HEIGHT / 2 + 150);
 const SETTINGS_PANEL_TOGGLE_DURATION_MS = 260;
-const VOID_CAT_ENTER_DURATION_MS = 420;
-const VOID_CAT_EXIT_DURATION_MS = 300;
-const VOID_CIRCLE_COLOR_DURATION_MS = 300;
-const VOID_CAT_HIDDEN_OFFSET_Y = 42;
-
-const TREE_STAMP_BLUE_CAT = 'blue-cat';
-const TREE_STAMP_BLUE_CIRCLE = 'blue-circle';
-const TREE_STAMP_GRAY_CAT = 'gray-cat';
-
-function getTreeStampProgress(stampState) {
-  return {
-    blueCat: stampState === TREE_STAMP_BLUE_CAT ? 1 : 0,
-    grayCat: stampState === TREE_STAMP_GRAY_CAT ? 1 : 0,
-    grayCircle: stampState === TREE_STAMP_GRAY_CAT ? 1 : 0,
-  };
-}
-
-function AnimatedTreeStamp({ stampState, style }) {
-  const initialProgress = getTreeStampProgress(stampState);
-  const blueCatProgress = useRef(new Animated.Value(initialProgress.blueCat)).current;
-  const grayCatProgress = useRef(new Animated.Value(initialProgress.grayCat)).current;
-  const grayCircleProgress = useRef(new Animated.Value(initialProgress.grayCircle)).current;
-  const previousStampStateRef = useRef(stampState);
-
-  useEffect(() => {
-    const previousStampState = previousStampStateRef.current;
-    previousStampStateRef.current = stampState;
-
-    blueCatProgress.stopAnimation();
-    grayCatProgress.stopAnimation();
-    grayCircleProgress.stopAnimation();
-
-    const isBlueCatTransition = (
-      (previousStampState === TREE_STAMP_BLUE_CAT && stampState === TREE_STAMP_BLUE_CIRCLE)
-      || (previousStampState === TREE_STAMP_BLUE_CIRCLE && stampState === TREE_STAMP_BLUE_CAT)
-    );
-    const isGrayCatTransition = (
-      (previousStampState === TREE_STAMP_BLUE_CIRCLE && stampState === TREE_STAMP_GRAY_CAT)
-      || (previousStampState === TREE_STAMP_GRAY_CAT && stampState === TREE_STAMP_BLUE_CIRCLE)
-    );
-
-    if (!isBlueCatTransition && !isGrayCatTransition) {
-      const targetProgress = getTreeStampProgress(stampState);
-      blueCatProgress.setValue(targetProgress.blueCat);
-      grayCatProgress.setValue(targetProgress.grayCat);
-      grayCircleProgress.setValue(targetProgress.grayCircle);
-      return undefined;
-    }
-
-    if (isBlueCatTransition) {
-      grayCatProgress.setValue(0);
-      grayCircleProgress.setValue(0);
-      const animation = Animated.timing(blueCatProgress, {
-        toValue: stampState === TREE_STAMP_BLUE_CAT ? 1 : 0,
-        duration: stampState === TREE_STAMP_BLUE_CAT
-          ? VOID_CAT_ENTER_DURATION_MS
-          : VOID_CAT_EXIT_DURATION_MS,
-        easing: stampState === TREE_STAMP_BLUE_CAT
-          ? Easing.bezier(0.22, 1, 0.36, 1)
-          : Easing.in(Easing.cubic),
-        useNativeDriver: true,
-      });
-
-      animation.start();
-      return () => animation.stop();
-    }
-
-    blueCatProgress.setValue(0);
-    const showGrayStamp = stampState === TREE_STAMP_GRAY_CAT;
-    const catAnimation = Animated.timing(grayCatProgress, {
-      toValue: showGrayStamp ? 1 : 0,
-      duration: showGrayStamp ? VOID_CAT_ENTER_DURATION_MS : VOID_CAT_EXIT_DURATION_MS,
-      easing: showGrayStamp
-        ? Easing.bezier(0.22, 1, 0.36, 1)
-        : Easing.in(Easing.cubic),
-      useNativeDriver: true,
-    });
-    const circleAnimation = Animated.timing(grayCircleProgress, {
-      toValue: showGrayStamp ? 1 : 0,
-      duration: VOID_CIRCLE_COLOR_DURATION_MS,
-      easing: Easing.inOut(Easing.cubic),
-      useNativeDriver: true,
-    });
-    const animation = Animated.parallel([catAnimation, circleAnimation]);
-
-    animation.start();
-
-    return () => animation.stop();
-  }, [blueCatProgress, grayCatProgress, grayCircleProgress, stampState]);
-
-  const blueCatTranslateY = blueCatProgress.interpolate({
-    inputRange: [0, 1],
-    outputRange: [VOID_CAT_HIDDEN_OFFSET_Y, 0],
-    extrapolate: 'clamp',
-  });
-  const grayCatTranslateY = grayCatProgress.interpolate({
-    inputRange: [0, 1],
-    outputRange: [VOID_CAT_HIDDEN_OFFSET_Y, 0],
-    extrapolate: 'clamp',
-  });
-  const blueCircleOpacity = grayCircleProgress.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 0],
-    extrapolate: 'clamp',
-  });
-
-  return (
-    <Animated.View pointerEvents="none" style={style}>
-      <Animated.Image
-        source={STAMP_ASSETS.void.default}
-        style={[
-          styles.voidStampCircleArtwork,
-          { opacity: blueCircleOpacity },
-        ]}
-      />
-      <Animated.Image
-        source={STAMP_ASSETS.void.grayCircle}
-        style={[
-          styles.voidStampCircleArtwork,
-          { opacity: grayCircleProgress },
-        ]}
-      />
-      <View style={styles.voidStampCatClip}>
-        <Animated.Image
-          source={STAMP_ASSETS.void.cat}
-          style={[
-            styles.voidStampCatArtwork,
-            { transform: [{ translateY: blueCatTranslateY }] },
-          ]}
-        />
-        <Animated.Image
-          source={STAMP_ASSETS.void.grayCat}
-          style={[
-            styles.voidStampCatArtwork,
-            { transform: [{ translateY: grayCatTranslateY }] },
-          ]}
-        />
-      </View>
-    </Animated.View>
-  );
-}
-
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
@@ -255,8 +119,8 @@ export const FloatingControls = forwardRef(function FloatingControls({
 }, forwardedRef) {
   const shouldShowDelete = canDeleteCurrentCard;
   const treeStampState = idleDoneStampEnabled
-    ? TREE_STAMP_GRAY_CAT
-    : (deleteTargetDone ? TREE_STAMP_BLUE_CAT : TREE_STAMP_BLUE_CIRCLE);
+    ? STAMP_STATE_GRAY_CAT
+    : (deleteTargetDone ? STAMP_STATE_BLUE_CAT : STAMP_STATE_BLUE_CIRCLE);
   const [isAddPressed, setIsAddPressed] = useState(false);
   const [addCardRotation, setAddCardRotation] = useState(ADD_CARD_BASE_ROTATION);
   const [addCardOffsetX, setAddCardOffsetX] = useState(0);
@@ -692,7 +556,7 @@ export const FloatingControls = forwardRef(function FloatingControls({
               (isDeleteStampPressed || isIdleStampDragging) && styles.deleteCardButtonPressed,
             ]}
           >
-            <AnimatedTreeStamp
+            <AnimatedStampArtwork
               stampState={treeStampState}
               style={[
                 styles.deleteStampIcon,

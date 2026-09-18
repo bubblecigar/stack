@@ -15,8 +15,13 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image as CachedImage } from 'expo-image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MathNotationPalette } from '../components/MathNotationPalette';
+import {
+  AnimatedStampArtwork,
+  STAMP_STATE_GRAY_CAT,
+  STAMP_STATE_GRAY_CIRCLE,
+} from '../components/AnimatedStampArtwork';
 import { StackCard } from '../components/StackCard';
-import { STAMP_ASSETS, STAMP_RENDER_SCALE } from '../config/stampAssets';
+import { STAMP_RENDER_SCALE } from '../config/stampAssets';
 import { getCardImageSource } from '../lib/cardImageCache';
 import { styles } from '../styles/appStyles';
 
@@ -1235,9 +1240,8 @@ export function LeafDeck({
               },
             ]}
           >
-            <Image
-              pointerEvents="none"
-              source={activeCardDone ? STAMP_ASSETS.void.grayCircle : STAMP_ASSETS.done}
+            <AnimatedStampArtwork
+              stampState={activeCardDone ? STAMP_STATE_GRAY_CIRCLE : STAMP_STATE_GRAY_CAT}
               style={[
                 styles.leafDoneStampIcon,
                 {
