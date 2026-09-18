@@ -1237,10 +1237,9 @@ export function LeafDeck({
           >
             <Image
               pointerEvents="none"
-              source={STAMP_ASSETS.done}
+              source={activeCardDone ? STAMP_ASSETS.void.grayCircle : STAMP_ASSETS.done}
               style={[
                 styles.leafDoneStampIcon,
-                activeCardDone && styles.leafDoneStampIconToggleOff,
                 {
                   transform: [
                     { rotate: '-8deg' },

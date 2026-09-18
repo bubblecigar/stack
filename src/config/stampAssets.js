@@ -8,6 +8,7 @@ export const STAMP_ASSETS = Object.freeze({
     cat: require('../../assets/collections/mobile/cat.webp'),
     default: require('../../assets/collections/monster-blue-out-circle.webp'),
     doneCard: require('../../assets/collections/mobile/monster-blue-f70c8ce7fea5d0ef.webp'),
+    grayCircle: require('../../assets/collections/mobile/gray-circle.webp'),
   }),
 });
 

@@ -582,9 +582,6 @@ export const styles = StyleSheet.create({
     opacity: 0.72,
     resizeMode: 'contain',
   },
-  leafDoneStampIconToggleOff: {
-    opacity: 0.3,
-  },
   treeCard: {
     position: 'relative',
     width: 220,
