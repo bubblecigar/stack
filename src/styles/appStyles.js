@@ -1439,6 +1439,14 @@ export const styles = StyleSheet.create({
       { scale: 0.97 },
     ],
   },
+  deleteCardButtonHitTarget: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+  },
   deleteStampIcon: {
     width: 88,
     height: 88,
