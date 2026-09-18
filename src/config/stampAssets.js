@@ -4,6 +4,7 @@ export const STAMP_ASSETS = Object.freeze({
   done: require('../../assets/collections/mobile/monster-gray-02fe9eabd8acbc2c.webp'),
   doneRings: require('../../assets/card/done_stamp_rings_gray.png'),
   void: Object.freeze({
+    background: require('../../assets/collections/monster-gray-out-circle.webp'),
     default: require('../../assets/collections/monster-blue-out-circle.webp'),
     doneCard: require('../../assets/collections/mobile/monster-blue-f70c8ce7fea5d0ef.webp'),
   }),

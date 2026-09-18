@@ -74,6 +74,10 @@ import {
 } from './src/lib/cardTraversal';
 import { getDailyVisibleCards } from './src/lib/cardVisibility';
 import {
+  countCompletedCanvasNodes,
+  VOID_COMPLETION_OUTCOME,
+} from './src/lib/completionCanvas';
+import {
   chooseDoneVisualId,
   getDoneCollectionPath,
 } from './src/lib/doneStampVisual';
@@ -192,7 +196,7 @@ function countPreviousDayCompletedTasks(treeCompletionCanvas, now = Date.now()) 
     ? treeCompletionCanvas.nodes
     : [];
   if (completionNodes.length > 0) {
-    return completionNodes.length;
+    return countCompletedCanvasNodes(completionNodes);
   }
 
   const completionEntries = Array.isArray(treeCompletionCanvas?.entries)
@@ -200,7 +204,8 @@ function countPreviousDayCompletedTasks(treeCompletionCanvas, now = Date.now()) 
     : [];
 
   return completionEntries.filter((entry) => (
-    isPreviousDayTimestamp(entry?.completedAt, now)
+    entry?.outcome !== VOID_COMPLETION_OUTCOME
+    && isPreviousDayTimestamp(entry?.completedAt, now)
   )).length;
 }
 
@@ -1137,7 +1142,7 @@ export default function App() {
     handleEditCard(index, text);
   }
 
-  async function writeRemovedCardsToTreeCanvas(removedCards) {
+  async function writeRemovedCardsToTreeCanvas(removedCards, outcome = 'done') {
     const removedCardIds = new Set(removedCards
       .map((card) => Number(card?.id))
       .filter((cardId) => Number.isInteger(cardId)));
@@ -1172,6 +1177,7 @@ export default function App() {
         groupId: completionGroupId,
         id: nodeIdByCardId.get(card.id),
         originalId: card.id,
+        outcome,
         parentIds: Array.isArray(card.parentIds)
           ? card.parentIds
             .filter((parentId) => removedCardIds.has(parentId))
@@ -1296,9 +1302,7 @@ export default function App() {
     }
 
     removeAt(index);
-    if (removedCard.isCollectionCard) {
-      writeRemovedCardsToTreeCanvas(removedCards);
-    }
+    writeRemovedCardsToTreeCanvas(removedCards, VOID_COMPLETION_OUTCOME);
   }
 
   function handleToggleCollapse(index) {

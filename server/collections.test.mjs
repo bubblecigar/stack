@@ -26,6 +26,11 @@ test('derives user-scoped collections from completion history', () => {
         id: 'done-1',
       },
       {
+        completedAt: 150,
+        id: 'void-1',
+        outcome: 'void',
+      },
+      {
         completedAt: 200,
         id: 'monster-1',
         monsterVisualId: 'monster-626c03f45fafd12a',

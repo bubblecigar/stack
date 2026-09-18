@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
 import { useWindowDimensions, View } from 'react-native';
+import { STAMP_ASSETS } from '../config/stampAssets';
 import { resolveApiAssetUrl } from '../lib/apiClient';
 import { isTimestampInAppDay } from '../lib/appDay';
+import { isVoidCompletionNode } from '../lib/completionCanvas';
 import { getDoneCollectionPath } from '../lib/doneStampVisual';
 import { styles } from '../styles/appStyles';
 import { DoneStampArtwork } from './DoneStampArtwork';
@@ -52,22 +54,26 @@ export function CompletionProgressTree({
   return (
     <View pointerEvents="none" style={styles.completionProgressLayer}>
       <View style={styles.completionProgressStampField}>
-        {positionedStamps.map((entry, entryIndex) => (
-          <DoneStampArtwork
-            defaultArtworkStyle={styles.completionProgressDoneArtwork}
-            key={entry.card.id || `completion-stamp-${entryIndex}`}
-            uri={resolveApiAssetUrl(getDoneCollectionPath(
-              entry.card.collectionVisualId ?? entry.card.monsterVisualId,
-            ))}
-            style={[
-              styles.completionProgressStamp,
-              {
-                left: COMPLETION_OVERLAY_PADDING + entry.x,
-                top: COMPLETION_OVERLAY_PADDING + entry.y,
-              },
-            ]}
-          />
-        ))}
+        {positionedStamps.map((entry, entryIndex) => {
+          const visualId = entry.card.collectionVisualId ?? entry.card.monsterVisualId;
+          const shouldShowVoidCircle = isVoidCompletionNode(entry.card) && !visualId;
+
+          return (
+            <DoneStampArtwork
+              defaultArtworkStyle={styles.completionProgressDoneArtwork}
+              key={entry.card.id || `completion-stamp-${entryIndex}`}
+              overrideSource={shouldShowVoidCircle ? STAMP_ASSETS.void.background : null}
+              uri={resolveApiAssetUrl(getDoneCollectionPath(visualId))}
+              style={[
+                styles.completionProgressStamp,
+                {
+                  left: COMPLETION_OVERLAY_PADDING + entry.x,
+                  top: COMPLETION_OVERLAY_PADDING + entry.y,
+                },
+              ]}
+            />
+          );
+        })}
       </View>
     </View>
   );

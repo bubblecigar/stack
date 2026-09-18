@@ -21,6 +21,7 @@ export function DoneStampArtwork({
           source={overrideSource}
           style={[
             styles.doneStampFullArtwork,
+            defaultArtworkStyle,
             { transform: [{ scale: STAMP_RENDER_SCALE }] },
           ]}
         />
