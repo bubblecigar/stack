@@ -5,19 +5,19 @@ import { styles } from '../styles/appStyles';
 
 const DELETE_HOLD_MS = 500;
 const WATER_WAVE_PERIOD = 160;
-const WATER_WAVE_WIDTH = 960;
-const WATER_WAVE_HEIGHT = 20;
+const WATER_WAVE_WIDTH = 32;
+const WATER_WAVE_HEIGHT = 960;
 const WATER_WAVE_PATH = [
-  'M 0 7',
+  'M 12 0',
   ...Array.from({ length: 6 }, (_, index) => {
-    const startX = index * WATER_WAVE_PERIOD;
+    const startY = index * WATER_WAVE_PERIOD;
     return [
-      `C ${startX + 27} 2 ${startX + 53} 2 ${startX + 80} 7`,
-      `C ${startX + 107} 12 ${startX + 133} 12 ${startX + 160} 7`,
+      `C 2 ${startY + 27} 2 ${startY + 53} 12 ${startY + 80}`,
+      `C 22 ${startY + 107} 22 ${startY + 133} 12 ${startY + 160}`,
     ].join(' ');
   }),
-  `L ${WATER_WAVE_WIDTH} ${WATER_WAVE_HEIGHT}`,
-  `L 0 ${WATER_WAVE_HEIGHT} Z`,
+  `L 0 ${WATER_WAVE_HEIGHT}`,
+  'L 0 0 Z',
 ].join(' ');
 
 function WaterWave() {
@@ -96,19 +96,19 @@ export function DeleteHoldIndicator({
     return null;
   }
 
-  const fillTranslateY = progress.interpolate({
+  const fillTranslateX = progress.interpolate({
     inputRange: [0, 1],
-    outputRange: ['100%', '0%'],
+    outputRange: ['-100%', '0%'],
   });
-  const waveTranslateX = progress.interpolate({
+  const waveTranslateY = progress.interpolate({
     inputRange: [0, 1],
     outputRange: [0, -WATER_WAVE_PERIOD],
   });
-  const backWaveTranslateX = progress.interpolate({
+  const backWaveTranslateY = progress.interpolate({
     inputRange: [0, 1],
     outputRange: [-WATER_WAVE_PERIOD, 0],
   });
-  const backWaveTranslateY = progress.interpolate({
+  const backWaveTranslateX = progress.interpolate({
     inputRange: [0, 0.5, 1],
     outputRange: [0, 3, 0],
   });
@@ -125,10 +125,16 @@ export function DeleteHoldIndicator({
         style={[
           styles.deleteProgressCardFill,
           {
-            transform: [{ translateY: fillTranslateY }],
+            transform: [{ translateX: fillTranslateX }],
           },
         ]}
       >
+        <View
+          style={[
+            styles.deleteProgressCardFillSurface,
+            tone === 'done' && styles.doneProgressCardFillSurface,
+          ]}
+        />
         <Animated.View style={[
           styles.deleteProgressWaterWave,
           styles.deleteProgressWaterWaveBack,
@@ -144,17 +150,11 @@ export function DeleteHoldIndicator({
         </Animated.View>
         <Animated.View style={[
           styles.deleteProgressWaterWave,
-          { transform: [{ translateX: waveTranslateX }] },
+          { transform: [{ translateY: waveTranslateY }] },
         ]}
         >
           <WaterWave />
         </Animated.View>
-        <View
-          style={[
-            styles.deleteProgressCardFillSurface,
-            tone === 'done' && styles.doneProgressCardFillSurface,
-          ]}
-        />
       </Animated.View>
     </View>
   );
