@@ -56,7 +56,8 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
   const onDoneCardRef = useRef(onDoneCard);
   const cardTouchRef = useRef(false);
   const didCanvasPanRef = useRef(false);
-  const lastAutoCenteredCardIdRef = useRef(null);
+  const lastAutoCenteredCardKeyRef = useRef(null);
+  const lastAutoCenteredTreeLayoutRef = useRef(null);
   const lastAutoRevealedPreviewRef = useRef(null);
   const treeScrollOffsetRef = useRef({
     x: 0,
@@ -123,6 +124,7 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
     nodeHeight,
     positionedCards,
   } = buildTreeLayout(previewCards, collapsedNodeIds);
+  const collapsedLayoutKey = [...collapsedNodeIds].sort().join(':');
 
   const contentWidth = maxWidth + (TREE_CANVAS_PADDING * 2);
   const contentHeight = maxHeight + (TREE_CANVAS_PADDING * 2);
@@ -204,7 +206,7 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
 
   useEffect(() => {
     if (focusedCardIndex === null) {
-      lastAutoCenteredCardIdRef.current = null;
+      lastAutoCenteredCardKeyRef.current = null;
       return;
     }
 
@@ -218,11 +220,12 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
       return;
     }
 
-    if (lastAutoCenteredCardIdRef.current === focusedEntry.card.id) {
+    const autoCenterKey = `${focusedEntry.card.id}:${collapsedLayoutKey}`;
+    if (lastAutoCenteredCardKeyRef.current === autoCenterKey) {
       return;
     }
 
-    lastAutoCenteredCardIdRef.current = focusedEntry.card.id;
+    lastAutoCenteredCardKeyRef.current = autoCenterKey;
 
     const centeredX = focusedEntry.left + TREE_CANVAS_PADDING + (nodeWidth / 2);
     const bottomAlignedY = focusedEntry.top + TREE_CANVAS_PADDING + nodeHeight;
@@ -240,6 +243,7 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
   }, [
     contentHeight,
     contentWidth,
+    collapsedLayoutKey,
     focusedCardIndex,
     maxHeight,
     maxWidth,
@@ -250,6 +254,52 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
     positionedCards,
     treeViewport.width,
     treeViewport.height,
+  ]);
+
+  useEffect(() => {
+    if (focusedCardIndex !== null) {
+      lastAutoCenteredTreeLayoutRef.current = collapsedLayoutKey;
+      return;
+    }
+
+    const viewport = treeViewport;
+    if (
+      !viewport.width
+      || !viewport.height
+      || lastAutoCenteredTreeLayoutRef.current === collapsedLayoutKey
+    ) {
+      return;
+    }
+
+    const visibleEntries = positionedCards.filter((entry) => !entry.isCollapsedStacked);
+    if (visibleEntries.length === 0) {
+      return;
+    }
+
+    lastAutoCenteredTreeLayoutRef.current = collapsedLayoutKey;
+
+    const minLeft = Math.min(...visibleEntries.map((entry) => entry.left));
+    const minTop = Math.min(...visibleEntries.map((entry) => entry.top));
+    const maxRight = Math.max(...visibleEntries.map((entry) => entry.left + nodeWidth));
+    const maxBottom = Math.max(...visibleEntries.map((entry) => entry.top + nodeHeight));
+    const treeCenterX = TREE_CANVAS_PADDING + ((minLeft + maxRight) / 2);
+    const treeCenterY = TREE_CANVAS_PADDING + ((minTop + maxBottom) / 2);
+
+    scrollTreeTo(
+      treeCenterX - (viewport.width / 2),
+      treeCenterY - (viewport.height / 2),
+      true,
+    );
+  }, [
+    collapsedLayoutKey,
+    focusedCardIndex,
+    maxScrollX,
+    maxScrollY,
+    nodeHeight,
+    nodeWidth,
+    positionedCards,
+    treeViewport.height,
+    treeViewport.width,
   ]);
 
   useEffect(() => {
