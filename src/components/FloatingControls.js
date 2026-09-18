@@ -39,7 +39,6 @@ const SETTINGS_PANEL_TRIGGER_DRAG_Y = -160;
 const SETTINGS_PANEL_CENTER_OFFSET_X = 0;
 const SETTINGS_PANEL_CENTER_OFFSET_Y = -(SCREEN_HEIGHT / 2 + 150);
 const SETTINGS_PANEL_TOGGLE_DURATION_MS = 260;
-const STAMP_SPIN_HALF_DURATION_MS = 150;
 const VOID_CAT_ENTER_DURATION_MS = 420;
 const VOID_CAT_EXIT_DURATION_MS = 300;
 const VOID_CAT_HIDDEN_OFFSET_Y = 42;
@@ -158,9 +157,6 @@ export const FloatingControls = forwardRef(function FloatingControls({
   deckTreeSize = 0,
 }, forwardedRef) {
   const shouldShowDelete = canDeleteCurrentCard;
-  const activeStampSource = idleDoneStampEnabled
-    ? STAMP_ASSETS.done
-    : STAMP_ASSETS.void.default;
   const [isAddPressed, setIsAddPressed] = useState(false);
   const [addCardRotation, setAddCardRotation] = useState(ADD_CARD_BASE_ROTATION);
   const [addCardOffsetX, setAddCardOffsetX] = useState(0);
@@ -170,10 +166,7 @@ export const FloatingControls = forwardRef(function FloatingControls({
   const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(false);
   const [settingsPanelOffsetX, setSettingsPanelOffsetX] = useState(0);
   const [settingsPanelOffsetY, setSettingsPanelOffsetY] = useState(0);
-  const [displayedStampSource, setDisplayedStampSource] = useState(activeStampSource);
   const flipProgress = useRef(new Animated.Value(layoutMode === 'tree' ? 1 : 0)).current;
-  const stampSpinProgress = useRef(new Animated.Value(0)).current;
-  const displayedStampSourceRef = useRef(activeStampSource);
   const settingsPanelProgress = useRef(new Animated.Value(0)).current;
   const onIdleDoneStampDropRef = useRef(onIdleDoneStampDrop);
   const addRelationRef = useRef(null);
@@ -237,41 +230,6 @@ export const FloatingControls = forwardRef(function FloatingControls({
     flipProgress,
     layoutMode,
   ]);
-
-  useEffect(() => {
-    if (displayedStampSourceRef.current === activeStampSource) {
-      return undefined;
-    }
-
-    let cancelled = false;
-    stampSpinProgress.stopAnimation();
-
-    Animated.timing(stampSpinProgress, {
-      toValue: 1,
-      duration: STAMP_SPIN_HALF_DURATION_MS,
-      easing: Easing.in(Easing.cubic),
-      useNativeDriver: true,
-    }).start(({ finished }) => {
-      if (!finished || cancelled) {
-        return;
-      }
-
-      displayedStampSourceRef.current = activeStampSource;
-      setDisplayedStampSource(activeStampSource);
-      stampSpinProgress.setValue(-1);
-      Animated.timing(stampSpinProgress, {
-        toValue: 0,
-        duration: STAMP_SPIN_HALF_DURATION_MS,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }).start();
-    });
-
-    return () => {
-      cancelled = true;
-      stampSpinProgress.stopAnimation();
-    };
-  }, [activeStampSource, stampSpinProgress]);
 
   onIdleDoneStampDropRef.current = onIdleDoneStampDrop;
 
@@ -637,19 +595,12 @@ export const FloatingControls = forwardRef(function FloatingControls({
             >
               <Animated.Image
                 pointerEvents="none"
-                source={displayedStampSource}
+                source={STAMP_ASSETS.done}
                 style={[
                   styles.deleteStampIcon,
                   {
                     transform: [
-                      { perspective: 700 },
                       { rotate: '-8deg' },
-                      {
-                        rotateY: stampSpinProgress.interpolate({
-                          inputRange: [-1, 0, 1],
-                          outputRange: ['-90deg', '0deg', '90deg'],
-                        }),
-                      },
                       { scale: STAMP_RENDER_SCALE },
                     ],
                   },
@@ -675,14 +626,7 @@ export const FloatingControls = forwardRef(function FloatingControls({
                   styles.deleteStampIcon,
                   {
                     transform: [
-                      { perspective: 700 },
                       { rotate: '-8deg' },
-                      {
-                        rotateY: stampSpinProgress.interpolate({
-                          inputRange: [-1, 0, 1],
-                          outputRange: ['-90deg', '0deg', '90deg'],
-                        }),
-                      },
                       { scale: STAMP_RENDER_SCALE },
                     ],
                   },
