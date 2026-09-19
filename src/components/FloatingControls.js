@@ -30,7 +30,11 @@ import { STAMP_RENDER_SCALE } from '../config/stampAssets';
 import { getCardImageSource } from '../lib/cardImageCache';
 import { styles } from '../styles/appStyles';
 
-const SCREEN_HEIGHT = Dimensions.get('window').height;
+const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
+const TUTORIAL_POINTER_START = Object.freeze({
+  pageX: SCREEN_WIDTH / 2,
+  pageY: SCREEN_HEIGHT - 86,
+});
 const DELETE_HOLD_MS = 500;
 const ADD_POINT_DEAD_ZONE = 28;
 const ADD_POINT_SWITCH_DISTANCE = 36;
@@ -130,6 +134,10 @@ export const FloatingControls = forwardRef(function FloatingControls({
       ? STAMP_CONTROL_STATE_BLUE_CAT
       : STAMP_CONTROL_STATE_BLUE_CIRCLE);
   const [isAddPressed, setIsAddPressed] = useState(false);
+  const [isTutorialDemoPressed, setIsTutorialDemoPressed] = useState(false);
+  const [tutorialPointerPosition, setTutorialPointerPosition] = useState(
+    TUTORIAL_POINTER_START,
+  );
   const [addCardRotation, setAddCardRotation] = useState(ADD_CARD_BASE_ROTATION);
   const [addCardOffsetX, setAddCardOffsetX] = useState(0);
   const [addCardOffsetY, setAddCardOffsetY] = useState(0);
@@ -274,12 +282,43 @@ export const FloatingControls = forwardRef(function FloatingControls({
 
   function resetAddPointing() {
     setIsAddPressed(false);
+    setIsTutorialDemoPressed(false);
     setAddCardRotation(ADD_CARD_BASE_ROTATION);
     setAddCardOffsetX(0);
     setAddCardOffsetY(0);
     addRelationRef.current = null;
     onAddHoldChange?.(false);
     onAddPreviewChange?.(null);
+  }
+
+  function handleTutorialGestureStart() {
+    if (isAddPressed) {
+      return;
+    }
+
+    addRelationRef.current = null;
+    addStartRef.current = TUTORIAL_POINTER_START;
+    setIsTutorialDemoPressed(true);
+    setTutorialPointerPosition(TUTORIAL_POINTER_START);
+    setAddCardRotation(ADD_CARD_BASE_ROTATION);
+    setAddCardOffsetX(0);
+    setAddCardOffsetY(0);
+    onAddHoldChange?.(!disableCardInsertion);
+    onAddPreviewChange?.(null);
+  }
+
+  function handleTutorialGestureMove({ dx, dy, pageX, pageY }) {
+    if (!isAddPressed) {
+      setTutorialPointerPosition({ pageX, pageY });
+      updateAddRelation(dx, dy);
+    }
+  }
+
+  function handleTutorialGestureEnd() {
+    if (!isAddPressed) {
+      setTutorialPointerPosition(TUTORIAL_POINTER_START);
+      resetAddPointing();
+    }
   }
 
   function pinSettingsPanel() {
@@ -337,6 +376,7 @@ export const FloatingControls = forwardRef(function FloatingControls({
         pageY,
       };
       addRelationRef.current = null;
+      setIsTutorialDemoPressed(false);
       setIsAddPressed(true);
       setAddCardRotation(ADD_CARD_BASE_ROTATION);
       setAddCardOffsetX(0);
@@ -678,7 +718,7 @@ export const FloatingControls = forwardRef(function FloatingControls({
           accessibilityRole="button"
           style={[
             styles.addCardControl,
-            isAddPressed && styles.addCardControlPressed,
+            (isAddPressed || isTutorialDemoPressed) && styles.addCardControlPressed,
           ]}
         >
           <Animated.View
@@ -815,7 +855,18 @@ export const FloatingControls = forwardRef(function FloatingControls({
         </View>
       </Animated.View>
 
-      {tutorialOverlayActive ? <TutorialSwipeHint /> : null}
+      {tutorialOverlayActive ? (
+        <TutorialSwipeHint
+          onGestureEnd={handleTutorialGestureEnd}
+          onGestureMove={handleTutorialGestureMove}
+          onGestureStart={handleTutorialGestureStart}
+          pageX={tutorialPointerPosition.pageX}
+          pageY={tutorialPointerPosition.pageY}
+          paused={isAddPressed}
+          startPageX={TUTORIAL_POINTER_START.pageX}
+          startPageY={TUTORIAL_POINTER_START.pageY}
+        />
+      ) : null}
     </>
   );
 });
