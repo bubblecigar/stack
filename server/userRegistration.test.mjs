@@ -26,17 +26,14 @@ test('registering a user persists the initial cards and creates a session', () =
     initialCards,
   );
   assert.deepEqual(
-    initialCards.find((card) => card.id === 4)?.childIds,
-    [1, 2, 3],
-  );
-  assert.deepEqual(
-    initialCards.filter((card) => typeof card.id === 'number').map((card) => card.text),
-    [
-      'Swipe the white card to add a new card.',
-      'Double-tap the white card to switch between leaf and tree views.',
-      'Press and hold the stamp to delete the selected card.',
-      'Welcome to Stack\nStart with these three gestures.',
-    ],
+    initialCards,
+    [{
+      childIds: [],
+      done: false,
+      id: 1,
+      parentIds: [],
+      text: 'this is a card',
+    }],
   );
   assert.equal(database.getSessionUser(result.session.token)?.id, result.user.id);
 });
