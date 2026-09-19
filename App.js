@@ -52,6 +52,7 @@ import { AuthScreen } from './src/views/AuthScreen';
 import { LeafDeck } from './src/views/LeafDeck';
 import { NodeStructureView } from './src/views/NodeStructureView';
 import { TreeCanvas } from './src/views/TreeCanvas';
+import { TreeCardMeasurementRack } from './src/components/TreeCardMeasurementRack';
 import {
   createScanJob,
   failScanJobImageUpload,
@@ -482,6 +483,7 @@ export default function App() {
     DEFAULT_CARD_BACKGROUND_COLOR,
   );
   const [collapsedNodeIds, setCollapsedNodeIds] = useState(() => new Set());
+  const [treeNodeHeights, setTreeNodeHeights] = useState(() => new Map());
   const [leafTopIndex, setLeafTopIndex] = useState(null);
   const [leafFocusedCardId, setLeafFocusedCardId] = useState(null);
   const [isDeleteHoldActive, setIsDeleteHoldActive] = useState(false);
@@ -732,6 +734,10 @@ export default function App() {
   useEffect(() => {
     authUserRef.current = authUser;
   }, [authUser]);
+
+  useEffect(() => {
+    setTreeNodeHeights(new Map());
+  }, [authUser?.id]);
 
   useEffect(() => {
     setSoundEffectsEnabled(isAudioEnabled);
@@ -1415,6 +1421,23 @@ export default function App() {
       }
 
       return nextCollapsed;
+    });
+  }
+
+  function handleTreeMeasurements(measurements) {
+    setTreeNodeHeights((currentHeights) => {
+      let didChange = false;
+      const nextHeights = new Map(currentHeights);
+
+      measurements.forEach((height, cardId) => {
+        const currentHeight = currentHeights.get(cardId);
+        if (!Number.isFinite(currentHeight) || Math.abs(currentHeight - height) >= 1) {
+          nextHeights.set(cardId, height);
+          didChange = true;
+        }
+      });
+
+      return didChange ? nextHeights : currentHeights;
     });
   }
 
@@ -2212,6 +2235,10 @@ export default function App() {
 
   return (
     <View style={styles.appShell}>
+      <TreeCardMeasurementRack
+        cards={visibleSystemTreeCards}
+        onMeasurements={handleTreeMeasurements}
+      />
       <View style={shouldRenderLeaf ? styles.containerLeafMode : styles.containerTreeMode}>
         {isLoadingUserData ? (
           <View style={styles.syncBanner}>
@@ -2282,6 +2309,7 @@ export default function App() {
             onDoneCard={handleDoneTreeCard}
             isDeleteHoldActive={isDeleteHoldActive}
             heldTreeCards={heldTreeCards}
+            treeNodeHeights={treeNodeHeights}
             onCanvasBlur={() => setFocusedCardIndex(null)}
           />
         )}

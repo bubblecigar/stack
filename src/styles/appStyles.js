@@ -581,6 +581,14 @@ export const styles = StyleSheet.create({
     pointerEvents: 'box-none',
     alignItems: 'flex-start',
   },
+  treeMeasurementRack: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: 220,
+    opacity: 0,
+    zIndex: -1,
+  },
   completionProgressLayer: {
     position: 'absolute',
     top: 28,

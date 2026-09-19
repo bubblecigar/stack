@@ -1,5 +1,5 @@
 import {
-  forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState,
+  forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState,
 } from 'react';
 import {
   Animated, PanResponder, ScrollView, View,
@@ -46,6 +46,7 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
   addPreviewRelation = null,
   heldTreeCards = [],
   newCardBackgroundColor,
+  treeNodeHeights,
 }, forwardedRef) {
   const treeHorizontalScrollRef = useRef(null);
   const treeVerticalScrollRef = useRef(null);
@@ -72,25 +73,6 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
     width: 0,
     height: 0,
   });
-  const [treeNodeHeights, setTreeNodeHeights] = useState(() => new Map());
-
-  const handleTreeCardLayout = useCallback((cardId, height) => {
-    if (!Number.isFinite(height) || height <= 0) {
-      return;
-    }
-
-    setTreeNodeHeights((currentHeights) => {
-      const currentHeight = currentHeights.get(cardId);
-      if (Number.isFinite(currentHeight) && Math.abs(currentHeight - height) < 1) {
-        return currentHeights;
-      }
-
-      const nextHeights = new Map(currentHeights);
-      nextHeights.set(cardId, height);
-      return nextHeights;
-    });
-  }, []);
-
   function handleCardPressIn() {
     cardTouchRef.current = true;
   }
@@ -534,7 +516,6 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
                   onPressIn={handleCardPressIn}
                   onFocusCard={onCardFocus}
                   onHoldCard={onHoldCard}
-                  onTreeCardLayout={handleTreeCardLayout}
                   hideControls={isPreviewCard || isSystemCard}
                   isMissionRoot={Boolean(card.isMissionRoot)}
                   isPreviewCard={isPreviewCard}

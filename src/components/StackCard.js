@@ -20,6 +20,7 @@ import { STAMP_ASSETS } from '../config/stampAssets';
 import { getCardImageSource } from '../lib/cardImageCache';
 import { styles } from '../styles/appStyles';
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const TREE_CARD_FRAME_MIN_HEIGHT = 100;
 
 function CollectionCardContent({ imageUri, layout }) {
   const isLeaf = layout === 'leaf';
@@ -364,6 +365,12 @@ export function StackCard({
   const cardElement = (
     <AnimatedPressable
       disabled={isLeafCard || isPreviewCard}
+      onLayout={isTreeCard && typeof onTreeCardLayout === 'function' ? (event) => {
+        onTreeCardLayout(
+          id,
+          Math.max(event.nativeEvent.layout.height, TREE_CARD_FRAME_MIN_HEIGHT),
+        );
+      } : undefined}
       onPressIn={onPressIn}
       onPress={onPress}
       style={[
@@ -763,9 +770,6 @@ export function StackCard({
 
   return (
     <View
-      onLayout={isCollapsedStacked ? undefined : (event) => {
-        onTreeCardLayout?.(id, event.nativeEvent.layout.height);
-      }}
       pointerEvents="box-none"
       style={[
         styles.treeCardFrame,
