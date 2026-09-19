@@ -1127,6 +1127,9 @@ export const styles = StyleSheet.create({
     borderColor: '#0EA5E9',
     shadowColor: '#0EA5E9',
   },
+  doneCleanupDescendantCard: {
+    borderColor: 'rgba(37, 99, 235, 0.24)',
+  },
   leafEditingCard: {
     borderColor: '#E2E8F0',
     borderWidth: 1,

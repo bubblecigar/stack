@@ -142,6 +142,10 @@ export function StackCard({
     isCollection && isPrimaryDeleteHoldCard
   );
   const isDoneCleanupChromeVisible = isBlueDeleteTheme && isPrimaryDeleteHoldCard;
+  const isDoneCleanupDescendantHint = (
+    isDoneCleanupPreviewCard
+    && !isPrimaryDeleteHoldCard
+  );
   const isDeleteProgressVisible = (
     isTreeDeleteHoldActive
     && !isDoneCleanupProgressVisible
@@ -378,6 +382,7 @@ export function StackCard({
         isFocusedCard && isSystem && styles.focusedTreasureCard,
         isDeleteProgressVisible && styles.deleteFocusedCard,
         isDoneCleanupChromeVisible && styles.doneCleanupFocusedCard,
+        isDoneCleanupDescendantHint && styles.doneCleanupDescendantCard,
         isTreeCard
           && (isPrimaryDeleteHoldCard || isDoneCleanupPreviewCard)
           && { opacity: treeDeleteFadeOpacity },
