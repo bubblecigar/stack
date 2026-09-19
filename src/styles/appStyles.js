@@ -632,6 +632,8 @@ export const styles = StyleSheet.create({
     position: 'relative',
     width: 220,
     minHeight: 94,
+    borderWidth: 2,
+    borderColor: 'transparent',
     padding: 12,
     justifyContent: 'flex-start',
     alignItems: 'stretch',
@@ -1062,7 +1064,6 @@ export const styles = StyleSheet.create({
   },
   focusedCard: {
     borderColor: '#0EA5E9',
-    borderWidth: 2,
     borderStyle: 'solid',
   },
   focusedTreasureCard: {
