@@ -51,6 +51,7 @@ const SETTINGS_PANEL_TRIGGER_DRAG_Y = -160;
 const SETTINGS_PANEL_CENTER_OFFSET_X = 0;
 const SETTINGS_PANEL_CENTER_OFFSET_Y = -(SCREEN_HEIGHT / 2 + 150);
 const SETTINGS_PANEL_TOGGLE_DURATION_MS = 260;
+const SHOW_TUTORIAL_RESET = process.env.EXPO_PUBLIC_SHOW_TUTORIAL_RESET === 'true';
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
@@ -592,7 +593,7 @@ export const FloatingControls = forwardRef(function FloatingControls({
 
   return (
     <>
-      {layoutMode === 'tree' ? (
+      {SHOW_TUTORIAL_RESET && layoutMode === 'tree' ? (
         <View style={styles.tutorialResetFloatingControl}>
           <Pressable
             accessibilityLabel="Reset tutorial"
