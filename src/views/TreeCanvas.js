@@ -23,6 +23,7 @@ const OVERSCROLL_SPRING = {
 
 export const TreeCanvas = forwardRef(function TreeCanvas({
   cards,
+  batchDonePreviewCardIds = new Set(),
   collapsedNodeIds,
   focusedCardIndex,
   focusedCardId,
@@ -520,6 +521,7 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
 
               return (
                 <StackCard
+                  batchDonePreviewCardIds={batchDonePreviewCardIds}
                   card={card}
                   collapsedNodeIds={collapsedNodeIds}
                   editingIndex={editingIndex}

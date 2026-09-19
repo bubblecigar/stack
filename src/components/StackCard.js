@@ -45,6 +45,7 @@ function CollectionCardContent({ imageUri, layout }) {
 }
 
 export function StackCard({
+  batchDonePreviewCardIds = new Set(),
   card,
   visibleIndex,
   layout,
@@ -131,6 +132,10 @@ export function StackCard({
   const isDoneCleanupPreviewCard = (
     done
     && doneCleanupPreviewCardIds?.has?.(id)
+  );
+  const isBatchDonePreviewCard = (
+    done
+    && batchDonePreviewCardIds?.has?.(id)
   );
   const isDoneCleanupProgressVisible = isDoneCleanupPreviewCard;
   const isBlueDeleteTheme = isDoneCleanupPreviewCard || (
@@ -713,7 +718,9 @@ export function StackCard({
             )}
             {done ? (
               <DoneStampArtwork
-                overrideSource={isFocusedCard || isDoneCleanupPreviewCard
+                overrideSource={isFocusedCard
+                  || isDoneCleanupPreviewCard
+                  || isBatchDonePreviewCard
                   ? STAMP_ASSETS.card.void
                   : null}
                 uri={doneStampUri}

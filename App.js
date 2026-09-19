@@ -625,6 +625,18 @@ export default function App() {
     focusedControlCardId,
     isDeleteHoldActive,
   ]);
+  const batchDonePreviewCardIds = useMemo(() => {
+    if (shouldRenderLeaf || !focusedCardId) {
+      return new Set();
+    }
+
+    const focusedCard = cards.find((card) => card.id === focusedCardId);
+    if (!focusedCard?.done) {
+      return new Set();
+    }
+
+    return getDoneCleanupCardIds(cards, focusedCardId);
+  }, [cards, focusedCardId, shouldRenderLeaf]);
 
   const leafCards = useMemo(
     () => {
@@ -2233,6 +2245,7 @@ export default function App() {
             addPreviewRelation={addPreviewRelation}
             newCardBackgroundColor={newCardBackgroundColor}
             cards={visibleSystemTreeCards}
+            batchDonePreviewCardIds={batchDonePreviewCardIds}
             collapsedNodeIds={collapsedNodeIds}
             focusedCardIndex={focusedCardIndex}
             focusedCardId={focusedCardId}
