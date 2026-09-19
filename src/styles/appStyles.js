@@ -631,8 +631,7 @@ export const styles = StyleSheet.create({
   treeCard: {
     position: 'relative',
     width: 220,
-    minHeight: 100,
-    maxHeight: 116,
+    minHeight: 94,
     padding: 12,
     justifyContent: 'flex-start',
     alignItems: 'stretch',
@@ -641,7 +640,6 @@ export const styles = StyleSheet.create({
     position: 'absolute',
     width: 220,
     minHeight: 100,
-    maxHeight: 116,
     overflow: 'visible',
   },
   treeCardForeground: {

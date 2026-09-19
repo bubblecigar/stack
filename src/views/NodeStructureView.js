@@ -20,6 +20,7 @@ const MIN_NODE_SCALE = 0.01;
 const MAP_EDGE_THICKNESS = 1;
 const MAP_TREE_LAYOUT_OVERRIDES = {
   childOverlapX: 96,
+  treeNodeHeight: 112,
 };
 const LEAF_MAP_WIDTH_FACTOR = 0.58;
 const LEAF_MAP_HEIGHT = 220;

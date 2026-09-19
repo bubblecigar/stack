@@ -12,6 +12,13 @@ function card(id, childIds = [], parentIds = [], extra = {}) {
 }
 
 describe('buildTreeLayout', () => {
+  it('uses a three-line minimum height for regular tree cards', () => {
+    const layout = buildTreeLayout([card('root')]);
+
+    expect(layout.nodeHeight).toBe(94);
+    expect(layout.positionedCards[0].height).toBe(94);
+  });
+
   it('places mission first and treasure after normal roots', () => {
     const layout = buildTreeLayout([
       card('treasure', [], [], { isTreasureCard: true }),
@@ -53,5 +60,36 @@ describe('buildTreeLayout', () => {
       'child',
       'orphan-child',
     ]);
+  });
+
+  it('uses measured card heights when positioning descendants', () => {
+    const layout = buildTreeLayout([
+      card('root', ['child']),
+      card('child', [], ['root']),
+    ], new Set(), {}, new Map([
+      ['root', 200],
+      ['child', 160],
+    ]));
+
+    const rootEntry = layout.positionedCards.find((entry) => entry.card.id === 'root');
+    const childEntry = layout.positionedCards.find((entry) => entry.card.id === 'child');
+
+    expect(rootEntry.height).toBe(200);
+    expect(childEntry.height).toBe(160);
+    expect(childEntry.top).toBe(rootEntry.top + 200 - 16);
+  });
+
+  it('keeps collapsed descendants within the collapsing card height', () => {
+    const layout = buildTreeLayout([
+      card('root', ['child']),
+      card('child', [], ['root']),
+    ], new Set(['root']), {}, new Map([
+      ['root', 180],
+      ['child', 260],
+    ]));
+
+    const childEntry = layout.positionedCards.find((entry) => entry.card.id === 'child');
+
+    expect(childEntry.height).toBe(180);
   });
 });

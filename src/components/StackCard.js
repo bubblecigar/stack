@@ -70,6 +70,7 @@ export function StackCard({
   onCompleteEdit,
   onFocusCard,
   onHoldCard,
+  onTreeCardLayout,
   editingSelection,
   isDeleteHoldActive = false,
   doneCleanupPreviewCardIds = new Set(),
@@ -750,9 +751,17 @@ export function StackCard({
 
   return (
     <View
+      onLayout={isCollapsedStacked ? undefined : (event) => {
+        onTreeCardLayout?.(id, event.nativeEvent.layout.height);
+      }}
       pointerEvents="box-none"
       style={[
         styles.treeCardFrame,
+        isCollapsedStacked && {
+          height: treePosition.height,
+          maxHeight: treePosition.height,
+          overflow: 'hidden',
+        },
         {
           left: treePosition.left,
           top: treePosition.top,

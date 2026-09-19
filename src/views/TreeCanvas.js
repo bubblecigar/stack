@@ -1,5 +1,5 @@
 import {
-  forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState,
+  forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState,
 } from 'react';
 import {
   Animated, PanResponder, ScrollView, View,
@@ -52,7 +52,7 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
   const treeOverscrollX = useRef(new Animated.Value(0)).current;
   const treeOverscrollY = useRef(new Animated.Value(0)).current;
   const positionedCardsRef = useRef([]);
-  const treeNodeSizeRef = useRef({ height: 0, width: 0 });
+  const treeNodeWidthRef = useRef(0);
   const onDoneCardRef = useRef(onDoneCard);
   const cardTouchRef = useRef(false);
   const didCanvasPanRef = useRef(false);
@@ -71,6 +71,24 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
     width: 0,
     height: 0,
   });
+  const [treeNodeHeights, setTreeNodeHeights] = useState(() => new Map());
+
+  const handleTreeCardLayout = useCallback((cardId, height) => {
+    if (!Number.isFinite(height) || height <= 0) {
+      return;
+    }
+
+    setTreeNodeHeights((currentHeights) => {
+      const currentHeight = currentHeights.get(cardId);
+      if (Number.isFinite(currentHeight) && Math.abs(currentHeight - height) < 1) {
+        return currentHeights;
+      }
+
+      const nextHeights = new Map(currentHeights);
+      nextHeights.set(cardId, height);
+      return nextHeights;
+    });
+  }, []);
 
   function handleCardPressIn() {
     cardTouchRef.current = true;
@@ -121,9 +139,8 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
     maxHeight,
     maxWidth,
     nodeWidth,
-    nodeHeight,
     positionedCards,
-  } = buildTreeLayout(previewCards, collapsedNodeIds);
+  } = buildTreeLayout(previewCards, collapsedNodeIds, {}, treeNodeHeights);
   const collapsedLayoutKey = [...collapsedNodeIds].sort().join(':');
 
   const contentWidth = maxWidth + (TREE_CANVAS_PADDING * 2);
@@ -225,10 +242,8 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
       return;
     }
 
-    lastAutoCenteredCardKeyRef.current = autoCenterKey;
-
     const centeredX = focusedEntry.left + TREE_CANVAS_PADDING + (nodeWidth / 2);
-    const bottomAlignedY = focusedEntry.top + TREE_CANVAS_PADDING + nodeHeight;
+    const bottomAlignedY = focusedEntry.top + TREE_CANVAS_PADDING + focusedEntry.height;
 
     const targetX = Math.min(
       Math.max(centeredX - (viewport.width / 2), 0),
@@ -239,7 +254,20 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
       Math.max(contentHeight - viewport.height, 0),
     );
 
-    scrollTreeTo(targetX, targetY, true);
+    let settledLayoutFrame = null;
+    const committedLayoutFrame = requestAnimationFrame(() => {
+      settledLayoutFrame = requestAnimationFrame(() => {
+        lastAutoCenteredCardKeyRef.current = autoCenterKey;
+        scrollTreeTo(targetX, targetY, true);
+      });
+    });
+
+    return () => {
+      cancelAnimationFrame(committedLayoutFrame);
+      if (settledLayoutFrame !== null) {
+        cancelAnimationFrame(settledLayoutFrame);
+      }
+    };
   }, [
     contentHeight,
     contentWidth,
@@ -250,7 +278,6 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
     maxScrollX,
     maxScrollY,
     nodeWidth,
-    nodeHeight,
     positionedCards,
     treeViewport.width,
     treeViewport.height,
@@ -281,7 +308,7 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
     const minLeft = Math.min(...visibleEntries.map((entry) => entry.left));
     const minTop = Math.min(...visibleEntries.map((entry) => entry.top));
     const maxRight = Math.max(...visibleEntries.map((entry) => entry.left + nodeWidth));
-    const maxBottom = Math.max(...visibleEntries.map((entry) => entry.top + nodeHeight));
+    const maxBottom = Math.max(...visibleEntries.map((entry) => entry.top + entry.height));
     const treeCenterX = TREE_CANVAS_PADDING + ((minLeft + maxRight) / 2);
     const treeCenterY = TREE_CANVAS_PADDING + ((minTop + maxBottom) / 2);
 
@@ -295,7 +322,6 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
     focusedCardIndex,
     maxScrollX,
     maxScrollY,
-    nodeHeight,
     nodeWidth,
     positionedCards,
     treeViewport.height,
@@ -339,7 +365,7 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
     const previewLeft = previewEntry.left + TREE_CANVAS_PADDING;
     const previewTop = previewEntry.top + TREE_CANVAS_PADDING;
     const targetX = previewLeft + (nodeWidth / 2) - (viewport.width / 2);
-    const targetY = previewTop + (nodeHeight / 2) - (viewport.height / 2);
+    const targetY = previewTop + (previewEntry.height / 2) - (viewport.height / 2);
 
     scrollTreeTo(targetX, targetY, true);
   }, [
@@ -347,7 +373,6 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
     heldTreeCards,
     maxScrollX,
     maxScrollY,
-    nodeHeight,
     nodeWidth,
     positionedCards,
     treeViewport.height,
@@ -361,7 +386,7 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
     isCollapsedStacked: entry.isCollapsedStacked,
   }));
   positionedCardsRef.current = paddedPositionedCards;
-  treeNodeSizeRef.current = { height: nodeHeight, width: nodeWidth };
+  treeNodeWidthRef.current = nodeWidth;
   onDoneCardRef.current = onDoneCard;
 
   function stampCardAtPagePoint(pageX, pageY) {
@@ -380,9 +405,9 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
           && card.index >= 0
           && !isSystemCard
           && localX >= left
-          && localX <= left + treeNodeSizeRef.current.width
+          && localX <= left + treeNodeWidthRef.current
           && localY >= top
-          && localY <= top + treeNodeSizeRef.current.height
+          && localY <= top + entry.height
         );
       });
 
@@ -412,8 +437,8 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
         resolve({
           x: canvasX + targetEntry.left,
           y: canvasY + targetEntry.top,
-          width: treeNodeSizeRef.current.width,
-          height: treeNodeSizeRef.current.height,
+          width: treeNodeWidthRef.current,
+          height: targetEntry.height,
         });
       });
     });
@@ -507,12 +532,14 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
                   onPressIn={handleCardPressIn}
                   onFocusCard={onCardFocus}
                   onHoldCard={onHoldCard}
+                  onTreeCardLayout={handleTreeCardLayout}
                   hideControls={isPreviewCard || isSystemCard}
                   isMissionRoot={Boolean(card.isMissionRoot)}
                   isPreviewCard={isPreviewCard}
                   isMissionCard={Boolean(card.isMissionCard)}
                   isTreasureCard={Boolean(card.isTreasureCard)}
                   treePosition={{
+                    height: entry.height,
                     left,
                     top,
                     depth,

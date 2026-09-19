@@ -1,6 +1,6 @@
 const DEFAULT_TREE_LAYOUT = {
   treeNodeWidth: 220,
-  treeNodeHeight: 112,
+  treeNodeHeight: 94,
   childOverlapX: 146,
   childOverlapY: 16,
   rootGapY: 64,
@@ -8,7 +8,12 @@ const DEFAULT_TREE_LAYOUT = {
   collapsedStackPeek: 0,
 };
 
-export function buildTreeLayout(cards = [], collapsedNodeIds = new Set(), overrides = {}) {
+export function buildTreeLayout(
+  cards = [],
+  collapsedNodeIds = new Set(),
+  overrides = {},
+  nodeHeights = new Map(),
+) {
   const config = {
     ...DEFAULT_TREE_LAYOUT,
     ...overrides,
@@ -63,9 +68,17 @@ export function buildTreeLayout(cards = [], collapsedNodeIds = new Set(), overri
     const top = isInCollapsedContext
       ? collapsedContext.baseTop
       : startY;
+    const measuredHeight = nodeHeights?.get?.(card.id);
+    const naturalHeight = Number.isFinite(measuredHeight) && measuredHeight > 0
+      ? Math.max(measuredHeight, config.treeNodeHeight)
+      : config.treeNodeHeight;
+    const height = isInCollapsedContext
+      ? collapsedContext.height
+      : naturalHeight;
 
     positionedCards.push({
       card,
+      height,
       left,
       top,
       placementOrder,
@@ -76,10 +89,10 @@ export function buildTreeLayout(cards = [], collapsedNodeIds = new Set(), overri
 
     seen.add(card.id);
     maxX = Math.max(maxX, left + config.treeNodeWidth);
-    maxY = Math.max(maxY, top + config.treeNodeHeight);
+    maxY = Math.max(maxY, top + height);
 
-    let nextY = top + config.treeNodeHeight - config.childOverlapY;
-    let subtreeBottom = top + config.treeNodeHeight;
+    let nextY = top + height - config.childOverlapY;
+    let subtreeBottom = top + height;
     const processedChildren = new Set();
     let collapsedChildIndex = 0;
 
@@ -96,6 +109,7 @@ export function buildTreeLayout(cards = [], collapsedNodeIds = new Set(), overri
       processedChildren.add(childId);
 
       const nextCollapsedContext = {
+        height,
         left,
         baseTop: isCollapsed
           ? top + config.collapsedStackPeek + (collapsedChildIndex * config.collapsedStackGapY)
