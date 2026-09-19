@@ -1342,6 +1342,9 @@ export const styles = StyleSheet.create({
   settingsIconButtonPressed: {
     opacity: 0.72,
   },
+  settingsIconButtonDisabled: {
+    opacity: 0.42,
+  },
   settingsSecondaryCard: {
     position: 'absolute',
     right: 0,

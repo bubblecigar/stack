@@ -105,6 +105,9 @@ export const FloatingControls = forwardRef(function FloatingControls({
   onNewCardBackgroundColorChange,
   onRootDoubleTap,
   onLogout,
+  onResetTutorial,
+  tutorialResetDisabled = false,
+  tutorialResetting = false,
   canDeleteCurrentCard = false,
   idleDoneStampEnabled = false,
   onIdleDoneStampDrop,
@@ -773,6 +776,20 @@ export const FloatingControls = forwardRef(function FloatingControls({
                     name={audioEnabled ? 'volume-high' : 'volume-off'}
                     size={20}
                   />
+                </Pressable>
+                <Pressable
+                  accessibilityLabel="Reset tutorial"
+                  accessibilityRole="button"
+                  disabled={tutorialResetDisabled || tutorialResetting}
+                  onPress={onResetTutorial}
+                  style={({ pressed }) => [
+                    styles.settingsIconButton,
+                    pressed && styles.settingsIconButtonPressed,
+                    (tutorialResetDisabled || tutorialResetting)
+                      && styles.settingsIconButtonDisabled,
+                  ]}
+                >
+                  <MaterialCommunityIcons color="#6B7280" name="restart" size={21} />
                 </Pressable>
               </View>
             </View>
