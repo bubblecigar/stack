@@ -1,5 +1,6 @@
 import {
   Animated,
+  AppState,
   Dimensions,
   Easing,
   PanResponder,
@@ -154,6 +155,8 @@ export const FloatingControls = forwardRef(function FloatingControls({
   const settingsPanelProgress = useRef(new Animated.Value(0)).current;
   const onIdleDoneStampDropRef = useRef(onIdleDoneStampDrop);
   const addRelationRef = useRef(null);
+  const addGestureInterruptedRef = useRef(false);
+  const appStateRef = useRef(AppState.currentState);
   const lastModeTapRef = useRef(0);
   const addStartRef = useRef({
     pageX: 0,
@@ -294,6 +297,18 @@ export const FloatingControls = forwardRef(function FloatingControls({
     onAddPreviewChange?.(null);
   }
 
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      appStateRef.current = nextAppState;
+      if (nextAppState !== 'active') {
+        addGestureInterruptedRef.current = true;
+        resetAddPointing();
+      }
+    });
+
+    return () => subscription.remove();
+  }, [onAddHoldChange, onAddPreviewChange]);
+
   function handleTutorialGestureStart() {
     if (isAddPressed) {
       return;
@@ -365,11 +380,18 @@ export const FloatingControls = forwardRef(function FloatingControls({
   }
 
   const addPanResponder = useMemo(() => PanResponder.create({
-    onStartShouldSetPanResponder: () => !isSettingsPanelOpen,
-    onMoveShouldSetPanResponder: () => !isSettingsPanelOpen,
-    onPanResponderTerminationRequest: () => false,
+    onStartShouldSetPanResponder: () => (
+      !isSettingsPanelOpen && AppState.currentState === 'active'
+    ),
+    onMoveShouldSetPanResponder: () => (
+      !isSettingsPanelOpen && AppState.currentState === 'active'
+    ),
+    onPanResponderTerminationRequest: () => true,
     onPanResponderGrant: (event) => {
-      if (isSettingsPanelOpen) {
+      const isAppActive = AppState.currentState === 'active';
+      appStateRef.current = AppState.currentState;
+      addGestureInterruptedRef.current = !isAppActive;
+      if (isSettingsPanelOpen || !isAppActive) {
         return;
       }
 
@@ -401,7 +423,13 @@ export const FloatingControls = forwardRef(function FloatingControls({
       updateAddRelation(dx, dy);
     },
     onPanResponderRelease: (event, gestureState) => {
-      if (isSettingsPanelOpen) {
+      const canCompleteGesture = (
+        !addGestureInterruptedRef.current
+        && appStateRef.current === 'active'
+        && AppState.currentState === 'active'
+      );
+      if (isSettingsPanelOpen || !canCompleteGesture) {
+        resetAddPointing();
         return;
       }
 
@@ -433,6 +461,7 @@ export const FloatingControls = forwardRef(function FloatingControls({
       }
     },
     onPanResponderTerminate: () => {
+      addGestureInterruptedRef.current = true;
       resetAddPointing();
     },
   }), [
