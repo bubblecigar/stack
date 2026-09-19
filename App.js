@@ -90,6 +90,7 @@ import {
 import {
   completeTutorialStep,
   EMPTY_TUTORIAL_PROGRESS,
+  FIRST_CARD_DELETE_STEP,
   FIRST_CARD_FOCUS_STEP,
   hasCompletedTutorialStep,
   normalizeTutorialProgress,
@@ -500,6 +501,8 @@ export default function App() {
   const [tutorialProgress, setTutorialProgress] = useState(EMPTY_TUTORIAL_PROGRESS);
   const [isResettingTutorial, setIsResettingTutorial] = useState(false);
   const [isTutorialSpotlightVisible, setIsTutorialSpotlightVisible] = useState(false);
+  const [isDeleteTutorialVisible, setIsDeleteTutorialVisible] = useState(false);
+  const [deleteTutorialCardId, setDeleteTutorialCardId] = useState(null);
   const tutorialProgressRef = useRef(EMPTY_TUTORIAL_PROGRESS);
 
   const stack = useSyncExternalStore(subscribe, getSnapshot);
@@ -1123,6 +1126,7 @@ export default function App() {
     setLeafTopIndex(nextIndex);
 
     if (isTutorialSpotlightVisible) {
+      setDeleteTutorialCardId(getSnapshot()[nextIndex]?.id ?? null);
       handleCompleteFirstCardFocusTutorial();
     }
   }
@@ -1152,10 +1156,22 @@ export default function App() {
       return;
     }
 
+    const completedCardId = cards[index]?.id ?? null;
     updateAt(index, value);
     setEditingIndex(null);
     setEditingValue('');
     setEditingSelection(null);
+
+    if (
+      completedCardId !== null
+      && completedCardId === deleteTutorialCardId
+      && !hasCompletedTutorialStep(
+        tutorialProgressRef.current,
+        FIRST_CARD_DELETE_STEP,
+      )
+    ) {
+      setIsDeleteTutorialVisible(true);
+    }
   }
 
   function handleConfirmEdit() {
@@ -1254,6 +1270,20 @@ export default function App() {
     const removedCard = cards[index];
     if (!removedCard || hasChildOnlyInsertion(removedCard)) {
       return;
+    }
+
+    if (isDeleteTutorialVisible && removedCard.id === deleteTutorialCardId) {
+      setIsDeleteTutorialVisible(false);
+      setDeleteTutorialCardId(null);
+      const nextProgress = completeTutorialStep(
+        tutorialProgressRef.current,
+        FIRST_CARD_DELETE_STEP,
+      );
+      tutorialProgressRef.current = nextProgress;
+      setTutorialProgress(nextProgress);
+      saveRemoteUserData(authToken, TUTORIAL_PROGRESS_KEY, nextProgress).catch((error) => {
+        setSyncError(error.message || 'Could not save tutorial progress.');
+      });
     }
 
     playTrashSound();
@@ -1481,6 +1511,9 @@ export default function App() {
       await saveRemoteUserData(authToken, TUTORIAL_PROGRESS_KEY, resetProgress);
       tutorialProgressRef.current = resetProgress;
       setTutorialProgress(resetProgress);
+      setIsTutorialSpotlightVisible(false);
+      setIsDeleteTutorialVisible(false);
+      setDeleteTutorialCardId(null);
     } catch (error) {
       if (error.status === 401) {
         handleAuthExpired();
@@ -2266,6 +2299,7 @@ export default function App() {
         )}
         tutorialResetting={isResettingTutorial}
         tutorialOverlayActive={isTutorialSpotlightVisible}
+        deleteTutorialOverlayActive={isDeleteTutorialVisible}
         rootDoubleTapEnabled={Boolean(
           !shouldRenderLeaf
           && focusedCardIndex === null

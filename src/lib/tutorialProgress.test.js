@@ -1,6 +1,7 @@
 import {
   completeTutorialStep,
   EMPTY_TUTORIAL_PROGRESS,
+  FIRST_CARD_DELETE_STEP,
   FIRST_CARD_FOCUS_STEP,
   hasCompletedTutorialStep,
   normalizeTutorialProgress,
@@ -22,5 +23,16 @@ describe('tutorial progress', () => {
 
     expect(hasCompletedTutorialStep(completed, FIRST_CARD_FOCUS_STEP)).toBe(true);
     expect(completeTutorialStep(completed, FIRST_CARD_FOCUS_STEP)).toEqual(completed);
+  });
+
+  it('tracks the delete tutorial separately from insertion', () => {
+    const afterInsertion = completeTutorialStep(
+      EMPTY_TUTORIAL_PROGRESS,
+      FIRST_CARD_FOCUS_STEP,
+    );
+    const afterDelete = completeTutorialStep(afterInsertion, FIRST_CARD_DELETE_STEP);
+
+    expect(hasCompletedTutorialStep(afterInsertion, FIRST_CARD_DELETE_STEP)).toBe(false);
+    expect(hasCompletedTutorialStep(afterDelete, FIRST_CARD_DELETE_STEP)).toBe(true);
   });
 });

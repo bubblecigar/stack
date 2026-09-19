@@ -229,6 +229,10 @@ export const styles = StyleSheet.create({
     zIndex: 6400,
     elevation: 36,
   },
+  tutorialHighlightedFloatingControl: {
+    zIndex: 6400,
+    elevation: 36,
+  },
   deck: {
     flex: 1,
     width: '100%',
@@ -1410,6 +1414,42 @@ export const styles = StyleSheet.create({
     height: 22,
     borderRadius: 11,
     backgroundColor: 'rgba(219, 234, 254, 0.82)',
+  },
+  tutorialHoldHint: {
+    position: 'absolute',
+    left: -10,
+    top: -10,
+    width: 108,
+    height: 108,
+    alignItems: 'center',
+    justifyContent: 'center',
+    transform: [
+      { translateX: -3 },
+      { translateY: -5 },
+    ],
+  },
+  tutorialHoldCutout: {
+    position: 'absolute',
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: '#F8FAFC',
+  },
+  tutorialHoldHalo: {
+    position: 'absolute',
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    borderWidth: 4,
+    borderColor: '#DBEAFE',
+    backgroundColor: 'rgba(37, 99, 235, 0.08)',
+  },
+  tutorialHoldCore: {
+    position: 'absolute',
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: 'rgba(219, 234, 254, 0.48)',
   },
   settingsSecondaryCard: {
     position: 'absolute',

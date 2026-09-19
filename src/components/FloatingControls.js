@@ -14,6 +14,7 @@ import {
 } from 'react';
 import { DoneStampArtwork } from './DoneStampArtwork';
 import { TutorialSpotlight } from './TutorialSpotlight';
+import { TutorialHoldHint } from './TutorialHoldHint';
 import { TutorialSwipeHint } from './TutorialSwipeHint';
 import {
   StampControlArtwork,
@@ -115,6 +116,7 @@ export const FloatingControls = forwardRef(function FloatingControls({
   tutorialResetDisabled = false,
   tutorialResetting = false,
   tutorialOverlayActive = false,
+  deleteTutorialOverlayActive = false,
   canDeleteCurrentCard = false,
   idleDoneStampEnabled = false,
   onIdleDoneStampDrop,
@@ -613,6 +615,7 @@ export const FloatingControls = forwardRef(function FloatingControls({
         <View
           style={[
             styles.deleteCardFloatingControl,
+            deleteTutorialOverlayActive && styles.tutorialHighlightedFloatingControl,
             idleDoneStampEnabled && {
               transform: [
                 { translateX: idleStampOffset.x },
@@ -621,6 +624,7 @@ export const FloatingControls = forwardRef(function FloatingControls({
             },
           ]}
         >
+          {deleteTutorialOverlayActive ? <TutorialHoldHint /> : null}
           <View
             pointerEvents="none"
             style={[
@@ -672,8 +676,15 @@ export const FloatingControls = forwardRef(function FloatingControls({
         />
       ) : null}
 
-      {tutorialOverlayActive ? (
-        <TutorialSpotlight />
+      {tutorialOverlayActive || deleteTutorialOverlayActive ? (
+        <TutorialSpotlight
+          accessibilityHint={deleteTutorialOverlayActive
+            ? 'Press and hold the highlighted stamp until the card is deleted.'
+            : undefined}
+          accessibilityLabel={deleteTutorialOverlayActive
+            ? 'Card deletion tutorial. This step must be completed.'
+            : undefined}
+        />
       ) : null}
 
       <Animated.View

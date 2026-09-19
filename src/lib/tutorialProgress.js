@@ -1,5 +1,6 @@
 export const TUTORIAL_PROGRESS_KEY = 'tutorialProgress:v1';
 export const FIRST_CARD_FOCUS_STEP = 'first-card-focus';
+export const FIRST_CARD_DELETE_STEP = 'first-card-delete';
 
 export const EMPTY_TUTORIAL_PROGRESS = Object.freeze({
   schemaVersion: 1,
