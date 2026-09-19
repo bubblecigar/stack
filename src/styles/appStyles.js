@@ -1435,7 +1435,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     transform: [
-      { translateX: -3 },
+      { translateX: -2 },
       { translateY: -5 },
     ],
   },
