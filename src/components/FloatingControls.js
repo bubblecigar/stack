@@ -13,6 +13,7 @@ import {
   forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState,
 } from 'react';
 import { DoneStampArtwork } from './DoneStampArtwork';
+import { TutorialSpotlight } from './TutorialSpotlight';
 import {
   StampControlArtwork,
   STAMP_CONTROL_STATE_BLUE_CAT,
@@ -108,6 +109,8 @@ export const FloatingControls = forwardRef(function FloatingControls({
   onResetTutorial,
   tutorialResetDisabled = false,
   tutorialResetting = false,
+  tutorialOverlayActive = false,
+  onDismissTutorialOverlay,
   canDeleteCurrentCard = false,
   idleDoneStampEnabled = false,
   onIdleDoneStampDrop,
@@ -624,10 +627,15 @@ export const FloatingControls = forwardRef(function FloatingControls({
         />
       ) : null}
 
+      {tutorialOverlayActive ? (
+        <TutorialSpotlight onDismiss={onDismissTutorialOverlay} />
+      ) : null}
+
       <Animated.View
         style={[
           styles.addFloatingControl,
-          isSettingsPanelOpen && styles.settingsPanelFloatingControl,
+          (isSettingsPanelOpen || tutorialOverlayActive)
+            && styles.settingsPanelFloatingControl,
           {
             transform: [
               {

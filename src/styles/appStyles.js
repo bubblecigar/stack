@@ -1364,29 +1364,11 @@ export const styles = StyleSheet.create({
   settingsIconButtonDisabled: {
     opacity: 0.42,
   },
-  tutorialSpotlightOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 12000,
-    elevation: 80,
-  },
-  tutorialSpotlightMask: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  tutorialSpotlightPulse: {
-    position: 'absolute',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-    borderRadius: 18,
-    shadowColor: '#FFFFFF',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.72,
-    shadowRadius: 12,
-    elevation: 2,
-  },
   tutorialSpotlightMessage: {
     position: 'absolute',
     left: 28,
     right: 28,
+    bottom: 150,
     alignItems: 'center',
   },
   tutorialSpotlightTitle: {
@@ -1411,9 +1393,6 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.35,
     textAlign: 'center',
-  },
-  tutorialSpotlightDismissTarget: {
-    ...StyleSheet.absoluteFillObject,
   },
   settingsSecondaryCard: {
     position: 'absolute',
