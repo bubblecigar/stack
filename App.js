@@ -520,9 +520,16 @@ export default function App() {
   useEffect(() => {
     prefetchCardImages(cards);
   }, [cards]);
+  const hasCompletedDeleteTutorial = hasCompletedTutorialStep(
+    tutorialProgress,
+    FIRST_CARD_DELETE_STEP,
+  );
   const hiddenSystemCardIds = useMemo(
-    () => getHiddenSystemCardIds(cards, [MISSION_CARD_ID]),
-    [cards],
+    () => getHiddenSystemCardIds(cards, [
+      MISSION_CARD_ID,
+      ...(!hasCompletedDeleteTutorial ? [TREASURE_CARD_ID] : []),
+    ]),
+    [cards, hasCompletedDeleteTutorial],
   );
   const dailyVisibleCards = useMemo(
     () => getVisibleCardsExcludingIds(
