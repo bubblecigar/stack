@@ -88,6 +88,15 @@ import {
   isTimestampInAppWeek,
 } from './src/lib/appDay';
 import {
+  completeTutorialStep,
+  EMPTY_TUTORIAL_PROGRESS,
+  FIRST_CARD_DELETE_STEP,
+  FIRST_CARD_FOCUS_STEP,
+  hasCompletedTutorialStep,
+  normalizeTutorialProgress,
+  TUTORIAL_PROGRESS_KEY,
+} from './src/lib/tutorialProgress';
+import {
   getHiddenSystemCardIds,
   getVisibleCardsExcludingIds,
 } from './src/lib/systemVisibility';
@@ -489,6 +498,12 @@ export default function App() {
   const [previousDayTreeCompletionCanvas, setPreviousDayTreeCompletionCanvas] = useState(
     EMPTY_TREE_COMPLETION_CANVAS,
   );
+  const [tutorialProgress, setTutorialProgress] = useState(EMPTY_TUTORIAL_PROGRESS);
+  const [isResettingTutorial, setIsResettingTutorial] = useState(false);
+  const [isTutorialSpotlightVisible, setIsTutorialSpotlightVisible] = useState(false);
+  const [isDeleteTutorialVisible, setIsDeleteTutorialVisible] = useState(false);
+  const [deleteTutorialCardId, setDeleteTutorialCardId] = useState(null);
+  const tutorialProgressRef = useRef(EMPTY_TUTORIAL_PROGRESS);
 
   const stack = useSyncExternalStore(subscribe, getSnapshot);
   const cards = useMemo(() => stack.map((card, index) => ({
@@ -800,6 +815,10 @@ export default function App() {
     setTreeCompletionCanvas(EMPTY_TREE_COMPLETION_CANVAS);
     setPreviousDayTreeCompletionCanvas(EMPTY_TREE_COMPLETION_CANVAS);
     setCollections([]);
+    setTutorialProgress(EMPTY_TUTORIAL_PROGRESS);
+    tutorialProgressRef.current = EMPTY_TUTORIAL_PROGRESS;
+    setIsResettingTutorial(false);
+    setIsTutorialSpotlightVisible(false);
     hasLoadedRemoteCards.current = false;
     restoredUiStateUserIdRef.current = null;
     isApplyingRemoteCards.current = true;
@@ -910,7 +929,13 @@ export default function App() {
     async function loadCardsForUser() {
       try {
         const [
-          [cardsResult, collectionsResult, todayCanvasResult, previousDayCanvasResult],
+          [
+            cardsResult,
+            collectionsResult,
+            todayCanvasResult,
+            previousDayCanvasResult,
+            tutorialProgressResult,
+          ],
           localUiStateResult,
         ] = await Promise.all([
           Promise.all([
@@ -918,6 +943,7 @@ export default function App() {
             loadRemoteCollections(authToken),
             loadRemoteUserData(authToken, currentTreeCompletionCanvasKey),
             loadRemoteUserData(authToken, previousTreeCompletionCanvasKey),
+            loadRemoteUserData(authToken, TUTORIAL_PROGRESS_KEY),
           ]),
           localUiStateResultPromise,
         ]);
@@ -942,6 +968,9 @@ export default function App() {
         setPreviousDayTreeCompletionCanvas(
           previousDayCanvasResult.value || EMPTY_TREE_COMPLETION_CANVAS,
         );
+        const loadedTutorialProgress = normalizeTutorialProgress(tutorialProgressResult.value);
+        setTutorialProgress(loadedTutorialProgress);
+        tutorialProgressRef.current = loadedTutorialProgress;
 
         if (restoredUiState) {
           const loadedCardIds = new Set(loadedCards.map((card) => card.id));
@@ -1076,6 +1105,9 @@ export default function App() {
 
         setHeldTreeRootId(null);
         setLeafTopIndex(movedIndex);
+        if (isTutorialSpotlightVisible) {
+          handleCompleteFirstCardFocusTutorial();
+        }
       });
       return;
     }
@@ -1092,6 +1124,11 @@ export default function App() {
     setEditingSelection({ start: 0, end: 0 });
     setFocusedCardIndex(nextIndex);
     setLeafTopIndex(nextIndex);
+
+    if (isTutorialSpotlightVisible) {
+      setDeleteTutorialCardId(getSnapshot()[nextIndex]?.id ?? null);
+      handleCompleteFirstCardFocusTutorial();
+    }
   }
 
   function handleEditCard(index, text) {
@@ -1119,10 +1156,22 @@ export default function App() {
       return;
     }
 
+    const completedCardId = cards[index]?.id ?? null;
     updateAt(index, value);
     setEditingIndex(null);
     setEditingValue('');
     setEditingSelection(null);
+
+    if (
+      completedCardId !== null
+      && completedCardId === deleteTutorialCardId
+      && !hasCompletedTutorialStep(
+        tutorialProgressRef.current,
+        FIRST_CARD_DELETE_STEP,
+      )
+    ) {
+      setIsDeleteTutorialVisible(true);
+    }
   }
 
   function handleConfirmEdit() {
@@ -1221,6 +1270,20 @@ export default function App() {
     const removedCard = cards[index];
     if (!removedCard || hasChildOnlyInsertion(removedCard)) {
       return;
+    }
+
+    if (isDeleteTutorialVisible && removedCard.id === deleteTutorialCardId) {
+      setIsDeleteTutorialVisible(false);
+      setDeleteTutorialCardId(null);
+      const nextProgress = completeTutorialStep(
+        tutorialProgressRef.current,
+        FIRST_CARD_DELETE_STEP,
+      );
+      tutorialProgressRef.current = nextProgress;
+      setTutorialProgress(nextProgress);
+      saveRemoteUserData(authToken, TUTORIAL_PROGRESS_KEY, nextProgress).catch((error) => {
+        setSyncError(error.message || 'Could not save tutorial progress.');
+      });
     }
 
     playTrashSound();
@@ -1407,6 +1470,60 @@ export default function App() {
     }
 
     setFocusedCardIndex(index);
+
+    const focusedCard = cards[index];
+    if (
+      authToken
+      && hasLoadedUserData
+      && focusedCard
+      && !isSystemCard(focusedCard)
+      && !hasCompletedTutorialStep(
+        tutorialProgressRef.current,
+        FIRST_CARD_FOCUS_STEP,
+      )
+      && !isTutorialSpotlightVisible
+    ) {
+      setIsTutorialSpotlightVisible(true);
+    }
+  }
+
+  function handleCompleteFirstCardFocusTutorial() {
+    setIsTutorialSpotlightVisible(false);
+    const nextProgress = completeTutorialStep(
+      tutorialProgressRef.current,
+      FIRST_CARD_FOCUS_STEP,
+    );
+    tutorialProgressRef.current = nextProgress;
+    setTutorialProgress(nextProgress);
+    saveRemoteUserData(authToken, TUTORIAL_PROGRESS_KEY, nextProgress).catch((error) => {
+      setSyncError(error.message || 'Could not save tutorial progress.');
+    });
+  }
+
+  async function handleResetTutorial() {
+    if (!authToken || isResettingTutorial) {
+      return;
+    }
+
+    setIsResettingTutorial(true);
+    try {
+      const resetProgress = normalizeTutorialProgress(null);
+      await saveRemoteUserData(authToken, TUTORIAL_PROGRESS_KEY, resetProgress);
+      tutorialProgressRef.current = resetProgress;
+      setTutorialProgress(resetProgress);
+      setIsTutorialSpotlightVisible(false);
+      setIsDeleteTutorialVisible(false);
+      setDeleteTutorialCardId(null);
+    } catch (error) {
+      if (error.status === 401) {
+        handleAuthExpired();
+        return;
+      }
+
+      Alert.alert('Could not reset tutorial', error.message || 'Please try again.');
+    } finally {
+      setIsResettingTutorial(false);
+    }
   }
 
   function handleTreeCardFocus(index) {
@@ -2175,6 +2292,14 @@ export default function App() {
         onAddPreviewChange={setAddPreviewRelation}
         onRootDoubleTap={handleToggleAllTreeCards}
         onLogout={handleLogoutRequest}
+        onResetTutorial={handleResetTutorial}
+        tutorialResetDisabled={!hasCompletedTutorialStep(
+          tutorialProgress,
+          FIRST_CARD_FOCUS_STEP,
+        )}
+        tutorialResetting={isResettingTutorial}
+        tutorialOverlayActive={isTutorialSpotlightVisible}
+        deleteTutorialOverlayActive={isDeleteTutorialVisible}
         rootDoubleTapEnabled={Boolean(
           !shouldRenderLeaf
           && focusedCardIndex === null

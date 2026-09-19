@@ -13,6 +13,9 @@ import {
   forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState,
 } from 'react';
 import { DoneStampArtwork } from './DoneStampArtwork';
+import { TutorialSpotlight } from './TutorialSpotlight';
+import { TutorialHoldHint } from './TutorialHoldHint';
+import { TutorialSwipeHint } from './TutorialSwipeHint';
 import {
   StampControlArtwork,
   STAMP_CONTROL_STATE_BLUE_CAT,
@@ -28,7 +31,11 @@ import { STAMP_RENDER_SCALE } from '../config/stampAssets';
 import { getCardImageSource } from '../lib/cardImageCache';
 import { styles } from '../styles/appStyles';
 
-const SCREEN_HEIGHT = Dimensions.get('window').height;
+const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
+const TUTORIAL_POINTER_START = Object.freeze({
+  pageX: SCREEN_WIDTH / 2,
+  pageY: SCREEN_HEIGHT - 86,
+});
 const DELETE_HOLD_MS = 500;
 const ADD_POINT_DEAD_ZONE = 28;
 const ADD_POINT_SWITCH_DISTANCE = 36;
@@ -105,6 +112,11 @@ export const FloatingControls = forwardRef(function FloatingControls({
   onNewCardBackgroundColorChange,
   onRootDoubleTap,
   onLogout,
+  onResetTutorial,
+  tutorialResetDisabled = false,
+  tutorialResetting = false,
+  tutorialOverlayActive = false,
+  deleteTutorialOverlayActive = false,
   canDeleteCurrentCard = false,
   idleDoneStampEnabled = false,
   onIdleDoneStampDrop,
@@ -124,6 +136,10 @@ export const FloatingControls = forwardRef(function FloatingControls({
       ? STAMP_CONTROL_STATE_BLUE_CAT
       : STAMP_CONTROL_STATE_BLUE_CIRCLE);
   const [isAddPressed, setIsAddPressed] = useState(false);
+  const [isTutorialDemoPressed, setIsTutorialDemoPressed] = useState(false);
+  const [tutorialPointerPosition, setTutorialPointerPosition] = useState(
+    TUTORIAL_POINTER_START,
+  );
   const [addCardRotation, setAddCardRotation] = useState(ADD_CARD_BASE_ROTATION);
   const [addCardOffsetX, setAddCardOffsetX] = useState(0);
   const [addCardOffsetY, setAddCardOffsetY] = useState(0);
@@ -247,12 +263,13 @@ export const FloatingControls = forwardRef(function FloatingControls({
       return;
     }
 
+    const pointedRelation = getAddRelationFromPoint(
+      dx,
+      dy,
+      addRelationRef.current,
+    );
     const relation = constrainAddRelation(
-      getAddRelationFromPoint(
-        dx,
-        dy,
-        addRelationRef.current,
-      ),
+      pointedRelation,
       childInsertionOnly,
       parentInsertionBlocked,
     );
@@ -267,12 +284,43 @@ export const FloatingControls = forwardRef(function FloatingControls({
 
   function resetAddPointing() {
     setIsAddPressed(false);
+    setIsTutorialDemoPressed(false);
     setAddCardRotation(ADD_CARD_BASE_ROTATION);
     setAddCardOffsetX(0);
     setAddCardOffsetY(0);
     addRelationRef.current = null;
     onAddHoldChange?.(false);
     onAddPreviewChange?.(null);
+  }
+
+  function handleTutorialGestureStart() {
+    if (isAddPressed) {
+      return;
+    }
+
+    addRelationRef.current = null;
+    addStartRef.current = TUTORIAL_POINTER_START;
+    setIsTutorialDemoPressed(true);
+    setTutorialPointerPosition(TUTORIAL_POINTER_START);
+    setAddCardRotation(ADD_CARD_BASE_ROTATION);
+    setAddCardOffsetX(0);
+    setAddCardOffsetY(0);
+    onAddHoldChange?.(!disableCardInsertion);
+    onAddPreviewChange?.(null);
+  }
+
+  function handleTutorialGestureMove({ dx, dy, pageX, pageY }) {
+    if (!isAddPressed) {
+      setTutorialPointerPosition({ pageX, pageY });
+      updateAddRelation(dx, dy);
+    }
+  }
+
+  function handleTutorialGestureEnd() {
+    if (!isAddPressed) {
+      setTutorialPointerPosition(TUTORIAL_POINTER_START);
+      resetAddPointing();
+    }
   }
 
   function pinSettingsPanel() {
@@ -330,6 +378,7 @@ export const FloatingControls = forwardRef(function FloatingControls({
         pageY,
       };
       addRelationRef.current = null;
+      setIsTutorialDemoPressed(false);
       setIsAddPressed(true);
       setAddCardRotation(ADD_CARD_BASE_ROTATION);
       setAddCardOffsetX(0);
@@ -343,7 +392,7 @@ export const FloatingControls = forwardRef(function FloatingControls({
       }
 
       const { dx, dy } = getAddGestureDelta(event, gestureState);
-      if (shouldOpenSettingsPanel(event, gestureState)) {
+      if (!tutorialOverlayActive && shouldOpenSettingsPanel(event, gestureState)) {
         pinSettingsPanel();
         return;
       }
@@ -356,17 +405,18 @@ export const FloatingControls = forwardRef(function FloatingControls({
       }
 
       const { dx, dy } = getAddGestureDelta(event, gestureState);
-      if (shouldOpenSettingsPanel(event, gestureState)) {
+      if (!tutorialOverlayActive && shouldOpenSettingsPanel(event, gestureState)) {
         pinSettingsPanel();
         return;
       }
 
+      const pointedRelation = getAddRelationFromPoint(
+        dx,
+        dy,
+        addRelationRef.current,
+      );
       const relation = constrainAddRelation(
-        getAddRelationFromPoint(
-          dx,
-          dy,
-          addRelationRef.current,
-        ),
+        pointedRelation,
         childInsertionOnly,
         parentInsertionBlocked,
       );
@@ -377,7 +427,9 @@ export const FloatingControls = forwardRef(function FloatingControls({
         return;
       }
 
-      handleModeDoubleTap(dx, dy);
+      if (!tutorialOverlayActive) {
+        handleModeDoubleTap(dx, dy);
+      }
     },
     onPanResponderTerminate: () => {
       resetAddPointing();
@@ -393,6 +445,7 @@ export const FloatingControls = forwardRef(function FloatingControls({
     onRootDoubleTap,
     onToggleMode,
     rootDoubleTapEnabled,
+    tutorialOverlayActive,
     newCardBackgroundColor,
   ]);
 
@@ -539,10 +592,30 @@ export const FloatingControls = forwardRef(function FloatingControls({
 
   return (
     <>
+      {layoutMode === 'tree' ? (
+        <View style={styles.tutorialResetFloatingControl}>
+          <Pressable
+            accessibilityLabel="Reset tutorial"
+            accessibilityRole="button"
+            disabled={tutorialResetDisabled || tutorialResetting}
+            onPress={onResetTutorial}
+            style={({ pressed }) => [
+              styles.tutorialResetFloatingButton,
+              pressed && styles.settingsIconButtonPressed,
+              (tutorialResetDisabled || tutorialResetting)
+                && styles.settingsIconButtonDisabled,
+            ]}
+          >
+            <MaterialCommunityIcons color="#6B7280" name="restart" size={24} />
+          </Pressable>
+        </View>
+      ) : null}
+
       {shouldShowDelete || idleDoneStampEnabled ? (
         <View
           style={[
             styles.deleteCardFloatingControl,
+            deleteTutorialOverlayActive && styles.tutorialHighlightedFloatingControl,
             idleDoneStampEnabled && {
               transform: [
                 { translateX: idleStampOffset.x },
@@ -551,6 +624,7 @@ export const FloatingControls = forwardRef(function FloatingControls({
             },
           ]}
         >
+          {deleteTutorialOverlayActive ? <TutorialHoldHint /> : null}
           <View
             pointerEvents="none"
             style={[
@@ -602,10 +676,23 @@ export const FloatingControls = forwardRef(function FloatingControls({
         />
       ) : null}
 
+      {tutorialOverlayActive || deleteTutorialOverlayActive ? (
+        <TutorialSpotlight
+          accessibilityHint={deleteTutorialOverlayActive
+            ? 'Press and hold the highlighted stamp until the card is deleted.'
+            : undefined}
+          accessibilityLabel={deleteTutorialOverlayActive
+            ? 'Card deletion tutorial. This step must be completed.'
+            : undefined}
+          message={deleteTutorialOverlayActive ? 'Hold to delete' : 'Swipe to insert'}
+        />
+      ) : null}
+
       <Animated.View
         style={[
           styles.addFloatingControl,
-          isSettingsPanelOpen && styles.settingsPanelFloatingControl,
+          (isSettingsPanelOpen || tutorialOverlayActive)
+            && styles.settingsPanelFloatingControl,
           {
             transform: [
               {
@@ -643,7 +730,7 @@ export const FloatingControls = forwardRef(function FloatingControls({
           accessibilityRole="button"
           style={[
             styles.addCardControl,
-            isAddPressed && styles.addCardControlPressed,
+            (isAddPressed || isTutorialDemoPressed) && styles.addCardControlPressed,
           ]}
         >
           <Animated.View
@@ -779,6 +866,19 @@ export const FloatingControls = forwardRef(function FloatingControls({
           </Animated.View>
         </View>
       </Animated.View>
+
+      {tutorialOverlayActive ? (
+        <TutorialSwipeHint
+          onGestureEnd={handleTutorialGestureEnd}
+          onGestureMove={handleTutorialGestureMove}
+          onGestureStart={handleTutorialGestureStart}
+          pageX={tutorialPointerPosition.pageX}
+          pageY={tutorialPointerPosition.pageY}
+          paused={isAddPressed}
+          startPageX={TUTORIAL_POINTER_START.pageX}
+          startPageY={TUTORIAL_POINTER_START.pageY}
+        />
+      ) : null}
     </>
   );
 });
