@@ -233,6 +233,17 @@ export const styles = StyleSheet.create({
     zIndex: 6400,
     elevation: 36,
   },
+  tutorialInstructionText: {
+    position: 'absolute',
+    left: 24,
+    right: 24,
+    bottom: 238,
+    color: '#FFFFFF',
+    fontFamily: 'Kalam_400Regular',
+    fontSize: 24,
+    lineHeight: 30,
+    textAlign: 'center',
+  },
   deck: {
     flex: 1,
     width: '100%',

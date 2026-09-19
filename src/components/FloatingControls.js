@@ -684,6 +684,7 @@ export const FloatingControls = forwardRef(function FloatingControls({
           accessibilityLabel={deleteTutorialOverlayActive
             ? 'Card deletion tutorial. This step must be completed.'
             : undefined}
+          message={deleteTutorialOverlayActive ? 'Hold to delete' : 'Swipe to insert'}
         />
       ) : null}
 
