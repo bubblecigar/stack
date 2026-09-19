@@ -542,6 +542,25 @@ export const FloatingControls = forwardRef(function FloatingControls({
 
   return (
     <>
+      {layoutMode === 'tree' ? (
+        <View style={styles.tutorialResetFloatingControl}>
+          <Pressable
+            accessibilityLabel="Reset tutorial"
+            accessibilityRole="button"
+            disabled={tutorialResetDisabled || tutorialResetting}
+            onPress={onResetTutorial}
+            style={({ pressed }) => [
+              styles.tutorialResetFloatingButton,
+              pressed && styles.settingsIconButtonPressed,
+              (tutorialResetDisabled || tutorialResetting)
+                && styles.settingsIconButtonDisabled,
+            ]}
+          >
+            <MaterialCommunityIcons color="#6B7280" name="restart" size={24} />
+          </Pressable>
+        </View>
+      ) : null}
+
       {shouldShowDelete || idleDoneStampEnabled ? (
         <View
           style={[
@@ -776,20 +795,6 @@ export const FloatingControls = forwardRef(function FloatingControls({
                     name={audioEnabled ? 'volume-high' : 'volume-off'}
                     size={20}
                   />
-                </Pressable>
-                <Pressable
-                  accessibilityLabel="Reset tutorial"
-                  accessibilityRole="button"
-                  disabled={tutorialResetDisabled || tutorialResetting}
-                  onPress={onResetTutorial}
-                  style={({ pressed }) => [
-                    styles.settingsIconButton,
-                    pressed && styles.settingsIconButtonPressed,
-                    (tutorialResetDisabled || tutorialResetting)
-                      && styles.settingsIconButtonDisabled,
-                  ]}
-                >
-                  <MaterialCommunityIcons color="#6B7280" name="restart" size={21} />
                 </Pressable>
               </View>
             </View>

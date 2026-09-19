@@ -48,6 +48,7 @@ import { prefetchCardImages } from './src/lib/cardImageCache';
 import { CompletionProgressTree } from './src/components/CompletionProgressTree';
 import { FloatingControls } from './src/components/FloatingControls';
 import { HeldCardFlight } from './src/components/HeldCardFlight';
+import { TutorialSpotlight } from './src/components/TutorialSpotlight';
 import { AuthScreen } from './src/views/AuthScreen';
 import { LeafDeck } from './src/views/LeafDeck';
 import { NodeStructureView } from './src/views/NodeStructureView';
@@ -499,7 +500,9 @@ export default function App() {
   );
   const [tutorialProgress, setTutorialProgress] = useState(EMPTY_TUTORIAL_PROGRESS);
   const [isResettingTutorial, setIsResettingTutorial] = useState(false);
+  const [tutorialSpotlightFrame, setTutorialSpotlightFrame] = useState(null);
   const tutorialProgressRef = useRef(EMPTY_TUTORIAL_PROGRESS);
+  const isTutorialPresentationPendingRef = useRef(false);
 
   const stack = useSyncExternalStore(subscribe, getSnapshot);
   const cards = useMemo(() => stack.map((card, index) => ({
@@ -814,6 +817,8 @@ export default function App() {
     setTutorialProgress(EMPTY_TUTORIAL_PROGRESS);
     tutorialProgressRef.current = EMPTY_TUTORIAL_PROGRESS;
     setIsResettingTutorial(false);
+    setTutorialSpotlightFrame(null);
+    isTutorialPresentationPendingRef.current = false;
     hasLoadedRemoteCards.current = false;
     restoredUiStateUserIdRef.current = null;
     isApplyingRemoteCards.current = true;
@@ -1442,18 +1447,34 @@ export default function App() {
         tutorialProgressRef.current,
         FIRST_CARD_FOCUS_STEP,
       )
+      && !tutorialSpotlightFrame
+      && !isTutorialPresentationPendingRef.current
     ) {
-      const nextProgress = completeTutorialStep(
-        tutorialProgressRef.current,
-        FIRST_CARD_FOCUS_STEP,
-      );
-      tutorialProgressRef.current = nextProgress;
-      setTutorialProgress(nextProgress);
-      Alert.alert('hello');
-      saveRemoteUserData(authToken, TUTORIAL_PROGRESS_KEY, nextProgress).catch((error) => {
-        setSyncError(error.message || 'Could not save tutorial progress.');
+      isTutorialPresentationPendingRef.current = true;
+      requestAnimationFrame(async () => {
+        try {
+          const targetFrame = await floatingControlsRef.current?.measureInsertionCard?.();
+          if (targetFrame) {
+            setTutorialSpotlightFrame(targetFrame);
+          }
+        } finally {
+          isTutorialPresentationPendingRef.current = false;
+        }
       });
     }
+  }
+
+  function handleDismissFirstCardFocusTutorial() {
+    setTutorialSpotlightFrame(null);
+    const nextProgress = completeTutorialStep(
+      tutorialProgressRef.current,
+      FIRST_CARD_FOCUS_STEP,
+    );
+    tutorialProgressRef.current = nextProgress;
+    setTutorialProgress(nextProgress);
+    saveRemoteUserData(authToken, TUTORIAL_PROGRESS_KEY, nextProgress).catch((error) => {
+      setSyncError(error.message || 'Could not save tutorial progress.');
+    });
   }
 
   async function handleResetTutorial() {
@@ -1467,7 +1488,6 @@ export default function App() {
       await saveRemoteUserData(authToken, TUTORIAL_PROGRESS_KEY, resetProgress);
       tutorialProgressRef.current = resetProgress;
       setTutorialProgress(resetProgress);
-      Alert.alert('Tutorial reset', 'The next card you focus will show the dialog again.');
     } catch (error) {
       if (error.status === 401) {
         handleAuthExpired();
@@ -2276,6 +2296,13 @@ export default function App() {
             setHeldCardFlight(null);
             isHeldTransitionActiveRef.current = false;
           }}
+        />
+      ) : null}
+
+      {tutorialSpotlightFrame ? (
+        <TutorialSpotlight
+          onDismiss={handleDismissFirstCardFocusTutorial}
+          targetFrame={tutorialSpotlightFrame}
         />
       ) : null}
 
