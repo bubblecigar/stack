@@ -3,6 +3,7 @@ import {
   EMPTY_TUTORIAL_PROGRESS,
   FIRST_CARD_DELETE_STEP,
   FIRST_CARD_FOCUS_STEP,
+  TREASURE_BACKLOG_STEP,
   hasCompletedTutorialStep,
   normalizeTutorialProgress,
 } from './tutorialProgress';
@@ -34,5 +35,15 @@ describe('tutorial progress', () => {
 
     expect(hasCompletedTutorialStep(afterInsertion, FIRST_CARD_DELETE_STEP)).toBe(false);
     expect(hasCompletedTutorialStep(afterDelete, FIRST_CARD_DELETE_STEP)).toBe(true);
+  });
+
+  it('tracks the treasure backlog explanation separately', () => {
+    const completed = completeTutorialStep(
+      EMPTY_TUTORIAL_PROGRESS,
+      TREASURE_BACKLOG_STEP,
+    );
+
+    expect(hasCompletedTutorialStep(completed, TREASURE_BACKLOG_STEP)).toBe(true);
+    expect(hasCompletedTutorialStep(completed, FIRST_CARD_FOCUS_STEP)).toBe(false);
   });
 });

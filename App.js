@@ -95,6 +95,7 @@ import {
   FIRST_CARD_FOCUS_STEP,
   hasCompletedTutorialStep,
   normalizeTutorialProgress,
+  TREASURE_BACKLOG_STEP,
   TUTORIAL_PROGRESS_KEY,
 } from './src/lib/tutorialProgress';
 import {
@@ -505,6 +506,7 @@ export default function App() {
   const [isResettingTutorial, setIsResettingTutorial] = useState(false);
   const [isTutorialSpotlightVisible, setIsTutorialSpotlightVisible] = useState(false);
   const [isDeleteTutorialVisible, setIsDeleteTutorialVisible] = useState(false);
+  const [isTreasureBacklogTutorialVisible, setIsTreasureBacklogTutorialVisible] = useState(false);
   const [deleteTutorialCardId, setDeleteTutorialCardId] = useState(null);
   const tutorialProgressRef = useRef(EMPTY_TUTORIAL_PROGRESS);
 
@@ -694,6 +696,38 @@ export default function App() {
       ? matchingPosition
       : fallbackPosition;
   }, [leafCards, leafFocusedCardId, leafTopIndex]);
+  const isTreasureCardFocused = (
+    !shouldRenderLeaf && focusedCardId === TREASURE_CARD_ID
+  );
+
+  useEffect(() => {
+    if (!isTreasureCardFocused) {
+      setIsTreasureBacklogTutorialVisible(false);
+      return;
+    }
+
+    if (
+      !authToken
+      || !hasLoadedUserData
+      || hasCompletedTutorialStep(
+        tutorialProgressRef.current,
+        TREASURE_BACKLOG_STEP,
+      )
+    ) {
+      return;
+    }
+
+    setIsTreasureBacklogTutorialVisible(true);
+    const nextProgress = completeTutorialStep(
+      tutorialProgressRef.current,
+      TREASURE_BACKLOG_STEP,
+    );
+    tutorialProgressRef.current = nextProgress;
+    setTutorialProgress(nextProgress);
+    saveRemoteUserData(authToken, TUTORIAL_PROGRESS_KEY, nextProgress).catch((error) => {
+      setSyncError(error.message || 'Could not save tutorial progress.');
+    });
+  }, [authToken, hasLoadedUserData, isTreasureCardFocused]);
 
   const visibleCards = useMemo(() => {
     if (leafCards.length === 0) {
@@ -846,6 +880,7 @@ export default function App() {
     tutorialProgressRef.current = EMPTY_TUTORIAL_PROGRESS;
     setIsResettingTutorial(false);
     setIsTutorialSpotlightVisible(false);
+    setIsTreasureBacklogTutorialVisible(false);
     hasLoadedRemoteCards.current = false;
     restoredUiStateUserIdRef.current = null;
     isApplyingRemoteCards.current = true;
@@ -1560,6 +1595,7 @@ export default function App() {
       setTutorialProgress(resetProgress);
       setIsTutorialSpotlightVisible(false);
       setIsDeleteTutorialVisible(false);
+      setIsTreasureBacklogTutorialVisible(false);
       setDeleteTutorialCardId(null);
     } catch (error) {
       if (error.status === 401) {
@@ -2317,9 +2353,23 @@ export default function App() {
             isDeleteHoldActive={isDeleteHoldActive}
             heldTreeCards={heldTreeCards}
             treeNodeHeights={treeNodeHeights}
+            tutorialSpotlightCardId={isTreasureBacklogTutorialVisible
+              ? TREASURE_CARD_ID
+              : null}
             onCanvasBlur={() => setFocusedCardIndex(null)}
           />
         )}
+        {isTreasureBacklogTutorialVisible ? (
+          <Text
+            pointerEvents="none"
+            style={[
+              styles.tutorialInstructionText,
+              styles.treasureBacklogTutorialText,
+            ]}
+          >
+            Here is a box for you to store backlog cards
+          </Text>
+        ) : null}
       </View>
 
       <NodeStructureView

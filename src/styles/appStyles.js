@@ -287,6 +287,10 @@ export const styles = StyleSheet.create({
     lineHeight: 30,
     textAlign: 'center',
   },
+  treasureBacklogTutorialText: {
+    zIndex: 6250,
+    elevation: 34,
+  },
   deck: {
     flex: 1,
     width: '100%',
@@ -580,6 +584,16 @@ export const styles = StyleSheet.create({
     position: 'relative',
     pointerEvents: 'box-none',
     alignItems: 'flex-start',
+  },
+  treeTutorialDimOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(15, 23, 42, 0.42)',
+    zIndex: 11000,
+    elevation: 13,
   },
   treeMeasurementRack: {
     position: 'absolute',

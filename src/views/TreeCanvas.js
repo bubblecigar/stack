@@ -47,6 +47,7 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
   heldTreeCards = [],
   newCardBackgroundColor,
   treeNodeHeights,
+  tutorialSpotlightCardId = null,
 }, forwardedRef) {
   const treeHorizontalScrollRef = useRef(null);
   const treeVerticalScrollRef = useRef(null);
@@ -483,15 +484,22 @@ export const TreeCanvas = forwardRef(function TreeCanvas({
             style={[
               styles.treeCanvas,
               {
-                height: maxHeight + (TREE_CANVAS_PADDING * 2),
+                height: tutorialSpotlightCardId
+                  ? Math.max(contentHeight, treeViewport.height)
+                  : contentHeight,
                 transform: [
                   { translateX: treeOverscrollX },
                   { translateY: treeOverscrollY },
                 ],
-                width: maxWidth + (TREE_CANVAS_PADDING * 2),
+                width: tutorialSpotlightCardId
+                  ? Math.max(contentWidth, treeViewport.width)
+                  : contentWidth,
               },
             ]}
           >
+            {tutorialSpotlightCardId ? (
+              <View pointerEvents="none" style={styles.treeTutorialDimOverlay} />
+            ) : null}
             {paddedPositionedCards.map((entry) => {
               const { card, left, top, depth, placementOrder, isCollapsedStacked } = entry;
               const isPreviewCard = (
