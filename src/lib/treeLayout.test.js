@@ -76,7 +76,7 @@ describe('buildTreeLayout', () => {
 
     expect(rootEntry.height).toBe(200);
     expect(childEntry.height).toBe(160);
-    expect(childEntry.top).toBe(rootEntry.top + 200 - 16);
+    expect(childEntry.top).toBe(rootEntry.top + 200 - 12);
   });
 
   it('keeps collapsed descendants within the collapsing card height', () => {
