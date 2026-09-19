@@ -25,6 +25,21 @@ VULTR_USER=root
 VULTR_PASSWORD=your-root-password
 ```
 
+For password reset email through Gmail SMTP, add these values to the same file:
+
+```dotenv
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=you@gmail.com
+SMTP_PASS=your-16-character-app-password
+SMTP_FROM=you@gmail.com
+```
+
+The Gmail account must have two-step verification enabled and the password must
+be a Google app password, not the account password. Do not commit `.env`. The
+deploy script installs the mail dependency on the server and stores these values
+in `/etc/stack-auth.env` with owner-only permissions.
+
 If `VULTR_PASSWORD` is set and `sshpass` is installed locally, deploy can use password auth non-interactively. Without `sshpass`, SSH will prompt normally or use your SSH key.
 
 If Node is not already installed on the host, install Node 22+ first. For example, use your preferred NodeSource, fnm, nvm, or distro package setup, then make sure `/usr/bin/node` points to that Node. If it does not, pass `NODE_BIN=/path/to/node`.

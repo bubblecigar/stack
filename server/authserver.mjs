@@ -17,6 +17,7 @@ import {
   sendNoContent,
   withRequestLogging,
 } from './http.mjs';
+import { sendPasswordResetEmail } from './mailer.mjs';
 
 const port = Number(process.env.AUTH_PORT || 4100);
 const host = process.env.AUTH_HOST || '0.0.0.0';
@@ -92,10 +93,13 @@ async function handleRequest(request, response) {
       const reset = createPasswordResetToken(body.email);
 
       if (reset) {
-        console.log(
-          `[authserver] password reset code for ${reset.email}: `
-          + `${reset.token} expires ${reset.expiresAt}`,
-        );
+        try {
+          await sendPasswordResetEmail(reset);
+        } catch (error) {
+          // Keep the public response identical so this endpoint cannot reveal
+          // whether an email address has an account.
+          console.error('[authserver] password reset email could not be sent', error);
+        }
       }
 
       sendJson(response, 200, {

@@ -20,6 +20,7 @@ REMOTE_APP_DIR="${REMOTE_APP_DIR:-/opt/stack}"
 WEB_ROOT="${WEB_ROOT:-/var/www/stack}"
 DATA_DIR="${DATA_DIR:-/var/lib/stack}"
 API_ENV_FILE="${API_ENV_FILE:-/etc/stack-api.env}"
+AUTH_ENV_FILE="${AUTH_ENV_FILE:-/etc/stack-auth.env}"
 AUTH_PORT="${AUTH_PORT:-4100}"
 API_PORT="${API_PORT:-4101}"
 NGINX_HTTP_PORT="${NGINX_HTTP_PORT:-80}"
@@ -68,6 +69,7 @@ render_template() {
     -e "s/__REMOTE_APP_DIR__/$(escape_sed "$REMOTE_APP_DIR")/g" \
     -e "s/__DATA_DIR__/$(escape_sed "$DATA_DIR")/g" \
     -e "s/__API_ENV_FILE__/$(escape_sed "$API_ENV_FILE")/g" \
+    -e "s/__AUTH_ENV_FILE__/$(escape_sed "$AUTH_ENV_FILE")/g" \
     -e "s/__AUTH_PORT__/$(escape_sed "$AUTH_PORT")/g" \
     -e "s/__API_PORT__/$(escape_sed "$API_PORT")/g" \
     -e "s/__NGINX_HTTP_PORT__/$(escape_sed "$NGINX_HTTP_PORT")/g" \
@@ -107,7 +109,10 @@ echo "Uploading web build"
 rsync -az --delete -e "${RSYNC_SSH_CMD[*]}" "$BUILD_DIR"/ "$SSH_TARGET:$WEB_ROOT"/
 
 echo "Uploading Node servers"
-rsync -az --delete -e "${RSYNC_SSH_CMD[*]}" server/ "$SSH_TARGET:$REMOTE_APP_DIR/server"/
+rsync -az --delete --exclude node_modules -e "${RSYNC_SSH_CMD[*]}" server/ "$SSH_TARGET:$REMOTE_APP_DIR/server"/
+
+echo "Installing production server dependencies"
+"${SSH_CMD[@]}" "$SSH_TARGET" "npm ci --omit=dev --prefix '$REMOTE_APP_DIR/server'"
 
 echo "Uploading collection assets"
 rsync -az --delete -e "${RSYNC_SSH_CMD[*]}" assets/collections/mobile/ "$SSH_TARGET:$REMOTE_APP_DIR/assets/collections/mobile"/
@@ -130,6 +135,34 @@ else
   echo "OPENAI_API_KEY is not set locally; production image scanning will be disabled." >&2
 fi
 
+smtp_value_count=0
+for smtp_value in \
+  "${SMTP_HOST:-}" \
+  "${SMTP_PORT:-}" \
+  "${SMTP_USER:-}" \
+  "${SMTP_PASS:-}" \
+  "${SMTP_FROM:-}"; do
+  if [[ -n "$smtp_value" ]]; then
+    smtp_value_count=$((smtp_value_count + 1))
+  fi
+done
+
+if [[ "$smtp_value_count" == "5" ]]; then
+  smtp_password="$(printf '%s' "$SMTP_PASS" | tr -d '[:space:]')"
+  {
+    printf 'SMTP_HOST=%s\n' "$SMTP_HOST"
+    printf 'SMTP_PORT=%s\n' "$SMTP_PORT"
+    printf 'SMTP_USER=%s\n' "$SMTP_USER"
+    printf 'SMTP_PASS=%s\n' "$smtp_password"
+    printf 'SMTP_FROM=%s\n' "$SMTP_FROM"
+  } > "$tmp_dir/stack-auth.env"
+elif [[ "$smtp_value_count" != "0" ]]; then
+  echo "SMTP configuration is incomplete. Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, and SMTP_FROM." >&2
+  exit 1
+else
+  echo "SMTP settings are not set locally; production password reset email will be disabled." >&2
+fi
+
 echo "Installing nginx and systemd config"
 "${SCP_CMD[@]}" "$tmp_dir/stack.conf" "$SSH_TARGET:/etc/nginx/sites-available/stack"
 "${SCP_CMD[@]}" "$tmp_dir/stack-auth.service" "$SSH_TARGET:/etc/systemd/system/stack-auth.service"
@@ -137,6 +170,10 @@ echo "Installing nginx and systemd config"
 if [[ -f "$tmp_dir/stack-api.env" ]]; then
   "${SCP_CMD[@]}" "$tmp_dir/stack-api.env" "$SSH_TARGET:$API_ENV_FILE"
   "${SSH_CMD[@]}" "$SSH_TARGET" "chmod 600 '$API_ENV_FILE'"
+fi
+if [[ -f "$tmp_dir/stack-auth.env" ]]; then
+  "${SCP_CMD[@]}" "$tmp_dir/stack-auth.env" "$SSH_TARGET:$AUTH_ENV_FILE"
+  "${SSH_CMD[@]}" "$SSH_TARGET" "chmod 600 '$AUTH_ENV_FILE'"
 fi
 
 "${SSH_CMD[@]}" "$SSH_TARGET" "
