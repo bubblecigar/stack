@@ -14,6 +14,7 @@ import {
 } from 'react';
 import { DoneStampArtwork } from './DoneStampArtwork';
 import { TutorialSpotlight } from './TutorialSpotlight';
+import { TutorialSwipeHint } from './TutorialSwipeHint';
 import {
   StampControlArtwork,
   STAMP_CONTROL_STATE_BLUE_CAT,
@@ -110,7 +111,6 @@ export const FloatingControls = forwardRef(function FloatingControls({
   tutorialResetDisabled = false,
   tutorialResetting = false,
   tutorialOverlayActive = false,
-  onDismissTutorialOverlay,
   canDeleteCurrentCard = false,
   idleDoneStampEnabled = false,
   onIdleDoneStampDrop,
@@ -253,12 +253,13 @@ export const FloatingControls = forwardRef(function FloatingControls({
       return;
     }
 
+    const pointedRelation = getAddRelationFromPoint(
+      dx,
+      dy,
+      addRelationRef.current,
+    );
     const relation = constrainAddRelation(
-      getAddRelationFromPoint(
-        dx,
-        dy,
-        addRelationRef.current,
-      ),
+      pointedRelation,
       childInsertionOnly,
       parentInsertionBlocked,
     );
@@ -349,7 +350,7 @@ export const FloatingControls = forwardRef(function FloatingControls({
       }
 
       const { dx, dy } = getAddGestureDelta(event, gestureState);
-      if (shouldOpenSettingsPanel(event, gestureState)) {
+      if (!tutorialOverlayActive && shouldOpenSettingsPanel(event, gestureState)) {
         pinSettingsPanel();
         return;
       }
@@ -362,17 +363,18 @@ export const FloatingControls = forwardRef(function FloatingControls({
       }
 
       const { dx, dy } = getAddGestureDelta(event, gestureState);
-      if (shouldOpenSettingsPanel(event, gestureState)) {
+      if (!tutorialOverlayActive && shouldOpenSettingsPanel(event, gestureState)) {
         pinSettingsPanel();
         return;
       }
 
+      const pointedRelation = getAddRelationFromPoint(
+        dx,
+        dy,
+        addRelationRef.current,
+      );
       const relation = constrainAddRelation(
-        getAddRelationFromPoint(
-          dx,
-          dy,
-          addRelationRef.current,
-        ),
+        pointedRelation,
         childInsertionOnly,
         parentInsertionBlocked,
       );
@@ -383,7 +385,9 @@ export const FloatingControls = forwardRef(function FloatingControls({
         return;
       }
 
-      handleModeDoubleTap(dx, dy);
+      if (!tutorialOverlayActive) {
+        handleModeDoubleTap(dx, dy);
+      }
     },
     onPanResponderTerminate: () => {
       resetAddPointing();
@@ -399,6 +403,7 @@ export const FloatingControls = forwardRef(function FloatingControls({
     onRootDoubleTap,
     onToggleMode,
     rootDoubleTapEnabled,
+    tutorialOverlayActive,
     newCardBackgroundColor,
   ]);
 
@@ -628,7 +633,7 @@ export const FloatingControls = forwardRef(function FloatingControls({
       ) : null}
 
       {tutorialOverlayActive ? (
-        <TutorialSpotlight onDismiss={onDismissTutorialOverlay} />
+        <TutorialSpotlight />
       ) : null}
 
       <Animated.View
@@ -809,6 +814,8 @@ export const FloatingControls = forwardRef(function FloatingControls({
           </Animated.View>
         </View>
       </Animated.View>
+
+      {tutorialOverlayActive ? <TutorialSwipeHint /> : null}
     </>
   );
 });

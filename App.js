@@ -1102,6 +1102,9 @@ export default function App() {
 
         setHeldTreeRootId(null);
         setLeafTopIndex(movedIndex);
+        if (isTutorialSpotlightVisible) {
+          handleCompleteFirstCardFocusTutorial();
+        }
       });
       return;
     }
@@ -1118,6 +1121,10 @@ export default function App() {
     setEditingSelection({ start: 0, end: 0 });
     setFocusedCardIndex(nextIndex);
     setLeafTopIndex(nextIndex);
+
+    if (isTutorialSpotlightVisible) {
+      handleCompleteFirstCardFocusTutorial();
+    }
   }
 
   function handleEditCard(index, text) {
@@ -1450,7 +1457,7 @@ export default function App() {
     }
   }
 
-  function handleDismissFirstCardFocusTutorial() {
+  function handleCompleteFirstCardFocusTutorial() {
     setIsTutorialSpotlightVisible(false);
     const nextProgress = completeTutorialStep(
       tutorialProgressRef.current,
@@ -2259,7 +2266,6 @@ export default function App() {
         )}
         tutorialResetting={isResettingTutorial}
         tutorialOverlayActive={isTutorialSpotlightVisible}
-        onDismissTutorialOverlay={handleDismissFirstCardFocusTutorial}
         rootDoubleTapEnabled={Boolean(
           !shouldRenderLeaf
           && focusedCardIndex === null
