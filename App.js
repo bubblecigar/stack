@@ -471,6 +471,7 @@ export default function App() {
   const [isRestoringSession, setIsRestoringSession] = useState(true);
   const [isLoadingUserData, setIsLoadingUserData] = useState(false);
   const [hasLoadedUserData, setHasLoadedUserData] = useState(false);
+  const [isAuthCardTransitionActive, setIsAuthCardTransitionActive] = useState(false);
   const [syncError, setSyncError] = useState('');
   const [editingIndex, setEditingIndex] = useState(null);
   const [editingValue, setEditingValue] = useState('');
@@ -813,6 +814,7 @@ export default function App() {
     setIsRestoringSession(false);
     setIsLoadingUserData(false);
     setHasLoadedUserData(false);
+    setIsAuthCardTransitionActive(false);
     setSyncError('');
     setEditingIndex(null);
     setEditingValue('');
@@ -858,6 +860,8 @@ export default function App() {
     setAuthToken(result.token);
     setAuthUser(result.user);
     setHasLoadedUserData(false);
+    setIsAuthCardTransitionActive(true);
+    setIsLoadingUserData(true);
     setSyncError('');
     hasLoadedRemoteCards.current = false;
     restoredUiStateUserIdRef.current = null;
@@ -1039,6 +1043,7 @@ export default function App() {
         if (isMounted) {
           setIsLoadingUserData(false);
           setHasLoadedUserData(true);
+          setIsAuthCardTransitionActive(false);
         }
       }
     }
@@ -2167,7 +2172,12 @@ export default function App() {
     !fontsLoaded
     || isRestoringSession
     || (authToken && !authUser)
-    || (authToken && authUser && !hasLoadedUserData)
+    || (
+      authToken
+      && authUser
+      && !hasLoadedUserData
+      && !isAuthCardTransitionActive
+    )
   ) {
     return (
       <>
@@ -2184,10 +2194,17 @@ export default function App() {
     );
   }
 
-  if (!authToken || !authUser) {
+  if (
+    !authToken
+    || !authUser
+    || (isAuthCardTransitionActive && !hasLoadedUserData)
+  ) {
     return (
       <>
-        <AuthScreen onAuthenticated={handleAuthenticated} />
+        <AuthScreen
+          onAuthenticated={handleAuthenticated}
+          showLoadingSpinner={Boolean(authToken && authUser)}
+        />
         <StatusBar style="dark" />
       </>
     );

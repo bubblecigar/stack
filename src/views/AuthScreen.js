@@ -1,7 +1,12 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
+  Dimensions,
+  Easing,
+  Keyboard,
   Pressable,
+  ScrollView,
   Text,
   TextInput,
   View,
@@ -14,7 +19,10 @@ import {
 } from '../lib/apiClient';
 import { styles } from '../styles/appStyles';
 
-export function AuthScreen({ onAuthenticated }) {
+const AUTH_CARD_DOCK_DURATION_MS = 460;
+const AUTH_CARD_OPEN_OFFSET_Y = -(Dimensions.get('window').height / 2 + 150);
+
+export function AuthScreen({ onAuthenticated, showLoadingSpinner = false }) {
   const [mode, setMode] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -22,6 +30,7 @@ export function AuthScreen({ onAuthenticated }) {
   const [statusMessage, setStatusMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const cardOpenProgress = useRef(new Animated.Value(1)).current;
 
   const isSignup = mode === 'signup';
   const isForgotPassword = mode === 'forgot';
@@ -60,6 +69,15 @@ export function AuthScreen({ onAuthenticated }) {
         ? await register(email, password)
         : await login(email, password);
 
+      Keyboard.dismiss();
+      await new Promise((resolve) => {
+        Animated.timing(cardOpenProgress, {
+          toValue: 0,
+          duration: AUTH_CARD_DOCK_DURATION_MS,
+          easing: Easing.inOut(Easing.cubic),
+          useNativeDriver: true,
+        }).start(resolve);
+      });
       onAuthenticated(result);
     } catch (error) {
       setErrorMessage(error.message || 'Authentication failed.');
@@ -93,117 +111,181 @@ export function AuthScreen({ onAuthenticated }) {
 
   return (
     <View style={styles.authContainer}>
-      <View style={styles.authPanel}>
-        <Text style={styles.authTitle}>{title}</Text>
-        <TextInput
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType="email-address"
-          onChangeText={setEmail}
-          placeholder="Email"
-          placeholderTextColor="#94A3B8"
-          returnKeyType="next"
-          style={styles.authInput}
-          value={email}
-        />
-        {isResetPassword ? (
-          <TextInput
-            autoCapitalize="none"
-            autoCorrect={false}
-            onChangeText={setResetCode}
-            placeholder="Reset code"
-            placeholderTextColor="#94A3B8"
-            returnKeyType="next"
-            style={styles.authInput}
-            value={resetCode}
-          />
-        ) : null}
-        {!isForgotPassword ? (
-          <TextInput
-            autoCapitalize="none"
-            autoCorrect={false}
-            onChangeText={setPassword}
-            onSubmitEditing={handleSubmit}
-            placeholder={isResetPassword ? 'New password' : 'Password'}
-            placeholderTextColor="#94A3B8"
-            returnKeyType="done"
-            secureTextEntry
-            style={styles.authInput}
-            value={password}
-          />
-        ) : null}
-        {statusMessage ? (
-          <Text style={styles.authStatus}>{statusMessage}</Text>
-        ) : null}
-        {errorMessage ? (
-          <Text style={styles.authError}>{errorMessage}</Text>
-        ) : null}
-        <Pressable
-          accessibilityRole="button"
-          disabled={isSubmitting}
-          onPress={handleSubmit}
-          style={({ pressed }) => [
-            styles.authPrimaryButton,
-            pressed && styles.authPrimaryButtonPressed,
-            isSubmitting && styles.authButtonDisabled,
-          ]}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={styles.authPrimaryButtonText}>
-              {isSignup
-                ? 'Create account'
-                : isForgotPassword
-                  ? 'Send reset code'
-                  : isResetPassword
-                    ? 'Update password'
-                    : 'Login'}
-            </Text>
-          )}
-        </Pressable>
-        {mode === 'login' ? (
-          <>
-            <Pressable
-              accessibilityRole="button"
-              disabled={isSubmitting}
-              onPress={showForgotPassword}
-              style={styles.authSecondaryButton}
-            >
-              <Text style={styles.authSecondaryButtonText}>Forgot password?</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              disabled={isSubmitting}
-              onPress={toggleMode}
-              style={styles.authSecondaryButton}
-            >
-              <Text style={styles.authSecondaryButtonText}>Create new account</Text>
-            </Pressable>
-          </>
-        ) : (
-          <>
-            {isForgotPassword ? (
-              <Pressable
-                accessibilityRole="button"
-                disabled={isSubmitting}
-                onPress={showResetPassword}
-                style={styles.authSecondaryButton}
+      {showLoadingSpinner ? (
+        <View style={styles.authLoadingUnderlay}>
+          <ActivityIndicator color="#2563EB" size="large" />
+        </View>
+      ) : null}
+      <Animated.View
+        style={[
+          styles.addFloatingControl,
+          styles.authCardFloatingControl,
+          {
+            transform: [
+              { translateX: -180 },
+              {
+                translateY: cardOpenProgress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, AUTH_CARD_OPEN_OFFSET_Y],
+                }),
+              },
+            ],
+          },
+        ]}
+      >
+        <View style={styles.addCardControl}>
+          <Animated.View
+            style={[
+              styles.addCardButtonShell,
+              {
+                transform: [{
+                  rotate: cardOpenProgress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['45deg', '0deg'],
+                  }),
+                }],
+              },
+            ]}
+          >
+            <View style={[styles.addCardButton, styles.authSettingsCard]}>
+              <Animated.View
+                pointerEvents={isSubmitting ? 'none' : 'auto'}
+                style={[
+                  styles.authCardContent,
+                  {
+                    opacity: cardOpenProgress.interpolate({
+                      inputRange: [0, 0.24, 1],
+                      outputRange: [0, 0, 1],
+                    }),
+                  },
+                ]}
               >
-                <Text style={styles.authSecondaryButtonText}>I have a reset code</Text>
-              </Pressable>
-            ) : null}
-            <Pressable
-              accessibilityRole="button"
-              disabled={isSubmitting}
-              onPress={showLogin}
-              style={styles.authSecondaryButton}
-            >
-              <Text style={styles.authSecondaryButtonText}>Back to login</Text>
-            </Pressable>
-          </>
-        )}
-      </View>
+                <ScrollView
+                  contentContainerStyle={styles.authCardScrollContent}
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={false}
+                  style={styles.authCardScroll}
+                >
+                  <View style={styles.authPanel}>
+                    <Text style={styles.authTitle}>{title}</Text>
+                    <TextInput
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      editable={!isSubmitting}
+                      keyboardType="email-address"
+                      onChangeText={setEmail}
+                      placeholder="Email"
+                      placeholderTextColor="#94A3B8"
+                      returnKeyType="next"
+                      style={styles.authInput}
+                      value={email}
+                    />
+                    {isResetPassword ? (
+                      <TextInput
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        editable={!isSubmitting}
+                        onChangeText={setResetCode}
+                        placeholder="Reset code"
+                        placeholderTextColor="#94A3B8"
+                        returnKeyType="next"
+                        style={styles.authInput}
+                        value={resetCode}
+                      />
+                    ) : null}
+                    {!isForgotPassword ? (
+                      <TextInput
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        editable={!isSubmitting}
+                        onChangeText={setPassword}
+                        onSubmitEditing={handleSubmit}
+                        placeholder={isResetPassword ? 'New password' : 'Password'}
+                        placeholderTextColor="#94A3B8"
+                        returnKeyType="done"
+                        secureTextEntry
+                        style={styles.authInput}
+                        value={password}
+                      />
+                    ) : null}
+                    {statusMessage ? (
+                      <Text style={styles.authStatus}>{statusMessage}</Text>
+                    ) : null}
+                    {errorMessage ? (
+                      <Text style={styles.authError}>{errorMessage}</Text>
+                    ) : null}
+                    <Pressable
+                      accessibilityRole="button"
+                      disabled={isSubmitting}
+                      onPress={handleSubmit}
+                      style={({ pressed }) => [
+                        styles.authPrimaryButton,
+                        pressed && styles.authPrimaryButtonPressed,
+                        isSubmitting && styles.authButtonDisabled,
+                      ]}
+                    >
+                      {isSubmitting ? (
+                        <ActivityIndicator color="#FFFFFF" />
+                      ) : (
+                        <Text style={styles.authPrimaryButtonText}>
+                          {isSignup
+                            ? 'Create account'
+                            : isForgotPassword
+                              ? 'Send reset code'
+                              : isResetPassword
+                                ? 'Update password'
+                                : 'Login'}
+                        </Text>
+                      )}
+                    </Pressable>
+                    {mode === 'login' ? (
+                      <View style={styles.authSecondaryRow}>
+                        <Pressable
+                          accessibilityRole="button"
+                          disabled={isSubmitting}
+                          onPress={showForgotPassword}
+                          style={styles.authSecondaryButton}
+                        >
+                          <Text style={styles.authSecondaryButtonText}>Forgot password?</Text>
+                        </Pressable>
+                        <Pressable
+                          accessibilityRole="button"
+                          disabled={isSubmitting}
+                          onPress={toggleMode}
+                          style={styles.authSecondaryButton}
+                        >
+                          <Text style={styles.authSecondaryButtonText}>Create account</Text>
+                        </Pressable>
+                      </View>
+                    ) : (
+                      <View style={styles.authSecondaryRow}>
+                        {isForgotPassword ? (
+                          <Pressable
+                            accessibilityRole="button"
+                            disabled={isSubmitting}
+                            onPress={showResetPassword}
+                            style={styles.authSecondaryButton}
+                          >
+                            <Text style={styles.authSecondaryButtonText}>I have a code</Text>
+                          </Pressable>
+                        ) : null}
+                        <Pressable
+                          accessibilityRole="button"
+                          disabled={isSubmitting}
+                          onPress={showLogin}
+                          style={styles.authSecondaryButton}
+                        >
+                          <Text style={styles.authSecondaryButtonText}>Back to login</Text>
+                        </Pressable>
+                      </View>
+                    )}
+                  </View>
+                </ScrollView>
+              </Animated.View>
+            </View>
+          </Animated.View>
+        </View>
+      </Animated.View>
     </View>
   );
 }
